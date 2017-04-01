@@ -42,7 +42,7 @@ if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
 models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS"]
-models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2014)","Kawaguchi et al. (2016)"]
+models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)"]
 
 names = opts.name.split(",")
 filenames = []
