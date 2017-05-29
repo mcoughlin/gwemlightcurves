@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, glob
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
@@ -18,6 +18,7 @@ def parse_commandline():
 
     parser.add_option("-d","--dataDir",default="lightcurves")
     parser.add_option("--doGWs",  action="store_true", default=False)
+    parser.add_option("--doModels",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -54,41 +55,53 @@ if opts.doGWs:
     filename = "%s/lightcurves_gw.tmp"%dataDir
 else:
     filename = "%s/lightcurves.tmp"%dataDir
-data = loadLightcurves(filename)
-for name in data.iterkeys():
 
-    data_out = data[name]
-    mags = {}
-    shapes = {}
-    filters = []
-    for ii,key in enumerate(data_out.iterkeys()):
-        if ii == 0:
-            samples = data_out[key].copy()
+if opts.doModels:
+    filenames = glob.glob("output/BHNS/*.dat")
+    for filename in filenames:
+        name = filename.split("/")[-1].replace(".dat","")
+        system_call = "python run_lightcurves_bhns.py --name %s --doModels"%(name)
+        os.system(system_call)
+else:
+    data = loadLightcurves(filename)
+    for name in data.iterkeys():
+
+        data_out = data[name]
+        mags = {}
+        shapes = {}
+        filters = []
+        for ii,key in enumerate(data_out.iterkeys()):
+            if ii == 0:
+                samples = data_out[key].copy()
+            else:
+                samples = np.vstack((samples,data_out[key].copy()))
+            filters.append(key)
+
+            mags[key] = np.min(data_out[key][:,1])
+            F1 = data_out[key][0,1]
+            t1 = data_out[key][0,0]
+            F2 = data_out[key][-1,1]
+            t2 = data_out[key][-1,0]
+            shapes[key] = (1/F1)*((F2-F1)/(t2-t1))
+
+        tt = np.sort(samples[:,0])
+        ttmin = np.min(tt)
+        ttmax = np.max(tt)
+
+        ttdiff = ttmax - ttmin
+
+        cut10 = ttdiff <= 20
+        if not cut10: continue
+        cut0a = len(filters) > 1
+        if not cut0a: continue
+
+        plotDir = "plots/lightcurves_BHNS/%s"%name
+        filename = os.path.join(plotDir,'samples.dat')
+        if os.path.isfile(filename): continue
+
+        if opts.doGWs:
+            system_call = "python run_lightcurves_bhns.py --name %s --doGWs"%(name)
         else:
-            samples = np.vstack((samples,data_out[key].copy()))
-        filters.append(key)
-
-        mags[key] = np.min(data_out[key][:,1])
-        F1 = data_out[key][0,1]
-        t1 = data_out[key][0,0]
-        F2 = data_out[key][-1,1]
-        t2 = data_out[key][-1,0]
-        shapes[key] = (1/F1)*((F2-F1)/(t2-t1))
-
-    tt = np.sort(samples[:,0])
-    ttmin = np.min(tt)
-    ttmax = np.max(tt)
-
-    ttdiff = ttmax - ttmin
-
-    cut10 = ttdiff <= 20
-    if not cut10: continue
-    cut0a = len(filters) > 1
-    if not cut0a: continue
-
-    if opts.doGWs:
-        system_call = "python run_lightcurves_bhns.py --name %s --doGWs"%(name)
-    else:
-        system_call = "python run_lightcurves_bhns.py --name %s"%(name)
-    os.system(system_call)
+            system_call = "python run_lightcurves_bhns.py --name %s"%(name)
+        os.system(system_call)
 

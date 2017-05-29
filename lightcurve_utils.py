@@ -16,9 +16,9 @@ def read_files(files,tmin=-100.0,tmax=100.0):
     names = []
     mags = {}
     for filename in files:
-        name = filename.replace(".txt","").split("/")[-1]
+        name = filename.replace(".txt","").replace(".dat","").split("/")[-1]
         mag_d = np.loadtxt(filename)
-        mag_d = mag_d[1:,:]
+        #mag_d = mag_d[1:,:]
 
         t = mag_d[:,0]
         g = mag_d[:,1]

@@ -11,6 +11,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
 import pymultinest
+import lightcurve_utils
 
 def parse_commandline():
     """
@@ -23,6 +24,7 @@ def parse_commandline():
     parser.add_option("-d","--dataDir",default="lightcurves")
     parser.add_option("-n","--name",default="PS1-13cyr")
     parser.add_option("--doGWs",  action="store_true", default=False)
+    parser.add_option("--doModels",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -85,6 +87,24 @@ def loadLightcurves(filename):
 
     return data
 
+def loadModels(name):
+
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)"]
+
+    filenames = []
+    legend_names = []
+    for ii,model in enumerate(models):
+        filename = '%s/%s/%s.dat'%(outputDir,model,name)
+        if not os.path.isfile(filename):
+            continue
+        filenames.append(filename)
+        legend_names.append(models_ref[ii])
+        break
+    mags, names = lightcurve_utils.read_files(filenames)
+
+    return mags
+
 # Parse command line
 opts = parse_commandline()
 
@@ -92,6 +112,7 @@ baseoutputDir = opts.outputDir
 if not os.path.isdir(baseoutputDir):
     os.mkdir(baseoutputDir)
 outputDir = os.path.join(baseoutputDir,'lightcurves')
+outputDir = baseoutputDir
 if not os.path.isdir(outputDir):
     os.mkdir(outputDir)
 
@@ -110,23 +131,30 @@ if opts.doGWs:
     filename = "%s/lightcurves_gw.tmp"%dataDir
 else:
     filename = "%s/lightcurves.tmp"%dataDir
-data_out = loadLightcurves(filename)
-if not opts.name in data_out:
-    print "%s not in file..."%opts.name
-    exit(0)
 
-data_out = data_out[opts.name]
+if opts.doModels:
+    data_out = loadModels(opts.name)
+    print data_out
+    print stop
 
-for ii,key in enumerate(data_out.iterkeys()):
-    if ii == 0:
-        samples = data_out[key].copy()
-    else:
-        samples = np.vstack((samples,data_out[key].copy()))
-idx = np.argmin(samples[:,0])
-t0_save = samples[idx,0] -  1.0
-samples[:,0] = samples[:,0] - t0_save
-idx = np.argsort(samples[:,0])
-samples = samples[idx,:]
+else:
+    data_out = loadLightcurves(filename)
+    if not opts.name in data_out:
+        print "%s not in file..."%opts.name
+        exit(0)
+
+    data_out = data_out[opts.name]
+
+    for ii,key in enumerate(data_out.iterkeys()):
+        if ii == 0:
+            samples = data_out[key].copy()
+        else:
+            samples = np.vstack((samples,data_out[key].copy()))
+    idx = np.argmin(samples[:,0])
+    t0_save = samples[idx,0] -  1.0
+    samples[:,0] = samples[:,0] - t0_save
+    idx = np.argsort(samples[:,0])
+    samples = samples[idx,:]
 
 parameters = ["c","b","tc","t0"]
 n_params = len(parameters)
