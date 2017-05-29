@@ -1,4 +1,7 @@
 
+# Modified from: http://www2.yukawa.kyoto-u.ac.jp/~kyohei.kawaguchi/kn_calc/main.html
+# Reference: Kawaguchi et al. https://arxiv.org/abs/1601.07711
+
 import numpy as np
 
 def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns):
