@@ -54,14 +54,14 @@ dt = 0.1
 
 vave = 0.267
 vmin = 0.02
-th = 1.03
-ph = 6.49
+th = 0.2
+ph = 3.14
 kappa = 10.0
 eps = 1.58*(10**10)
-alp = 1.3
+alp = 1.2
 eth = 0.5
 
-flagbct = 1
+flagbct = 0
 
 t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb,c,m2,mb,c,flagbct)
 

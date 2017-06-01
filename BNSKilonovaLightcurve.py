@@ -70,7 +70,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     dc=0    
 
     t=np.max([tini,2.*(mej*100)**(1.0/3.2)])
-    #t = tini
+    t = tini
 
     mag_d = {}
     for ii in xrange(8):
