@@ -3,6 +3,7 @@ import os, sys, glob
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
+import scipy.stats
 
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -26,6 +27,7 @@ def parse_commandline():
     parser.add_option("-n","--name",default="PS1-13cyr")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("--doReduced",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -60,7 +62,7 @@ def bhns_model(q,chi,c,mb):
     mns = 1.35
     
     tini = 0.1
-    tmax = 21.0
+    tmax = 50.0
     dt = 0.1
     
     vave = 0.267
@@ -85,12 +87,13 @@ def get_post_file(basedir):
     return filename
 
 def myprior(cube, ndim, nparams):
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*40.0 - 20.0
         cube[1] = cube[1]*9.0 + 1.0
         cube[2] = cube[2]*0.9
         cube[3] = cube[3]*0.1 + 0.1
         cube[4] = cube[4]*0.04 + 1.46
-        cube[5] = cube[5]*10.0 - 5.0
+        cube[5] = cube[5]*20.0 - 10.0
+        #cube[5] = cube[5]*5.0 - 2.5
 
 def myprior_targeted(cube, ndim, nparams):
         cube[0] = cube[0]*1.0 - 0.5
@@ -134,6 +137,8 @@ def myloglike(cube, ndim, nparams):
         #mb = 1.49
         #q = 3.0
         #chi = 0.3
+        #t0 = 0.0
+        #zp = 0.0
 
         tmag, lbol, mag = bhns_model(q,chi,c,mb)
         if np.sum(lbol) == 0.0:
@@ -168,21 +173,29 @@ def myloglike(cube, ndim, nparams):
                 continue
 
             maginterp = maginterp + zp
+            chisquarevals = ((y-maginterp)/sigma_y)**2
+            #idx = np.where(~np.isnan(chisquarevals))[0]
+            #chisquarevals = chisquarevals[idx] 
+            chisquaresum = np.sum(chisquarevals)
 
-            if np.isnan(np.sum(maginterp)):
+            if np.isnan(chisquaresum):
                 chisquare = np.nan
                 break
 
             if count == 0:
-                chisquare = np.sum(((y-maginterp)/sigma_y)**2)
+                chisquare = chisquaresum
             else:
-                chisquare = chisquare + np.sum(((y-maginterp)/sigma_y)**2)
+                chisquare = chisquare + chisquaresum
+            #count = count + len(chisquarevals)
             count = count + 1
+
         if np.isnan(chisquare): 
             prob = -np.inf
         else:
-            prob = -chisquare/2.0
+            prob = scipy.stats.chi2.logpdf(chisquare, count, loc=0, scale=1)
+            #prob = -chisquare/2.0
             #prob = chisquare
+            #prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
 
         if np.isnan(prob):
             prob = -np.inf
@@ -241,6 +254,12 @@ if not os.path.isdir(baseoutputDir):
 outputDir = os.path.join(baseoutputDir,'lightcurves_BHNS')
 if not os.path.isdir(outputDir):
     os.mkdir(outputDir)
+if opts.doReduced:
+    outputDir = os.path.join(outputDir,"%s_reduced"%opts.name)
+else:
+    outputDir = os.path.join(outputDir,opts.name)
+if not os.path.isdir(outputDir):
+    os.mkdir(outputDir)
 
 baseplotDir = opts.plotDir
 if not os.path.isdir(baseplotDir):
@@ -248,7 +267,10 @@ if not os.path.isdir(baseplotDir):
 plotDir = os.path.join(baseplotDir,'lightcurves_BHNS')
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
-plotDir = os.path.join(plotDir,opts.name)
+if opts.doReduced:
+    plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
+else:
+    plotDir = os.path.join(plotDir,opts.name)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 dataDir = opts.dataDir
@@ -257,6 +279,9 @@ if opts.doGWs:
     filename = "%s/lightcurves_gw.tmp"%dataDir
 else:
     filename = "%s/lightcurves.tmp"%dataDir
+
+errorbudget = 1.0
+maxt = 14.0
 
 if opts.doModels:
     data_out = loadModels(opts.name)
@@ -270,7 +295,26 @@ if opts.doModels:
         if key == "t":
             continue
         else:
-            data_out[key] = np.vstack((data_out["t"],data_out[key],0.01*np.ones(data_out["t"].shape))).T
+            data_out[key] = np.vstack((data_out["t"],data_out[key],errorbudget*np.ones(data_out["t"].shape))).T
+
+    idxs = np.where(data_out["t"]<=maxt)[0]
+    for ii,key in enumerate(data_out.iterkeys()):
+        if key == "t":
+            continue
+        else:
+            data_out[key] = data_out[key][idxs,:]
+
+    if opts.doReduced:
+        ts = np.array([1.0, 1.25, 1.5, 2.0, 2.5, 5, 10])
+        idxs = []
+        for t in ts:
+            idxs.append(np.argmin(np.abs(data_out["t"]-t)))
+        for ii,key in enumerate(data_out.iterkeys()):
+            if key == "t":
+                continue
+            else:
+                data_out[key] = data_out[key][idxs,:]
+
     del data_out["t"]
 
     for ii,key in enumerate(data_out.iterkeys()):
@@ -378,6 +422,9 @@ plt.plot(tmag,mag[2]+zp_best,'g--',label='model r-band')
 plt.plot(tmag,mag[3]+zp_best,'b--',label='model i-band')
 plt.plot(tmag,mag[4]+zp_best,'c--',label='model z-band')
 plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
+
+plt.xlim([0.0, 21.0])
+plt.ylim([-15.0,5.0])
 
 plt.xlabel('Time [days]')
 plt.ylabel('AB Magnitude')
