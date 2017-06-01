@@ -169,12 +169,12 @@ def myloglike_bns(cube, ndim, nparams):
         mb = cube[4]
         zp = cube[5]
 
-        c = 0.147
-        mb = 1.47
-        m1 = 1.35
-        m2 = 1.35
-        t0 = 0.0
-        zp = 0.0
+        #c = 0.147
+        #mb = 1.47
+        #m1 = 1.35
+        #m2 = 1.35
+        #t0 = 0.0
+        #zp = 0.0
 
         tmag, lbol, mag = bns_model(m1,m2,c,mb)
 
