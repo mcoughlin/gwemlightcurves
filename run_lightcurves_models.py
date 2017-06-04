@@ -132,7 +132,7 @@ def myprior_bhns(cube, ndim, nparams):
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bns(cube, ndim, nparams):
-        cube[0] = cube[0]*40.0 - 20.0
+        cube[0] = cube[0]*5.0 - 2.5
         cube[1] = cube[1]*0.1 + 1.3
         cube[2] = cube[2]*0.1 + 1.3
         cube[3] = cube[3]*0.1 + 0.1
@@ -238,14 +238,17 @@ def calc_prob(tmag, lbol, mag, t0,zp):
 
             maginterp = maginterp + zp
             chisquarevals = ((y-maginterp)/sigma_y)**2
-            #idx = np.where(~np.isnan(chisquarevals))[0]
-            #chisquarevals = chisquarevals[idx] 
+            idx = np.where(~np.isnan(chisquarevals))[0]
+            if float(len(idx))/float(len(chisquarevals)) > 0.5:
+                chisquarevals = chisquarevals[idx] 
             chisquaresum = np.sum(chisquarevals)
 
             if np.isnan(chisquaresum):
                 chisquare = np.nan
                 break
 
+            chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
+            #print chisquaresum
             if count == 0:
                 chisquare = chisquaresum
             else:
@@ -620,7 +623,7 @@ elif opts.model == "BNS":
     plt.xlabel('Mass 1 [solar masses]')
     plt.ylabel('Probability Density Function')
     plt.show()
-    plotName = os.path.join(plotDir,'q.pdf')
+    plotName = os.path.join(plotDir,'m1.pdf')
     plt.savefig(plotName,dpi=200)
     plt.close('all')
 
@@ -630,7 +633,7 @@ elif opts.model == "BNS":
     plt.xlabel('Mass 2 [solar masses]')
     plt.ylabel('Probability Density Function')
     plt.show()
-    plotName = os.path.join(plotDir,'chi.pdf')
+    plotName = os.path.join(plotDir,'m2.pdf')
     plt.savefig(plotName,dpi=200)
     plt.close('all')
 

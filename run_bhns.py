@@ -23,6 +23,10 @@ def parse_commandline():
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=5.0,type=float)
     parser.add_option("-a","--chi",default=0.9,type=float) 
+    parser.add_option("-b","--mej",default=0.005,type=float)
+    parser.add_option("-c","--vej",default=0.2,type=float)
+    parser.add_option("--doMasses",  action="store_true", default=False)
+    parser.add_option("--doEjecta",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
  
@@ -33,6 +37,8 @@ opts = parse_commandline()
  
 q = opts.massratio
 chi = opts.chi
+mej = opts.mej
+vej = opts.vej
 i = 60.0
 
 if opts.eos == "APR4":
@@ -63,13 +69,16 @@ eps = 1.58*(10**10)
 alp = 1.2
 eth = 0.5
 
-t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)
+if opts.doEjecta:
+    t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
+    name = "BHNS_%sM%04dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
+elif opts.doMasses:
+    t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)
+    name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi*100)
 
 if np.sum(lbol) == 0.0:
     print "No luminosity..."
     exit(0)
-
-name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi*100)
 
 baseoutputDir = opts.outputDir
 if not os.path.isdir(baseoutputDir):
