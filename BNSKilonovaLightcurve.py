@@ -85,7 +85,10 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
       bc_tmp=getBC(td,bc,bct,tt,flgbct)
 
       for ii in xrange(8):
-        mag_d[ii] = np.append(mag_d[ii],mbol-bc_tmp[ii])
+        if t > 2.*(mej*100)**(1.0/3.2):
+          mag_d[ii] = np.append(mag_d[ii],mbol-bc_tmp[ii])
+        else:
+          mag_d[ii] = np.append(mag_d[ii],np.nan)
 
       t=t+dt
 

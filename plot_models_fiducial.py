@@ -23,8 +23,11 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="plots")
 
     #parser.add_option("-n","--name",default="a80_leak_HR,ALF2Q3a30,bp_CaFN_hv_h,Ia_1994D")
-    parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M0005V02,BNS_H4M0005V02")
-    parser.add_option("-f","--outputName",default="fiducial")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M0005V02,BNS_H4M0005V02")
+    #parser.add_option("-f","--outputName",default="fiducial")
+    parser.add_option("-n","--name",default="rpft_m05_v2,BHNS_H4M0050V02,BNS_H4M0050V02")
+    parser.add_option("-f","--outputName",default="fiducial_m05_v2")
+
 
     opts, args = parser.parse_args()
 
@@ -67,7 +70,8 @@ for ii,name in enumerate(names):
     index2 = int(len(indexes)/2)
     offset = -mag_d["g"][index2] + ii*3
     offset = 0.0
-    t = mag_d["t"] - mag_d["t"][index1]
+    t = mag_d["t"]
+    #t = mag_d["t"] - mag_d["t"][index1]
     #offset = -mag_d["g"][index1]
     linestyle = "%s-"%colors[ii]
     plt.semilogx(t,mag_d["z"]+offset,linestyle,label=legend_names[ii])
@@ -83,6 +87,7 @@ plt.legend(loc="best")
 #plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 #           ncol=2, mode="expand", borderaxespad=0.)
 #plt.ylim([-5,20])
+plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()

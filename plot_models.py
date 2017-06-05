@@ -83,6 +83,7 @@ plt.legend(loc="best")
 #plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
 #           ncol=2, mode="expand", borderaxespad=0.)
 #plt.ylim([-5,20])
+plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()

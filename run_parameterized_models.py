@@ -95,6 +95,9 @@ elif opts.model == "BNS":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
+else:
+   print "Model must be either: BHNS, BNS"
+   exit(0)
 
 if np.sum(lbol) == 0.0:
     print "No luminosity..."
