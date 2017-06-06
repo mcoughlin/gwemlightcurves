@@ -9,8 +9,7 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
-import BNSKilonovaLightcurve 
-import BHNSKilonovaLightcurve
+import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2
 
 def parse_commandline():
     """
@@ -24,10 +23,14 @@ def parse_commandline():
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=5.0,type=float)
     parser.add_option("-a","--chi",default=0.9,type=float) 
-    parser.add_option("-b","--mej",default=0.005,type=float)
-    parser.add_option("-c","--vej",default=0.2,type=float)
-    parser.add_option("-d","--m1",default=1.35,type=float)
-    parser.add_option("-f","--m2",default=1.35,type=float)
+    parser.add_option("--mej",default=0.005,type=float)
+    parser.add_option("--vej",default=0.2,type=float)
+    parser.add_option("--m1",default=1.35,type=float)
+    parser.add_option("--m2",default=1.35,type=float)
+    parser.add_option("-z","--redshift",default=0.5,type=float)
+    parser.add_option("--x0",default=1.0,type=float)
+    parser.add_option("--x1",default=1.0,type=float)
+    parser.add_option("-c","--c",default=1.0,type=float)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
 
@@ -95,8 +98,13 @@ elif opts.model == "BNS":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
+elif opts.model == "SN":
+    t0 = (tini+tmax)/2.0
+    t0 = 0.0
+    t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,opts.redshift,t0,opts.x0,opts.x1,opts.c)
+    name = "z%.0fx0%.0fx1%.0fc%.0f"%(opts.redshift*100,opts.x0*10000,opts.x1*10000,opts.c*10000)
 else:
-   print "Model must be either: BHNS, BNS"
+   print "Model must be either: BHNS, BNS, SN"
    exit(0)
 
 if np.sum(lbol) == 0.0:

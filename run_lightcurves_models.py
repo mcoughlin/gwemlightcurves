@@ -11,8 +11,10 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
+import corner
+
 import pymultinest
-import BHNSKilonovaLightcurve, BNSKilonovaLightcurve
+import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
 import lightcurve_utils
 
 def parse_commandline():
@@ -29,10 +31,23 @@ def parse_commandline():
     parser.add_option("--doModels",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("--doMasses",  action="store_true", default=False)
+    parser.add_option("--doEjecta",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
     return opts
+
+def plot_results(samples,label,plotName):
+
+    plt.figure(figsize=(12,10))
+    bins1, hist1 = hist_results(samples)
+    plt.plot(bins1, hist1)
+    plt.xlabel(label)
+    plt.ylabel('Probability Density Function')
+    plt.show()
+    plt.savefig(plotName,dpi=200)
+    plt.close('all')
 
 def hist_results(samples):
 
@@ -47,19 +62,6 @@ def bhns_model(q,chi,c,mb):
 
     i = 60.0
 
-    #if opts.eos == "APR4":
-    #    c = 0.180
-    #    mb = 1.50
-    #elif opts.eos == "ALF2":
-    #    c = 0.161
-    #    mb = 1.49
-    #elif opts.eos == "H4":
-    #    c = 0.147
-    #    mb = 1.47
-    #elif opts.eos == "MS1":
-    #    c = 0.138
-    #    mb = 1.46
-    
     mns = 1.35
     
     tini = 0.1
@@ -79,22 +81,32 @@ def bhns_model(q,chi,c,mb):
 
     return t, lbol, mag
 
-def bns_model(m1,m2,c,mb):
+def bhns_model_ejecta(mej,vej,c,mb):
 
     i = 60.0
 
-    #if opts.eos == "APR4":
-    #    c = 0.180
-    #    mb = 1.50
-    #elif opts.eos == "ALF2":
-    #    c = 0.161
-    #    mb = 1.49
-    #elif opts.eos == "H4":
-    #    c = 0.147
-    #    mb = 1.47
-    #elif opts.eos == "MS1":
-    #    c = 0.138
-    #    mb = 1.46
+    mns = 1.35
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vave = 0.267
+    vmin = 0.02
+    th = 0.2
+    ph = 3.14
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
+
+    return t, lbol, mag
+
+def bns_model(m1,m2,c,mb):
+
+    i = 60.0
 
     tini = 0.1
     tmax = 50.0
@@ -115,6 +127,39 @@ def bns_model(m1,m2,c,mb):
 
     return t, lbol, mag
 
+def bns_model_ejecta(mej,vej,c,mb):
+
+    i = 60.0
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vave = 0.267
+    vmin = 0.02
+    th = 0.2
+    ph = 3.14
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    flgbct = 0
+
+    t, lbol, mag = BNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct)
+
+    return t, lbol, mag
+
+def sn_model(z,t0,x0,x1,c):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,z,t0,x0,x1,c)
+
+    return t, lbol, mag
+
 def get_post_file(basedir):
     filenames = glob.glob(os.path.join(basedir,'2-post*'))
     if len(filenames)>0:
@@ -131,12 +176,36 @@ def myprior_bhns(cube, ndim, nparams):
         cube[4] = cube[4]*0.04 + 1.46
         cube[5] = cube[5]*20.0 - 10.0
 
-def myprior_bns(cube, ndim, nparams):
-        cube[0] = cube[0]*5.0 - 2.5
-        cube[1] = cube[1]*0.1 + 1.3
-        cube[2] = cube[2]*0.1 + 1.3
+def myprior_bhns_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*40.0 - 20.0
+        cube[1] = cube[1]*0.1 + 0.001
+        cube[2] = cube[2]*0.9 + 0.02
         cube[3] = cube[3]*0.1 + 0.1
         cube[4] = cube[4]*0.04 + 1.46
+        cube[5] = cube[5]*20.0 - 10.0
+
+def myprior_bns(cube, ndim, nparams):
+        cube[0] = cube[0]*5.0 - 2.5
+        cube[1] = cube[1]*2.0 + 1
+        cube[2] = cube[2]*2.0 + 1
+        cube[3] = cube[3]*0.1 + 0.1
+        cube[4] = cube[4]*0.04 + 1.46
+        cube[5] = cube[5]*20.0 - 10.0
+
+def myprior_bns_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*5.0 - 2.5
+        cube[1] = cube[1]*0.1 + 0.001
+        cube[2] = cube[2]*0.9 + 0.02
+        cube[3] = cube[3]*0.1 + 0.1
+        cube[4] = cube[4]*0.04 + 1.46
+        cube[5] = cube[5]*20.0 - 10.0
+
+def myprior_sn(cube, ndim, nparams):
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*10.0
+        cube[2] = cube[2]*10.0
+        cube[3] = cube[3]*10.0
+        cube[4] = cube[4]*10.0
         cube[5] = cube[5]*20.0 - 10.0
 
 def foft_model(t,c,b,tc,t0):
@@ -182,6 +251,27 @@ def myloglike_bns(cube, ndim, nparams):
 
         return prob
 
+def myloglike_bns_ejecta(cube, ndim, nparams):
+        t0 = cube[0]
+        mej = cube[1]
+        vej = cube[2]
+        c = cube[3]
+        mb = cube[4]
+        zp = cube[5]
+
+        #c = 0.147
+        #mb = 1.47
+        #m1 = 1.35
+        #m2 = 1.35
+        #t0 = 0.0
+        #zp = 0.0
+
+        tmag, lbol, mag = bns_model_ejecta(mej,vej,c,mb)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+        return prob
+
 def myloglike_bhns(cube, ndim, nparams):
         t0 = cube[0]
         q = cube[1]
@@ -200,6 +290,48 @@ def myloglike_bhns(cube, ndim, nparams):
         tmag, lbol, mag = bhns_model(q,chi,c,mb)
 
         prob = calc_prob(tmag, lbol, mag, t0,zp)
+
+        return prob
+
+def myloglike_bhns_ejecta(cube, ndim, nparams):
+        t0 = cube[0]
+        mej = cube[1]
+        vej = cube[2]
+        c = cube[3]
+        mb = cube[4]
+        zp = cube[5]
+
+        #c = 0.161
+        #mb = 1.49
+        #q = 3.0
+        #chi = 0.3
+        #t0 = 0.0
+        #zp = 0.0
+
+        tmag, lbol, mag = bhns_model_ejecta(mej,vej,c,mb)
+
+        prob = calc_prob(tmag, lbol, mag, t0,zp)
+
+        return prob
+
+def myloglike_sn(cube, ndim, nparams):
+        t0 = cube[0]
+        z = cube[1]
+        x0 = cube[2]
+        x1 = cube[3]
+        c = cube[4]
+        zp = cube[5]
+
+        #z = 0.5
+        #x0 = 1.0
+        #x1 = 1.0
+        #c = 1.0
+        #t0 = 0.0
+        #zp = 0.0
+
+        tmag, lbol, mag = sn_model(z, 0.0 ,x0,x1,c)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
 
         return prob
 
@@ -296,8 +428,8 @@ def loadLightcurves(filename):
 
 def loadModels(name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS","BNS"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS","BNS","SN"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)"]
 
     filenames = []
     legend_names = []
@@ -315,22 +447,9 @@ def loadModels(name):
 # Parse command line
 opts = parse_commandline()
 
-baseoutputDir = opts.outputDir
-if not os.path.isdir(baseoutputDir):
-    os.mkdir(baseoutputDir)
-outputDir = os.path.join(baseoutputDir,'models')
-if not os.path.isdir(outputDir):
-    os.mkdir(outputDir)
-outputDir = os.path.join(baseoutputDir,'models/%s'%opts.model)
-if not os.path.isdir(outputDir):
-    os.mkdir(outputDir)
-
-if opts.doReduced:
-    outputDir = os.path.join(outputDir,"%s_reduced"%opts.name)
-else:
-    outputDir = os.path.join(outputDir,opts.name)
-if not os.path.isdir(outputDir):
-    os.mkdir(outputDir)
+if not opts.model in ["BHNS", "BNS", "SN"]:
+   print "Model must be either: BHNS, BNS, SN"
+   exit(0)
 
 baseplotDir = opts.plotDir
 if not os.path.isdir(baseplotDir):
@@ -341,6 +460,13 @@ if not os.path.isdir(plotDir):
 plotDir = os.path.join(baseplotDir,'models/%s'%opts.model)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
+if opts.model in ["BNS","BHNS"]:
+    if opts.doMasses:
+        plotDir = os.path.join(baseplotDir,'models/%s/masses'%opts.model)
+    elif opts.doEjecta:
+        plotDir = os.path.join(baseplotDir,'models/%s/ejecta'%opts.model)
+    if not os.path.isdir(plotDir):
+        os.mkdir(plotDir)
 
 if opts.doReduced:
     plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
@@ -429,13 +555,37 @@ else:
     for ii,key in enumerate(data_out.iterkeys()):
         data_out[key][:,0] = data_out[key][:,0] - t0_save
 
-parameters = ["t0","q","chi","c","mb","zp"]
-n_params = len(parameters)
+if opts.model in ["BHNS","BNS"]:
 
-if opts.model == "BHNS":
-    pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
-elif opts.model == "BNS":
-    pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+    if opts.doMasses:
+        if opts.model == "BHNS":
+            parameters = ["t0","q","chi","c","mb","zp"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+        elif opts.model == "BNS":
+            parameters = ["t0","m1","m2","c","mb","zp"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+    elif opts.doEjecta:
+        if opts.model == "BHNS":
+            parameters = ["t0","mej","vej","c","mb","zp"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bhns_ejecta, myprior_bhns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+        elif opts.model == "BNS":
+            parameters = ["t0","mej","vej","c","mb","zp"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
+
+elif opts.model in ["SN"]:
+
+    parameters = ["t0","z","x0","x1","c","zp"]
+    n_params = len(parameters)
+
+    pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 500, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+
 
 # lets analyse the results
 a = pymultinest.Analyzer(n_params = n_params, outputfiles_basename='%s/2-'%plotDir)
@@ -460,44 +610,115 @@ data = np.loadtxt(multifile)
 #idx = np.argmax(loglikelihood)
 
 if opts.model == "BHNS":
+    if opts.doMasses:
+        t0 = data[:,0]
+        q = data[:,1]
+        chi = data[:,2]
+        c = data[:,3]
+        mb = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
 
-    t0 = data[:,0]
-    q = data[:,1]
-    chi = data[:,2]
-    c = data[:,3]
-    mb = data[:,4]
-    zp = data[:,5]
-    loglikelihood = data[:,6]
-    idx = np.argmax(loglikelihood)
+        t0_best = data[idx,0]
+        q_best = data[idx,1]
+        chi_best = data[idx,2]
+        c_best = data[idx,3]
+        mb_best = data[idx,4]
+        zp_best = data[idx,5]
 
-    t0_best = data[idx,0]
-    q_best = data[idx,1]
-    chi_best = data[idx,2]
-    c_best = data[idx,3]
-    mb_best = data[idx,4]
-    zp_best = data[idx,5]
+        tmag, lbol, mag = bhns_model(q_best,chi_best,c_best,mb_best)
+    elif opts.doEjecta:
+        t0 = data[:,0]
+        mej = data[:,1]
+        vej = data[:,2]
+        c = data[:,3]
+        mb = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
 
-    tmag, lbol, mag = bhns_model(q_best,chi_best,c_best,mb_best)
+        t0_best = data[idx,0]
+        mej_best = data[idx,1]
+        vej_best = data[idx,2]
+        c_best = data[idx,3]
+        mb_best = data[idx,4]
+        zp_best = data[idx,5]
+
+        tmag, lbol, mag = bhns_model_ejecta(mej_best,vej_best,c_best,mb_best)
 
 elif opts.model == "BNS":
 
+    if opts.doMasses:
+        t0 = data[:,0]
+        m1 = data[:,1]
+        m2 = data[:,2]
+        c = data[:,3]
+        mb = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        m1_best = data[idx,1]
+        m2_best = data[idx,2]
+        c_best = data[idx,3]
+        mb_best = data[idx,4]
+        zp_best = data[idx,5]
+
+        tmag, lbol, mag = bns_model(m1_best,m2_best,c_best,mb_best)
+    elif opts.doEjecta:
+        t0 = data[:,0]
+        mej = data[:,1]
+        vej = data[:,2]
+        c = data[:,3]
+        mb = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        mej_best = data[idx,1]
+        vej_best = data[idx,2]
+        c_best = data[idx,3]
+        mb_best = data[idx,4]
+        zp_best = data[idx,5]
+
+        tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,c_best,mb_best)
+
+elif opts.model == "SN":
+
     t0 = data[:,0]
-    m1 = data[:,1]
-    m2 = data[:,2]
-    c = data[:,3]
-    mb = data[:,4]
+    z = data[:,1]
+    x0 = data[:,2]
+    x1 = data[:,3]
+    c = data[:,4]
     zp = data[:,5]
     loglikelihood = data[:,6]
     idx = np.argmax(loglikelihood)
 
     t0_best = data[idx,0]
-    m1_best = data[idx,1]
-    m2_best = data[idx,2]
-    c_best = data[idx,3]
-    mb_best = data[idx,4]
+    z_best = data[idx,1]
+    x0_best = data[idx,2]
+    x1_best = data[idx,3]
+    c_best = data[idx,4]
     zp_best = data[idx,5]
 
-    tmag, lbol, mag = bns_model(m1_best,m2_best,c_best,mb_best)
+    #t0_best = 0.0
+    #z_best = 0.5
+    #x0_best = 1.0
+    #x1_best = 1.0
+    #c_best = 1.0
+    #zp_best = 0.0
+
+    tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
+
+plotName = "%s/corner.pdf"%(plotDir)
+figure = corner.corner(data[:,:6], labels=parameters,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 12})
+plt.savefig(plotName)
+plt.close()
 
 tmag = tmag + t0_best
 
@@ -522,8 +743,12 @@ plt.plot(tmag,mag[3]+zp_best,'b--',label='model i-band')
 plt.plot(tmag,mag[4]+zp_best,'c--',label='model z-band')
 plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
 
-plt.xlim([0.0, 21.0])
-plt.ylim([-15.0,5.0])
+if opts.model == "SN":
+    plt.xlim([0.0, 21.0])
+    #plt.ylim([-15.0,5.0])
+else:
+    plt.xlim([0.0, 21.0])
+    plt.ylim([-15.0,5.0])
 
 plt.xlabel('Time [days]')
 plt.ylabel('AB Magnitude')
@@ -534,107 +759,62 @@ plt.savefig(plotName)
 plt.close()
 
 if opts.model == "BHNS":
+    if opts.doMasses:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l,m,n in zip(t0,q,chi,c,mb,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,q_best,chi_best,c_best,mb_best,zp_best))
+        fid.close()
+    elif opts.doEjecta:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l,m,n in zip(t0,mej,vej,c,mb,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,c_best,mb_best,zp_best))
+        fid.close()
+
+elif opts.model == "BNS":
+    if opts.doMasses:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l,m,n in zip(t0,m1,m2,c,mb,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,m2_best,c_best,mb_best,zp_best))
+        fid.close()
+    elif opts.doEjecta:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l,m,n in zip(t0,mej,vej,c,mb,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,c_best,mb_best,zp_best))
+        fid.close()
+
+elif opts.model == "SN":
     filename = os.path.join(plotDir,'samples.dat')
     fid = open(filename,'w+')
-    for i, j, k, l,m,n in zip(t0,q,chi,c,mb,zp):
+    for i, j, k, l,m,n in zip(t0,z,x0,x1,c,zp):
         fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
     fid.close()
 
     filename = os.path.join(plotDir,'best.dat')
     fid = open(filename,'w')
-    fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,q_best,chi_best,c_best,mb_best,zp_best))
+    fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,z_best,x0_best,x1_best,c_best,zp_best))
     fid.close()
-
-elif opts.model == "BNS":
-    filename = os.path.join(plotDir,'samples.dat')
-    fid = open(filename,'w+')
-    for i, j, k, l,m,n in zip(t0,m1,m2,c,mb,zp):
-        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
-    fid.close()
-
-    filename = os.path.join(plotDir,'best.dat')
-    fid = open(filename,'w')
-    fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,m2_best,c_best,mb_best,zp_best))
-    fid.close()
-
-plt.figure(figsize=(12,10))
-bins1, hist1 = hist_results(t0)
-plt.plot(bins1, hist1)
-plt.xlabel('t0 [days]')
-plt.ylabel('Probability Density Function')
-plt.show()
-plotName = os.path.join(plotDir,'t0.pdf')
-plt.savefig(plotName,dpi=200)
-plt.close('all')
-
-plt.figure(figsize=(12,10))
-bins1, hist1 = hist_results(c)
-plt.plot(bins1, hist1)
-plt.xlabel('c')
-plt.ylabel('Probability Density Function')
-plt.show()
-plotName = os.path.join(plotDir,'c.pdf')
-plt.savefig(plotName,dpi=200)
-plt.close('all')
-
-plt.figure(figsize=(12,10))
-bins1, hist1 = hist_results(mb)
-plt.plot(bins1, hist1)
-plt.xlabel('mb')
-plt.ylabel('Probability Density Function')
-plt.show()
-plotName = os.path.join(plotDir,'mb.pdf')
-plt.savefig(plotName,dpi=200)
-plt.close('all')
-
-plt.figure(figsize=(12,10))
-bins1, hist1 = hist_results(zp)
-plt.plot(bins1, hist1)
-plt.xlabel('Zero Point [mag]')
-plt.ylabel('Probability Density Function')
-plt.show()
-plotName = os.path.join(plotDir,'zp.pdf')
-plt.savefig(plotName,dpi=200)
-plt.close('all')
-
-if opts.model == "BHNS":
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(q)
-    plt.plot(bins1, hist1)
-    plt.xlabel('Mass Ratio')
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plotName = os.path.join(plotDir,'q.pdf')
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
-
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(chi)
-    plt.plot(bins1, hist1)
-    plt.xlabel('chi')
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plotName = os.path.join(plotDir,'chi.pdf')
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
-elif opts.model == "BNS":
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(m1)
-    plt.plot(bins1, hist1)
-    plt.xlabel('Mass 1 [solar masses]')
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plotName = os.path.join(plotDir,'m1.pdf')
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
-
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(m2)
-    plt.plot(bins1, hist1)
-    plt.xlabel('Mass 2 [solar masses]')
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plotName = os.path.join(plotDir,'m2.pdf')
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
 

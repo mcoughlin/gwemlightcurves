@@ -10,7 +10,7 @@ def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns):
     vave = calc_vave(q)
     t, lbol, mag = calc_lc(tini,tmax,dt,meje,vave,vmin,th,ph,kappa,eps,alp,eth)
  
-    return np.array(t), np.array(lbol), mag
+    return t, lbol, mag
 
 def calc_meje(q,chi,i,c,mb,mns):
 
@@ -78,6 +78,8 @@ def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
           mag_d[ii] = np.append(mag_d[ii],np.nan)
 
     t=t+dt
+  t_d = np.array(t_d)
+  lbol_d = np.array(lbol_d)
 
   return t_d, lbol_d, mag_d
 
