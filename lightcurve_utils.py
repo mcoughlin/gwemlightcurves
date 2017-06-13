@@ -11,6 +11,37 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
+def read_files_lbol(files,tmin=-100.0,tmax=100.0):
+
+    names = []
+    Lbols = {}
+    for filename in files:
+        name = filename.replace(".txt","").replace(".dat","").split("/")[-1]
+        Lbol_d = np.loadtxt(filename)
+        #Lbol_d = Lbol_d[1:,:]
+
+        t = Lbol_d[:,0]
+        Lbol = Lbol_d[:,1]
+        try:
+            index = np.nanargmin(Lbol)
+            index = 0
+        except:
+            index = 0
+        t0 = t[index]
+
+        Lbols[name] = {}
+        Lbols[name]["t"] = Lbol_d[:,0]-t0
+        indexes1 = np.where(Lbols[name]["t"]>=tmin)[0]
+        indexes2 = np.where(Lbols[name]["t"]<=tmax)[0]
+        indexes = np.intersect1d(indexes1,indexes2)
+
+        Lbols[name]["t"] = Lbol_d[indexes,0]
+        Lbols[name]["Lbol"] = Lbol_d[indexes,1]
+
+        names.append(name)
+
+    return Lbols, names
+
 def read_files(files,tmin=-100.0,tmax=100.0):
 
     names = []

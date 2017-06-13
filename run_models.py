@@ -56,13 +56,14 @@ def getMagAB(filename,band,model):
 
     t_d = []
     mag_d = []
+    L_d = []
 
     for i in u:
         L = i[1:]
         spec = np.array(zip(w,L))
         effwave = np.sum(band[:,0]*band[:,1])/np.sum(band[:,1])
         mag = np.interp(effwave,w,L)
-        print effwave, mag, L
+        Lbol = np.trapz(spec[:,1],x=spec[:,0])
 
         if not np.isfinite(mag):
             mag = np.nan
@@ -70,10 +71,12 @@ def getMagAB(filename,band,model):
         t=i[0]
         t_d.append(t)
         mag_d.append(mag)
+        L_d.append(Lbol)
     t_d = np.array(t_d)
     mag_d = np.array(mag_d)
+    L_d = np.array(L_d)
 
-    return t_d, mag_d
+    return t_d, mag_d, L_d
 
 def getMagSpec(filename,band,model):
     #u = np.genfromtxt(opts.name)
@@ -103,6 +106,7 @@ def getMagSpec(filename,band,model):
 
     t_d = []
     mag_d = []
+    L_d = []
 
     for i in u:
         if i[0]==t:
@@ -120,6 +124,8 @@ def getMagSpec(filename,band,model):
             conv = spec1*band[:,1]
             flux = np.trapz(conv,x=band[:,0])
             mag = -2.5*np.log10(flux/ZP)
+            Lbol = np.trapz(spec[:,1]*(4*np.pi*D_cm**2),x=spec[:,0])
+
             if not np.isfinite(mag):
                 mag = np.nan
             w=[]
@@ -128,10 +134,12 @@ def getMagSpec(filename,band,model):
 
             t_d.append(t)
             mag_d.append(mag)
+            L_d.append(Lbol)
     t_d = np.array(t_d)
     mag_d = np.array(mag_d)
+    L_d = np.array(L_d)
 
-    return t_d, mag_d
+    return t_d, mag_d, L_d
 
 # Parse command line
 opts = parse_commandline()
@@ -170,16 +178,16 @@ filts = np.genfromtxt('input/PS1_filters.txt')
 for ii in xrange(5):
     band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
     if opts.model in specmodels:
-        t_d, mag_d = getMagSpec(filename,band,opts.model)
+        t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
     else:
-        t_d, mag_d = getMagAB(filename,band,opts.model)
+        t_d, mag_d, L_d = getMagAB(filename,band,opts.model)
     mag_ds[ii] = mag_d
 
 filename = "%s/%s.dat"%(outputDir,opts.name)
 fid = open(filename,'w')
 fid.write('# t[days] g-band  r-band i-band  z-band  w-band\n')
 for ii in xrange(len(t_d)):
-    fid.write("%.2f "%t_d[ii])
+    fid.write("%.5f "%t_d[ii])
     for jj in xrange(5):
         fid.write("%.3f "%mag_ds[jj][ii])
     fid.write("\n")
@@ -204,5 +212,24 @@ plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
+fid = open(filename,'w')
+fid.write('# t[days] Lbol[erg/s]\n')
+for ii in xrange(len(t_d)):
+    fid.write("%.5f %.5e\n"%(t_d[ii],L_d[ii]))
+fid.close()
+
+Lbol_ds = np.loadtxt(filename)
+t = Lbol_ds[:,0]
+Lbol = Lbol_ds[:,1]
+
+plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
+plt.figure()
+plt.semilogy(t,Lbol,'k--')
+plt.xlabel('Time [days]')
+plt.ylabel('Bolometric Luminosity [erg/s]')
 plt.savefig(plotName)
 plt.close()

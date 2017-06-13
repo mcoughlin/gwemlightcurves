@@ -70,18 +70,18 @@ dt = 0.1
 
 vave = 0.267
 vmin = 0.02
-th = 0.2
+th = 0.0
 ph = 3.14
 kappa = 10.0
 eps = 1.58*(10**10)
-alp = 1.2
+alp = 1.0
 eth = 0.5
 flgbct = 0
 
 if opts.model == "BHNS":
     if opts.doEjecta:
         t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
-        name = "BHNS_%sM%04dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
+        name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
     elif opts.doMasses:
         t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)
         name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi*100)
@@ -91,7 +91,7 @@ if opts.model == "BHNS":
 elif opts.model == "BNS":
     if opts.doEjecta:
         t, lbol, mag = BNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct)
-        name = "BNS_%sM%04dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
+        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
     elif opts.doMasses:
         t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb,c,m2,mb,c,flgbct)
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
@@ -157,5 +157,24 @@ plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+filename = "%s/%s_Lbol.dat"%(outputDir,name)
+fid = open(filename,'w')
+fid.write('# t[days] Lbol[erg/s]\n')
+for ii in xrange(len(t)):
+    fid.write("%.5f %.5e\n"%(t[ii],lbol[ii]))
+fid.close()
+
+Lbol_ds = np.loadtxt(filename)
+t = Lbol_ds[:,0]
+Lbol = Lbol_ds[:,1]
+
+plotName = "%s/%s_Lbol.pdf"%(plotDir,name)
+plt.figure()
+plt.semilogy(t,Lbol,'k--')
+plt.xlabel('Time [days]')
+plt.ylabel('Bolometric Luminosity [erg/s]')
 plt.savefig(plotName)
 plt.close()

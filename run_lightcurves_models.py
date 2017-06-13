@@ -178,14 +178,14 @@ def myprior_bhns(cube, ndim, nparams):
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*40.0 - 20.0
-        cube[1] = cube[1]*0.1 + 0.001
-        cube[2] = cube[2]*0.9 + 0.02
+        cube[1] = cube[1]*4.0 - 5.0
+        cube[2] = cube[2]*0.2 + 0.1
         cube[3] = cube[3]*0.1 + 0.1
         cube[4] = cube[4]*0.04 + 1.46
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bns(cube, ndim, nparams):
-        cube[0] = cube[0]*5.0 - 2.5
+        cube[0] = cube[0]*10.0 - 5.0
         cube[1] = cube[1]*2.0 + 1
         cube[2] = cube[2]*2.0 + 1
         cube[3] = cube[3]*0.1 + 0.1
@@ -193,9 +193,9 @@ def myprior_bns(cube, ndim, nparams):
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bns_ejecta(cube, ndim, nparams):
-        cube[0] = cube[0]*5.0 - 2.5
-        cube[1] = cube[1]*0.1 + 0.001
-        cube[2] = cube[2]*0.9 + 0.02
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*4.0 - 5.0
+        cube[2] = cube[2]*0.2 + 0.1
         cube[3] = cube[3]*0.1 + 0.1
         cube[4] = cube[4]*0.04 + 1.46
         cube[5] = cube[5]*20.0 - 10.0
@@ -253,7 +253,7 @@ def myloglike_bns(cube, ndim, nparams):
 
 def myloglike_bns_ejecta(cube, ndim, nparams):
         t0 = cube[0]
-        mej = cube[1]
+        mej = 10**cube[1]
         vej = cube[2]
         c = cube[3]
         mb = cube[4]
@@ -295,7 +295,7 @@ def myloglike_bhns(cube, ndim, nparams):
 
 def myloglike_bhns_ejecta(cube, ndim, nparams):
         t0 = cube[0]
-        mej = cube[1]
+        mej = 10**cube[1]
         vej = cube[2]
         c = cube[3]
         mb = cube[4]
@@ -371,9 +371,13 @@ def calc_prob(tmag, lbol, mag, t0,zp):
             maginterp = maginterp + zp
             chisquarevals = ((y-maginterp)/sigma_y)**2
             idx = np.where(~np.isnan(chisquarevals))[0]
-            if float(len(idx))/float(len(chisquarevals)) > 0.5:
-                chisquarevals = chisquarevals[idx] 
+            #if float(len(idx))/float(len(chisquarevals)) > 0.95:
+            #    chisquarevals = chisquarevals[idx] 
             chisquaresum = np.sum(chisquarevals)
+
+            #print maginterp, y
+            #print t
+            #exit(0)
 
             if np.isnan(chisquaresum):
                 chisquare = np.nan
@@ -391,10 +395,10 @@ def calc_prob(tmag, lbol, mag, t0,zp):
         if np.isnan(chisquare): 
             prob = -np.inf
         else:
-            prob = scipy.stats.chi2.logpdf(chisquare, count, loc=0, scale=1)
+            #prob = scipy.stats.chi2.logpdf(chisquare, count, loc=0, scale=1)
             #prob = -chisquare/2.0
             #prob = chisquare
-            #prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+            prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
 
         if np.isnan(prob):
             prob = -np.inf
@@ -482,7 +486,9 @@ else:
     filename = "%s/lightcurves.tmp"%dataDir
 
 errorbudget = 1.0
-maxt = 14.0
+mint = 0.05
+maxt = 7.0
+dt = 0.05
 
 if opts.doModels:
     data_out = loadModels(opts.name)
@@ -498,12 +504,20 @@ if opts.doModels:
         else:
             data_out[key] = np.vstack((data_out["t"],data_out[key],errorbudget*np.ones(data_out["t"].shape))).T
 
-    idxs = np.where(data_out["t"]<=maxt)[0]
+    idxs = np.intersect1d(np.where(data_out["t"]>=mint)[0],np.where(data_out["t"]<=maxt)[0])
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
             continue
         else:
             data_out[key] = data_out[key][idxs,:]
+
+    tt = np.arange(mint,maxt,dt)
+    for ii,key in enumerate(data_out.iterkeys()):
+        if key == "t":
+            continue
+        else:
+            maginterp = np.interp(tt,data_out[key][:,0],data_out[key][:,1],left=np.nan, right=np.nan)
+            data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
 
     if opts.doReduced:
         ts = np.array([1.0, 1.25, 1.5, 2.0, 2.5, 5, 10])
@@ -560,19 +574,23 @@ if opts.model in ["BHNS","BNS"]:
     if opts.doMasses:
         if opts.model == "BHNS":
             parameters = ["t0","q","chi","c","mb","zp"]
+            labels = [r"$T_0$",r"$q$",r"$\chi$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","m1","m2","c","mb","zp"]
+            labels = [r"$T_0$",r"$m_{1}$",r"$m_{2}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","c","mb","zp"]
+            labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns_ejecta, myprior_bhns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","mej","vej","c","mb","zp"]
+            labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
     else:
@@ -582,6 +600,7 @@ if opts.model in ["BHNS","BNS"]:
 elif opts.model in ["SN"]:
 
     parameters = ["t0","z","x0","x1","c","zp"]
+    labels = [r"$T_0$", r"$z$", r"$x_0$", r"$x_1$",r"$c$","ZP"]
     n_params = len(parameters)
 
     pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 500, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
@@ -630,7 +649,7 @@ if opts.model == "BHNS":
         tmag, lbol, mag = bhns_model(q_best,chi_best,c_best,mb_best)
     elif opts.doEjecta:
         t0 = data[:,0]
-        mej = data[:,1]
+        mej = 10**data[:,1]
         vej = data[:,2]
         c = data[:,3]
         mb = data[:,4]
@@ -639,7 +658,7 @@ if opts.model == "BHNS":
         idx = np.argmax(loglikelihood)
 
         t0_best = data[idx,0]
-        mej_best = data[idx,1]
+        mej_best = 10**data[idx,1]
         vej_best = data[idx,2]
         c_best = data[idx,3]
         mb_best = data[idx,4]
@@ -669,7 +688,7 @@ elif opts.model == "BNS":
         tmag, lbol, mag = bns_model(m1_best,m2_best,c_best,mb_best)
     elif opts.doEjecta:
         t0 = data[:,0]
-        mej = data[:,1]
+        mej = 10**data[:,1]
         vej = data[:,2]
         c = data[:,3]
         mb = data[:,4]
@@ -678,7 +697,7 @@ elif opts.model == "BNS":
         idx = np.argmax(loglikelihood)
 
         t0_best = data[idx,0]
-        mej_best = data[idx,1]
+        mej_best = 10**data[idx,1]
         vej_best = data[idx,2]
         c_best = data[idx,3]
         mb_best = data[idx,4]
@@ -714,7 +733,7 @@ elif opts.model == "SN":
     tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
 
 plotName = "%s/corner.pdf"%(plotDir)
-figure = corner.corner(data[:,:6], labels=parameters,
+figure = corner.corner(data[:,:6], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": 12})
 plt.savefig(plotName)
@@ -744,11 +763,11 @@ plt.plot(tmag,mag[4]+zp_best,'c--',label='model z-band')
 plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
 
 if opts.model == "SN":
-    plt.xlim([0.0, 21.0])
+    plt.xlim([0.0, 10.0])
     #plt.ylim([-15.0,5.0])
 else:
-    plt.xlim([0.0, 21.0])
-    plt.ylim([-15.0,5.0])
+    plt.xlim([0.0, 10.0])
+    plt.ylim([-20.0,5.0])
 
 plt.xlabel('Time [days]')
 plt.ylabel('AB Magnitude')
