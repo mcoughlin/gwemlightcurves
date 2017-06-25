@@ -172,32 +172,32 @@ def myprior_bhns(cube, ndim, nparams):
         cube[0] = cube[0]*40.0 - 20.0
         cube[1] = cube[1]*9.0 + 1.0
         cube[2] = cube[2]*0.9
-        cube[3] = cube[3]*0.1 + 0.1
-        cube[4] = cube[4]*0.04 + 1.46
+        cube[3] = cube[3]*0.17 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*40.0 - 20.0
         cube[1] = cube[1]*4.0 - 5.0
         cube[2] = cube[2]*0.2 + 0.1
-        cube[3] = cube[3]*0.1 + 0.1
-        cube[4] = cube[4]*0.04 + 1.46
+        cube[3] = cube[3]*0.17 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bns(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
         cube[1] = cube[1]*2.0 + 1
         cube[2] = cube[2]*2.0 + 1
-        cube[3] = cube[3]*0.1 + 0.1
-        cube[4] = cube[4]*0.04 + 1.46
+        cube[3] = cube[3]*0.17 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_bns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
         cube[1] = cube[1]*4.0 - 5.0
         cube[2] = cube[2]*0.2 + 0.1
-        cube[3] = cube[3]*0.1 + 0.1
-        cube[4] = cube[4]*0.04 + 1.46
+        cube[3] = cube[3]*0.17 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*20.0 - 10.0
 
 def myprior_sn(cube, ndim, nparams):
@@ -432,8 +432,8 @@ def loadLightcurves(filename):
 
 def loadModels(name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS","BNS","SN"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)"]
 
     filenames = []
     legend_names = []
@@ -489,6 +489,8 @@ errorbudget = 1.0
 mint = 0.05
 maxt = 7.0
 dt = 0.05
+n_live_points = 1000
+evidence_tolerance = 0.1
 
 if opts.doModels:
     data_out = loadModels(opts.name)
@@ -576,23 +578,23 @@ if opts.model in ["BHNS","BNS"]:
             parameters = ["t0","q","chi","c","mb","zp"]
             labels = [r"$T_0$",r"$q$",r"$\chi$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
-            pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+            pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","m1","m2","c","mb","zp"]
             labels = [r"$T_0$",r"$m_{1}$",r"$m_{2}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
-            pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+            pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","c","mb","zp"]
             labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
-            pymultinest.run(myloglike_bhns_ejecta, myprior_bhns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+            pymultinest.run(myloglike_bhns_ejecta, myprior_bhns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","mej","vej","c","mb","zp"]
             labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$C$",r"$M_b$","ZP"]
             n_params = len(parameters)
-            pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 100, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+            pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
@@ -603,7 +605,7 @@ elif opts.model in ["SN"]:
     labels = [r"$T_0$", r"$z$", r"$x_0$", r"$x_1$",r"$c$","ZP"]
     n_params = len(parameters)
 
-    pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = 500, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = 0.5, multimodal = False)
+    pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
 
 # lets analyse the results
@@ -732,10 +734,25 @@ elif opts.model == "SN":
 
     tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
 
+if opts.name == "BNS_H4M005V02":
+    truths = [0,np.log10(0.005),0.2,0.147,1.47,0.0]
+elif opts.name == "BHNS_H4M005V02":
+    truths = [0,np.log10(0.005),0.2,0.147,1.47,0.0]
+elif opts.name == "rpft_m005_v2":
+    truths = [0,np.log10(0.005),0.2,0.147,1.47,0.0]
+elif opts.name == "APR4-1215_k1":
+    if opts.doEjecta:
+        truths = [0,np.log10(0.01),0.2,0.180,1.50,0.0]
+    elif opts.doMasses:
+        truths = [0,1.5,1.2,0.180,1.50,0.0]
+else:
+    truths = [None,None,None,None,None,None]
+
 plotName = "%s/corner.pdf"%(plotDir)
 figure = corner.corner(data[:,:6], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 12})
+                       show_titles=True, title_kwargs={"fontsize": 12},
+                       truths=truths)
 plt.savefig(plotName)
 plt.close()
 
@@ -753,14 +770,14 @@ if "z" in data_out:
     plt.errorbar(data_out["z"][:,0],data_out["z"][:,1],data_out["z"][:,2],fmt='co',label='z-band')
 if "y" in data_out:
     plt.errorbar(data_out["y"][:,0],data_out["y"][:,1],data_out["y"][:,2],fmt='ko',label='k-band')
-if "w" in data_out:
-    plt.errorbar(data_out["w"][:,0],data_out["w"][:,1],data_out["w"][:,2],fmt='mo',label='w-band')
+#if "w" in data_out:
+#    plt.errorbar(data_out["w"][:,0],data_out["w"][:,1],data_out["w"][:,2],fmt='mo',label='w-band')
 
 plt.plot(tmag,mag[1]+zp_best,'y--',label='model g-band')
 plt.plot(tmag,mag[2]+zp_best,'g--',label='model r-band')
 plt.plot(tmag,mag[3]+zp_best,'b--',label='model i-band')
 plt.plot(tmag,mag[4]+zp_best,'c--',label='model z-band')
-plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
+#plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
 
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
@@ -776,6 +793,8 @@ plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
+
+print plotName
 
 if opts.model == "BHNS":
     if opts.doMasses:

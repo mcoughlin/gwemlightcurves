@@ -38,6 +38,65 @@ def easyint(x,y,xref):
     yout[xref>np.max(x)] = yup
     return yout
 
+def getMagAbsAB(filename_AB,filename_bol,filtname,model):
+
+    u = np.loadtxt(filename_AB)
+    cols = ["t","u","g","r","i","z","y","H","K"]
+    idx = cols.index(filtname)
+
+    t = u[:,0]
+    mag = u[:,idx]
+        
+    u = np.loadtxt(filename_bol)
+    L = u[:,1]
+
+    return t, mag, L
+
+def getMagLbol(filename,band,model):
+
+    if model == "ns_precursor_Lbol":
+        w = 1e10/(np.array([1.2e15, 7.5e14, 4.46e14,3.7e14])/3e8)
+
+    u = lines = [line.rstrip('\n') for line in open(filename)]
+    # In AB mags at 200 Mpc
+    D2 = 200*3.0857e16*1e6
+    # Want at 10pc
+    D1 = 10*3.0857e16
+    #u[:,1:] = u[:,1:]-(5*np.log10(200*1e6)-5)
+    # AB mags at 10pc
+    #u[:,0] /= (24*3600) # time in days
+
+    t_d = []
+    mag_d = []
+    L_d = []
+
+    idx = np.arange(0,len(u),2)
+
+    for ii in idx:
+        i = u[ii].split(" ")
+        i = filter(None,i)
+        i = [float(x) for x in i]
+        i = np.array(i)
+        L = i[1:]-(5*np.log10(200*1e6)-5)
+        spec = np.array(zip(w,L))
+        effwave = np.sum(band[:,0]*band[:,1])/np.sum(band[:,1])
+        mag = np.interp(effwave,w,L)
+        #Lbol = np.trapz(spec[:,1],x=spec[:,0])
+        Lbol = float(u[ii+1])
+
+        if not np.isfinite(mag):
+            mag = np.nan
+
+        t=i[0]/(24*3600) # time in days
+        t_d.append(t)
+        mag_d.append(mag)
+        L_d.append(Lbol)
+    t_d = np.array(t_d)
+    mag_d = np.array(mag_d)
+    L_d = np.array(L_d)
+
+    return t_d, mag_d, L_d
+
 def getMagAB(filename,band,model):
 
     if model == "ns_precursor_AB":
@@ -161,11 +220,16 @@ dataDir = opts.dataDir
 
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra"]
 ABmodels = ["ns_precursor_AB"]
+Lbolmodels = ["ns_precursor_Lbol"]
+absABmodels = ["tanaka_compactmergers"]
 
 if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
 elif opts.model in specmodels:
     filename = "%s/%s/%s.spec"%(dataDir,opts.model,opts.name)
+elif opts.model in absABmodels:
+    filename_AB = "%s/%s/%s_AB.txt"%(dataDir,opts.model,opts.name)
+    filename_bol = "%s/%s/%s.txt"%(dataDir,opts.model,opts.name)
 else:
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
 
@@ -174,11 +238,16 @@ for ii in xrange(5):
     mag_ds[ii] = np.array([])
 
 filts = np.genfromtxt('input/PS1_filters.txt')
+filtnames = ["g","r","i","z","y"]
 #g = filts[:,1], r=2, i=3, z=4, y=5
 for ii in xrange(5):
     band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
     if opts.model in specmodels:
         t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
+    elif opts.model in absABmodels:
+        t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
+    elif opts.model in Lbolmodels:
+        t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
     else:
         t_d, mag_d, L_d = getMagAB(filename,band,opts.model)
     mag_ds[ii] = mag_d

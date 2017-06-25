@@ -3,6 +3,7 @@
 # Reference: Dietrich et al. http://adsabs.harvard.edu/cgi-bin/bib_query?arXiv:1612.03665 
 
 import numpy as np
+import scipy
 
 def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct):
 
@@ -76,8 +77,28 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     for ii in xrange(8):
         mag_d[ii] = np.array([])
 
+    epsBarnes = 0
+    if epsBarnes:
+        mejtab = (0.001,0.001,0.001,0.005,0.005,0.005,0.01,0.01,0.01,0.05,0.05,0.05)
+        vejtab = (0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3)
+        a      = (2.01,4.52,8.16,0.81,1.90,3.20,0.56,1.31,2.19,0.27,0.55,0.95)
+        b      = (0.28,0.62,1.19,0.19,0.28,0.45,0.17,0.21,0.31,0.10,0.13,0.15)
+        d      = (1.12,1.39,1.52,0.86,1.21,1.39,0.74,1.13,1.32,0.60,0.90,1.13) 
+
+        fa     = scipy.interpolate.interp2d(mejtab,vejtab,a, kind='linear')
+        fb     = scipy.interpolate.interp2d(mejtab,vejtab,b, kind='linear')
+        fd     = scipy.interpolate.interp2d(mejtab,vejtab,d, kind='linear')
+
+        fam    = fa(mej,vej)
+        fbm    = fb(mej,vej)
+        fdm    = fd(mej,vej)
+
     while t < tmax:
       t_d.append(t)
+
+      if epsBarnes:
+          eth = 0.36*(np.exp(-fam*t)+ np.log(1+2*fbm*t**fdm)/(2*fbm*t**fdm))[0] 
+
       lbol=kn_lbol(t,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
       lbol_d.append(lbol)
       mbol=mag_bol(lbol,10)

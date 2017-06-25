@@ -30,7 +30,7 @@ def read_files_lbol(files,tmin=-100.0,tmax=100.0):
         t0 = t[index]
 
         Lbols[name] = {}
-        Lbols[name]["t"] = Lbol_d[:,0]-t0
+        Lbols[name]["t"] = Lbol_d[:,0]
         indexes1 = np.where(Lbols[name]["t"]>=tmin)[0]
         indexes2 = np.where(Lbols[name]["t"]<=tmax)[0]
         indexes = np.intersect1d(indexes1,indexes2)
@@ -61,7 +61,7 @@ def read_files(files,tmin=-100.0,tmax=100.0):
         t0 = t[index]
 
         mags[name] = {}
-        mags[name]["t"] = mag_d[:,0]-t0
+        mags[name]["t"] = mag_d[:,0]
         indexes1 = np.where(mags[name]["t"]>=tmin)[0]
         indexes2 = np.where(mags[name]["t"]<=tmax)[0] 
         indexes = np.intersect1d(indexes1,indexes2)

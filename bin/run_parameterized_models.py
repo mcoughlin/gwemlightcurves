@@ -10,6 +10,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
 import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2
+import BHNSKilonovaLightcurveOpt
 
 def parse_commandline():
     """
@@ -70,7 +71,7 @@ dt = 0.1
 
 vave = 0.267
 vmin = 0.02
-th = 0.0
+th = 1.0
 ph = 3.14
 kappa = 10.0
 eps = 1.58*(10**10)
@@ -81,6 +82,8 @@ flgbct = 0
 if opts.model == "BHNS":
     if opts.doEjecta:
         t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
+        t1, lbol1, mag1 = BHNSKilonovaLightcurveOpt.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
+        print np.nansum(mag1[0]-mag[0])
         name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
     elif opts.doMasses:
         t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)

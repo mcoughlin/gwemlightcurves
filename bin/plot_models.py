@@ -25,7 +25,7 @@ def parse_commandline():
     #parser.add_option("-n","--name",default="a80_leak_HR,ALF2Q3a30,bp_CaFN_hv_h,Ia_1994D")
     #parser.add_option("-n","--name",default="rpft_m001_v1,ALF2Q3a30,a80_leak_HR,bp_CaFN_hv_h,neutron_precursor")
     #parser.add_option("-f","--outputName",default="combined")
-    parser.add_option("-n","--name",default="rpft_m05_v2,BHNS_H4M050V02,BNS_H4M050V02")
+    parser.add_option("-n","--name",default="rpft_m05_v2,BHNS_H4M050V02,BNS_H4M050V02,neutron_precursor3")
     parser.add_option("-f","--outputName",default="fiducial")
 
     opts, args = parser.parse_args()
@@ -43,7 +43,7 @@ plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
-models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","BHNS","BNS"]
+models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS"]
 models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)"]
 
 names = opts.name.split(",")
@@ -79,6 +79,7 @@ for ii,name in enumerate(names):
     #textstr = name
     #plt.text(2, ii*3 - 1, textstr)
 
+plt.xlim([10**-2,50])
 plt.xlabel('Time [days]')
 plt.ylabel('AB Magnitude')
 plt.legend(loc="best")
@@ -119,6 +120,7 @@ for ii,name in enumerate(names):
     #textstr = name
     #plt.text(2, ii*3 - 1, textstr)
 
+plt.xlim([10**-2,50])
 plt.xlabel('Time [days]')
 plt.ylabel('Bolometric Luminosity [erg/s]')
 plt.legend(loc="best")

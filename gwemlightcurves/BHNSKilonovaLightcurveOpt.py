@@ -3,6 +3,7 @@
 # Reference: Kawaguchi et al. https://arxiv.org/abs/1601.07711
 
 import numpy as np
+import scipy
 
 def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns):
 
@@ -58,27 +59,46 @@ def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
   
   #t=np.max([tini,td[0]*(mej**(1/3.2))])
   t = tini  
+  t_d = np.arange(tini,tmax+dt,dt)
 
   mag_d = {}
   for ii in xrange(9):
       mag_d[ii] = np.array([])
 
-  while t < tmax:
-    t_d.append(t)
-    lbol=kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth)
-    lbol_d.append(lbol)
-    mbol=mag_bol(lbol,10)
-    tt=t/(mej**(1/3.2))
-    bc_tmp=getBC(td,bc,tt)
+  epsBarnes = 0
+  if epsBarnes:
+        mejtab = (0.001,0.001,0.001,0.005,0.005,0.005,0.01,0.01,0.01,0.05,0.05,0.05)
+        vejtab = (0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3)
+        a      = (2.01,4.52,8.16,0.81,1.90,3.20,0.56,1.31,2.19,0.27,0.55,0.95)
+        b      = (0.28,0.62,1.19,0.19,0.28,0.45,0.17,0.21,0.31,0.10,0.13,0.15)
+        d      = (1.12,1.39,1.52,0.86,1.21,1.39,0.74,1.13,1.32,0.60,0.90,1.13)
+
+        fa     = scipy.interpolate.interp2d(mejtab,vejtab,a, kind='linear')
+        fb     = scipy.interpolate.interp2d(mejtab,vejtab,b, kind='linear')
+        fd     = scipy.interpolate.interp2d(mejtab,vejtab,d, kind='linear')
+
+        fam    = fa(mej,vave)
+        fbm    = fb(mej,vave)
+        fdm    = fd(mej,vave)
+
+        eth = 0.36*(np.exp(-fam*t_d)+ np.log(1+2*fbm*t_d**fdm)/(2*fbm*t_d**fdm))
+
+  lbol_d=kn_lbol(t_d,mej,vave,vmin,th,ph,kappa,eps,alp,eth)
+  mbol_d=mag_bol(lbol_d,10)
+  tt_d=t_d/(mej**(1/3.2))
+
+  #while t < tmax:
+  for jj in xrange(len(t_d)):
+    t = t_d[jj]  
+
+    bc_tmp=getBC(td,bc,tt_d[jj])
    
     for ii in xrange(9):
         if t > 2.*(mej*100)**(1.0/3.2):
-          mag_d[ii] = np.append(mag_d[ii],mbol-bc_tmp[ii])
+          mag_d[ii] = np.append(mag_d[ii],mbol_d[jj]-bc_tmp[ii])
         else:
           mag_d[ii] = np.append(mag_d[ii],np.nan)
 
-    t=t+dt
-  t_d = np.array(t_d)
   lbol_d = np.array(lbol_d)
 
   return t_d, lbol_d, mag_d
@@ -119,10 +139,9 @@ def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
   
   tobs=(th*mej*kappa0/(2*ph*(vmax(vave,vmin)-vmin)))**(1/2.0)
   
-  if (t<tobs):
-      fac=t/tobs
-  else:
-      fac=1 
+  fac = t/tobs
+  idx = np.where(t>=tobs)[0]
+  fac[idx] = 1.0
   
   lbol=(1+th)*mej*fac*eps0*(t**(-alp))*lumu0
   
