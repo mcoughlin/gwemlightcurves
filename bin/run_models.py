@@ -16,9 +16,9 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-o","--outputDir",default="output")
-    parser.add_option("-p","--plotDir",default="plots")
-    parser.add_option("-d","--dataDir",default="data")
+    parser.add_option("-o","--outputDir",default="../output")
+    parser.add_option("-p","--plotDir",default="../plots")
+    parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-m","--model",default="barnes_kilonova_spec") 
     parser.add_option("-n","--name",default="rpft_m001_v1")
 

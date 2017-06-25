@@ -92,7 +92,7 @@ def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
     t = t_d[jj]  
 
     bc_tmp=getBC(td,bc,tt_d[jj])
-   
+
     for ii in xrange(9):
         if t > 2.*(mej*100)**(1.0/3.2):
           mag_d[ii] = np.append(mag_d[ii],mbol_d[jj]-bc_tmp[ii])
@@ -112,19 +112,19 @@ def mag_bol(lbol,d):
 
 def getBC(td,bc,tt):
 
+  td_tmp = np.zeros((len(td)-1,2))
+  td_tmp[:,0] = td[:-1]
+  td_tmp[:,1] = td[1:]
+
   if (tt<td[0]) or (tt>td[99]):
       return np.array([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
   else:
-      for ii in xrange(100):
-          if (td[ii]<=tt) and (tt<=td[ii+1]):
-              break
+      ii = np.intersect1d(np.where(td_tmp[:,0]<=tt)[0],np.where(td_tmp[:,1]>=tt)[0])
       bc_tmp=np.zeros((9,))
       fac=(tt-td[ii])/(td[ii+1]-td[ii])
-      for jj in xrange(9):
-          bc_tmp[jj]=(1-fac)*bc[jj][ii]+fac*bc[jj][ii+1]
-          if not np.isfinite(bc_tmp[jj]):
-              bc_tmp[jj] = np.nan  
-  
+      bc_tmp=(1-fac)*bc[:,ii]+fac*bc[:,ii+1]
+      bc_tmp[~np.isfinite(bc_tmp)] = np.nan
+
       return bc_tmp
 
 def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):

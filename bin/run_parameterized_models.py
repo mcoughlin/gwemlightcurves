@@ -9,8 +9,8 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
-import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2
-import BHNSKilonovaLightcurveOpt
+from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2
+from gwemlightcurves import BHNSKilonovaLightcurveOpt
 
 def parse_commandline():
     """
@@ -18,8 +18,8 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-o","--outputDir",default="output")
-    parser.add_option("-p","--plotDir",default="plots") 
+    parser.add_option("-o","--outputDir",default="../output")
+    parser.add_option("-p","--plotDir",default="../plots") 
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=5.0,type=float)

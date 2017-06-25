@@ -3,22 +3,22 @@
 
 # Copyright (C) Michael Coughlin (2017)
 #
-# This file is part of gwemopt
+# This file is part of gwemlightcurves
 #
-# gwemopt is free software: you can redistribute it and/or modify
+# gwemlightcurves is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# gwemopt is distributed in the hope that it will be useful,
+# gwemlightcurves is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with gwemopt.  If not, see <http://www.gnu.org/licenses/>
+# along with gwemlightcurves.  If not, see <http://www.gnu.org/licenses/>
 
-"""Setup script for gwemopt
+"""Setup script for gwemlightcurves
 """
 
 import glob
@@ -27,7 +27,7 @@ from setuptools import (find_packages, setup)
 
 from utils import version
 
-PACKAGENAME = 'gwemopt'
+PACKAGENAME = 'gwemlightcurves'
 
 VERSION_PY = os.path.join(PACKAGENAME, 'version.py')
 

@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 import corner
 
 import pymultinest
-import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
-import lightcurve_utils
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
+from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
     """
@@ -23,9 +23,9 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-o","--outputDir",default="output")
-    parser.add_option("-p","--plotDir",default="plots")
-    parser.add_option("-d","--dataDir",default="lightcurves")
+    parser.add_option("-o","--outputDir",default="../output")
+    parser.add_option("-p","--plotDir",default="../plots")
+    parser.add_option("-d","--dataDir",default="../lightcurves")
     parser.add_option("-n","--name",default="PS1-13cyr")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
@@ -430,7 +430,7 @@ def loadLightcurves(filename):
 
     return data
 
-def loadModels(name):
+def loadModels(outputDir,name):
 
     models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers"]
     models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)"]
@@ -438,7 +438,7 @@ def loadModels(name):
     filenames = []
     legend_names = []
     for ii,model in enumerate(models):
-        filename = '%s/%s/%s.dat'%('output',model,name)
+        filename = '%s/%s/%s.dat'%(outputDir,model,name)
         if not os.path.isfile(filename):
             continue
         filenames.append(filename)
@@ -493,7 +493,7 @@ n_live_points = 1000
 evidence_tolerance = 0.1
 
 if opts.doModels:
-    data_out = loadModels(opts.name)
+    data_out = loadModels(opts.outputDir,opts.name)
     if not opts.name in data_out:
         print "%s not in file..."%opts.name
         exit(0)
