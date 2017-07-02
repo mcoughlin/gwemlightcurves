@@ -82,8 +82,8 @@ flgbct = 0
 if opts.model == "BHNS":
     if opts.doEjecta:
         t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
-        t1, lbol1, mag1 = BHNSKilonovaLightcurveOpt.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
-        print np.nansum(mag1[0]-mag[0])
+        #t1, lbol1, mag1 = BHNSKilonovaLightcurveOpt.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
+        #print np.nansum(mag1[0]-mag[0])
         name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
     elif opts.doMasses:
         t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)

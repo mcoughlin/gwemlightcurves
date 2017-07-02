@@ -147,10 +147,12 @@ def getMagSpec(filename,band,model):
 
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+        u[:,0] /= (24*3600) # time in days
+    elif model == "macronovae-rosswog":
+        u[:,2] /= 1.0
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
-
-    u[:,0] /= (24*3600) # time in days
+        u[:,0] /= (24*3600) # time in days
 
     t = u[0,0]
 
@@ -218,13 +220,15 @@ if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 dataDir = opts.dataDir
 
-specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra"]
+specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
 absABmodels = ["tanaka_compactmergers"]
 
 if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
+elif opts.model == "macronovae-rosswog":
+    filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
 elif opts.model in specmodels:
     filename = "%s/%s/%s.spec"%(dataDir,opts.model,opts.name)
 elif opts.model in absABmodels:
@@ -237,7 +241,7 @@ mag_ds = {}
 for ii in xrange(5):
     mag_ds[ii] = np.array([])
 
-filts = np.genfromtxt('input/PS1_filters.txt')
+filts = np.genfromtxt('../input/PS1_filters.txt')
 filtnames = ["g","r","i","z","y"]
 #g = filts[:,1], r=2, i=3, z=4, y=5
 for ii in xrange(5):
