@@ -25,8 +25,10 @@ def parse_commandline():
     #parser.add_option("-n","--name",default="a80_leak_HR,ALF2Q3a30,bp_CaFN_hv_h,Ia_1994D")
     #parser.add_option("-n","--name",default="rpft_m001_v1,ALF2Q3a30,a80_leak_HR,bp_CaFN_hv_h,neutron_precursor")
     #parser.add_option("-f","--outputName",default="combined")
-    parser.add_option("-n","--name",default="rpft_m05_v2,BHNS_H4M050V02,BNS_H4M050V02,neutron_precursor3,SED_nsbh1")
-    parser.add_option("-f","--outputName",default="fiducial")
+    #parser.add_option("-n","--name",default="rpft_m05_v2,BHNS_H4M050V02,BNS_H4M050V02,neutron_precursor3,SED_nsbh1")
+    #parser.add_option("-f","--outputName",default="fiducial")
+    parser.add_option("-n","--name",default="H4Q3a0,H4Q3a25,H4Q3a50,H4Q3a75")
+    parser.add_option("-f","--outputName",default="spin")
 
     opts, args = parser.parse_args()
 

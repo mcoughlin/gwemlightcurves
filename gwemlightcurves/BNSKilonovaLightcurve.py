@@ -166,7 +166,11 @@ def kn_lbol(t,mej,vej,vmin,th,ph,kappa,eps,alp,eth):
   kappa0=kappa/lu0/lu0*msun
   eps0=eth*eps/eneu0*day*msun
 
-  tobs=(th*mej*kappa0/(2*ph*(vmax(vej,vmin)-vmin)))**(1/2.0)
+  vdiff = vmax(vej,vmin)-vmin
+  if vdiff < 0:
+      tobs = 0.0
+  else:
+      tobs=(th*mej*kappa0/(2*ph*vdiff))**(1/2.0)
 
   if (t<tobs):
       fac=t/tobs

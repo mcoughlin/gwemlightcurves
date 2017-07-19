@@ -22,8 +22,8 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots") 
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("-e","--eos",default="H4")
-    parser.add_option("-q","--massratio",default=5.0,type=float)
-    parser.add_option("-a","--chi",default=0.9,type=float) 
+    parser.add_option("-q","--massratio",default=3.0,type=float)
+    parser.add_option("-a","--chi_eff",default=0.1,type=float) 
     parser.add_option("--mej",default=0.005,type=float)
     parser.add_option("--vej",default=0.2,type=float)
     parser.add_option("--m1",default=1.35,type=float)
@@ -45,10 +45,9 @@ opts = parse_commandline()
 m1 = opts.m1
 m2 = opts.m2
 q = opts.massratio
-chi = opts.chi
+chi_eff = opts.chi_eff
 mej = opts.mej
 vej = opts.vej
-i = 60.0
 
 if opts.eos == "APR4":
     c = 0.180
@@ -71,30 +70,30 @@ dt = 0.1
 
 vave = 0.267
 vmin = 0.02
-th = 1.0
+th = 0.2
 ph = 3.14
 kappa = 10.0
 eps = 1.58*(10**10)
-alp = 1.0
+alp = 1.2
 eth = 0.5
-flgbct = 0
+flgbct = 1
 
 if opts.model == "BHNS":
     if opts.doEjecta:
         t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
         #t1, lbol1, mag1 = BHNSKilonovaLightcurveOpt.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
         #print np.nansum(mag1[0]-mag[0])
-        name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
+        name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
-        t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns)
-        name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi*100)
+        t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c,mb,mns)
+        name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi_eff*100)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
 elif opts.model == "BNS":
     if opts.doEjecta:
         t, lbol, mag = BNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct)
-        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*10)
+        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb,c,m2,mb,c,flgbct)
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)

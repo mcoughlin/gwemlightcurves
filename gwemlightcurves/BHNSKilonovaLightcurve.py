@@ -5,15 +5,15 @@
 import numpy as np
 import scipy
 
-def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns):
+def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c,mb,mns):
 
-    meje = calc_meje(q,chi,i,c,mb,mns)
+    meje = calc_meje(q,chi_eff,c,mb,mns)
     vave = calc_vave(q)
     t, lbol, mag = calc_lc(tini,tmax,dt,meje,vave,vmin,th,ph,kappa,eps,alp,eth)
  
     return t, lbol, mag
 
-def calc_meje(q,chi,i,c,mb,mns):
+def calc_meje(q,chi_eff,c,mb,mns):
 
     a1=-2.269e-3
     a2=4.464e-2 
@@ -22,16 +22,12 @@ def calc_meje(q,chi,i,c,mb,mns):
     n1=1.352
     n2=0.2497
 
-    ru = np.pi/180.0
-
-    chi_eff=chi*np.cos(i*ru);
-
     tmp1=a1*r_isco(chi_eff)*(q**n1);
     tmp2=a2*(q**n2)*(1-2*c)/c
     tmp3=a3*(1-mns/mb)+a4
 
     meje_fit=mb*np.max([tmp1+tmp2+tmp3,0]);
-  
+
     return meje_fit
 
 def calc_vave(q):
@@ -137,8 +133,12 @@ def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
   lumu0=eneu0/day
   kappa0=kappa/lu0/lu0*msun
   eps0=eth*eps/eneu0*day*msun
-  
-  tobs=(th*mej*kappa0/(2*ph*(vmax(vave,vmin)-vmin)))**(1/2.0)
+
+  vdiff = vmax(vave,vmin)-vmin
+  if vdiff < 0:
+      tobs = 0.0
+  else:
+      tobs=(th*mej*kappa0/(2*ph*vdiff))**(1/2.0)
   
   if (t<tobs):
       fac=t/tobs
@@ -150,7 +150,11 @@ def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
   return lbol
 
 def vmax(vave,vmin):
-  return 0.5*((12*vave*vave-3*vmin*vmin)**(1/2.0) -vmin) 
+  vdiff = 12*vave*vave-3*vmin*vmin
+  if vdiff < 0:
+      return 0
+  else:
+      return 0.5*(vdiff**(1/2.0) -vmin) 
 
 def setbc_APR4Q3a75():
   td= np.zeros((100,))
