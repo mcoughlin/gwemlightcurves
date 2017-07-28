@@ -66,8 +66,7 @@ def bhns_model(q,chi_eff,mns,mb,c,th,ph):
     tmax = 50.0
     dt = 0.1
     
-    vave = 0.267
-    vmin = 0.02
+    vmin = 0.00
     kappa = 10.0
     eps = 1.58*(10**10)
     alp = 1.2
@@ -83,8 +82,7 @@ def bhns_model_ejecta(mej,vej,th,ph):
     tmax = 50.0
     dt = 0.1
 
-    vave = 0.267
-    vmin = 0.02
+    vmin = 0.00
     kappa = 10.0
     eps = 1.58*(10**10)
     alp = 1.2
@@ -100,7 +98,7 @@ def bns_model(m1,mb1,c1,m2,mb2,c2,th,ph):
     tmax = 50.0
     dt = 0.1
 
-    vmin = 0.02
+    vmin = 0.00
     kappa = 10.0
     eps = 1.58*(10**10)
     alp = 1.2
@@ -119,18 +117,13 @@ def bns_model_ejecta(mej,vej,th,ph):
     dt = 0.1
 
     vave = 0.267
-    vmin = 0.02
+    vmin = 0.00
     kappa = 10.0
     eps = 1.58*(10**10)
     alp = 1.2
     eth = 0.5
 
     flgbct = 1
-
-    #mej = 0.005
-    #vej = 0.2
-    #c = 0.147
-    #mb = 1.47
 
     t, lbol, mag = BNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct)
 
@@ -162,15 +155,15 @@ def myprior_bhns(cube, ndim, nparams):
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*0.17 + 0.08
-        cube[6] = cube[6]*20.0 - 10.0
+        cube[6] = cube[6]*100.0 - 50.0
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
-        cube[1] = cube[1]*4.0 - 5.0
+        cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
-        cube[5] = cube[5]*20.0 - 10.0
+        cube[5] = cube[5]*100.0 - 50.0
 
 def myprior_bns(cube, ndim, nparams):
 
@@ -181,7 +174,7 @@ def myprior_bns(cube, ndim, nparams):
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*2.0 + 1.0
         cube[6] = cube[6]*0.17 + 0.08
-        cube[7] = cube[7]*20.0 - 10.0
+        cube[7] = cube[7]*100.0 - 50.0
 
 def myprior_bns_fixZPT0(cube, ndim, nparams):
         cube[0] = 0.0
@@ -193,11 +186,11 @@ def myprior_bns_fixZPT0(cube, ndim, nparams):
 
 def myprior_bns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
-        cube[1] = cube[1]*4.0 - 5.0
+        cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
-        cube[5] = cube[5]*20.0 - 10.0
+        cube[5] = cube[5]*100.0 - 50.0
 
 def myprior_bns_ejecta_fixZPT0(cube, ndim, nparams):
         cube[0] = 0.0
@@ -213,7 +206,7 @@ def myprior_sn(cube, ndim, nparams):
         cube[2] = cube[2]*10.0
         cube[3] = cube[3]*10.0
         cube[4] = cube[4]*10.0
-        cube[5] = cube[5]*20.0 - 10.0
+        cube[5] = cube[5]*100.0 - 50.0
 
 def foft_model(t,c,b,tc,t0):
     flux = 10**c * ((t/t0)**b)/(1 + np.exp((t-t0)/tc))
@@ -237,6 +230,13 @@ def addconst(array):
    
     return array_copy
 
+def findconst(array):
+    idx = np.where(~np.isnan(array))[0]
+    if len(idx) == 0:
+        return np.nan
+    else:
+        return array[idx[-1]]
+    
 def myloglike_bns(cube, ndim, nparams):
 
         t0 = cube[0]
@@ -367,15 +367,47 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             sigma_y = sigma_y[idx]
 
             if key == "g":
-                maginterp = np.interp(t,tmag,addconst(mag[1]),left=np.nan, right=np.nan)
+                #maginterp = np.interp(t,tmag,addconst(mag[1]),left=np.nan, right=np.nan)
+                ii = np.where(~np.isnan(mag[1]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[1][ii], fill_value='extrapolate')
+                    maginterp = f(t)
             elif key == "r":
-                maginterp = np.interp(t,tmag,addconst(mag[2]),left=np.nan, right=np.nan)
+                #maginterp = np.interp(t,tmag,addconst(mag[2]),left=np.nan, right=np.nan)
+                ii = np.where(~np.isnan(mag[2]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[2][ii], fill_value='extrapolate')
+                    maginterp = f(t)
             elif key == "i":
-                maginterp = np.interp(t,tmag,addconst(mag[3]),left=np.nan, right=np.nan)
+                #maginterp = np.interp(t,tmag,addconst(mag[3]),left=np.nan, right=np.nan)
+
+                ii = np.where(~np.isnan(mag[3]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[3][ii], fill_value='extrapolate')
+                    maginterp = f(t)
             elif key == "z":
-                maginterp = np.interp(t,tmag,addconst(mag[4]),left=np.nan, right=np.nan)
+                #maginterp = np.interp(t,tmag,addconst(mag[4]),left=np.nan, right=np.nan)
+                ii = np.where(~np.isnan(mag[4]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[4][ii], fill_value='extrapolate')
+                    maginterp = f(t)
             elif key == "w":
-                maginterp = np.interp(t,tmag,addconst((mag[1]+mag[2]+mag[3])/3.0),left=np.nan, right=np.nan)
+                #maginterp = np.interp(t,tmag,addconst((mag[1]+mag[2]+mag[3])/3.0),left=np.nan, right=np.nan)
+                magave = (mag[1]+mag[2]+mag[3])/3.0
+                ii = np.where(~np.isnan(magave))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+                    maginterp = f(t)
             else:
                 continue
 
@@ -454,6 +486,44 @@ def loadModels(outputDir,name):
 
     return mags
 
+def get_truths(name,model):
+    truths = []
+    for ii in xrange(n_params):
+        truths.append(False)
+
+    if not model in ["BHNS", "BNS"]:
+        return truths        
+
+    if name == "BNS_H4M005V20":
+        truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
+    elif name == "BHNS_H4M005V20":
+        truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
+    elif name == "rpft_m005_v2":
+        truths = [0,np.log10(0.005),0.2,False,False,False]
+    elif name == "APR4-1215_k1":
+        truths = [0,np.log10(0.009),0.24,False,False,0.0]
+    elif name == "APR4-1314_k1":
+        truths = [0,np.log10(0.008),0.22,False,False,0.0]
+    elif name == "H4-1215_k1":
+        truths = [0,np.log10(0.004),0.21,False,False,0.0]
+    elif name == "H4-1314_k1":
+        truths = [0,np.log10(0.0007),0.17,False,False,0.0]
+    elif name == "Sly-135_k1":
+        truths = [0,np.log10(0.02),False,False,False,0.0]
+    elif name == "APR4Q3a75_k1":
+        truths = [0,np.log10(0.01),0.24,False,False,0.0]
+    elif name == "H4Q3a75_k1":
+        truths = [0,np.log10(0.05),0.21,False,False,0.0]
+    elif name == "MS1Q3a75_k1":
+        truths = [0,np.log10(0.07),0.25,False,False,0.0]
+    elif name == "MS1Q7a75_k1":
+        truths = [0,np.log10(0.06),0.25,False,False,0.0]
+    elif name == "SED_nsbh1":
+        truths = [0,np.log10(0.04),0.2,False,False,0.0]
+    elif name == "SED_ns12ns12_kappa10":
+        truths = [0,np.log10(0.0079), 0.12,False,False,False]
+    return truths
+
 # Parse command line
 opts = parse_commandline()
 
@@ -530,8 +600,14 @@ if opts.doModels:
         if key == "t":
             continue
         else:
-            maginterp = np.interp(tt,data_out[key][:,0],data_out[key][:,1],left=np.nan, right=np.nan)
+
+            ii = np.where(np.isfinite(data_out[key][:,1]))[0]
+            f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
+            maginterp = f(tt)
+
             data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
+           
+
     del data_out["t"]
 
     if opts.doReduced:
@@ -754,76 +830,68 @@ elif opts.model == "SN":
 
     tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
 
-if opts.name == "BNS_H4M005V02":
-    if opts.doEjecta:
-        truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
-elif opts.name == "H4M135m135":
-    if opts.doMasses:
-        truths = [0,1.35,1.47,0.147,1.35,1.47,0.147,0.2,3.14,0.0]
-elif opts.name == "BHNS_H4M005V02":
-    truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
-elif opts.name == "rpft_m005_v2":
-    truths = [0,np.log10(0.005),0.2,0.147,1.47,0.2,3.14,0.0]
-elif opts.name == "APR4-1215_k1":
-    if opts.doEjecta:
-        truths = [0,np.log10(0.01),0.2,0.2,3.14,0.0]
-    elif opts.doMasses:
-        truths = [0,1.5,1.50,0.180,1.2,1.50,0.180,0.2,3.14,0.0]
-elif opts.name == "SED_nsbh1":
-    if opts.doEjecta:
-        truths = [0,np.log10(0.04),0.2,False,False,0.0]
-else:
-    truths = []
-    for ii in xrange(n_params):
-        truths.append(False)  
+truths = get_truths(opts.name,opts.model)
 
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
     figure = corner.corner(data[:,1:5], labels=labels[1:5],
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 12},
+                       show_titles=True, title_kwargs={"fontsize": 16},
+                       label_kwargs={"fontsize": 26}, title_fmt=".1f",
                        truths=truths[1:5])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 12},
+                       show_titles=True, title_kwargs={"fontsize": 16},
+                       label_kwargs={"fontsize": 28}, title_fmt=".1f",
                        truths=truths)
+figure.set_size_inches(16,16)
 plt.savefig(plotName)
 plt.close()
 
 tmag = tmag + t0_best
 
-plotName = "%s/lightcurve.pdf"%(plotDir)
-plt.figure()
-if "g" in data_out:
-    plt.errorbar(data_out["g"][:,0],data_out["g"][:,1],data_out["g"][:,2],fmt='yo',label='g-band')
-if "r" in data_out:
-    plt.errorbar(data_out["r"][:,0],data_out["r"][:,1],data_out["r"][:,2],fmt='go',label='r-band')
-if "i" in data_out:
-    plt.errorbar(data_out["i"][:,0],data_out["i"][:,1],data_out["i"][:,2],fmt='bo',label='i-band')
-if "z" in data_out:
-    plt.errorbar(data_out["z"][:,0],data_out["z"][:,1],data_out["z"][:,2],fmt='co',label='z-band')
-if "y" in data_out:
-    plt.errorbar(data_out["y"][:,0],data_out["y"][:,1],data_out["y"][:,2],fmt='ko',label='k-band')
-#if "w" in data_out:
-#    plt.errorbar(data_out["w"][:,0],data_out["w"][:,1],data_out["w"][:,2],fmt='mo',label='w-band')
+filts = ["g","r","i","z","y"]
+colors = ["y","g","b","c","k"]
+magidxs = [1,2,3,4,5]
 
-plt.plot(tmag,mag[1]+zp_best,'y--',label='model g-band')
-plt.plot(tmag,mag[2]+zp_best,'g--',label='model r-band')
-plt.plot(tmag,mag[3]+zp_best,'b--',label='model i-band')
-plt.plot(tmag,mag[4]+zp_best,'c--',label='model z-band')
-#plt.plot(tmag,(mag[1]+mag[2]+mag[3])/3.0+zp_best,'m--',label='model w-band')
+plotName = "%s/lightcurve.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for filt, color, magidx in zip(filts,colors,magidxs):
+    if not filt in data_out: continue
+    samples = data_out[filt]
+    t = samples[:,0]
+    y = samples[:,1]
+    sigma_y = samples[:,2]
+    
+    idx = np.where(~np.isnan(y))[0]
+    t = t[idx]
+    y = y[idx]
+    sigma_y = sigma_y[idx]
+
+    plt.errorbar(t,y,sigma_y,fmt='%so'%color,label='%s-band'%filt)
+    #plt.plot(tmag,mag[magidx]+zp_best,'k--')
+
+    tini = np.min(t)
+    tmax = 10.0
+    dt = 0.1
+    tt = np.arange(tini,tmax,dt)
+
+    ii = np.where(~np.isnan(mag[magidx]))[0]
+    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    maginterp = f(tt)
+    plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
 
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
     #plt.ylim([-15.0,5.0])
 else:
-    plt.xlim([0.0, 10.0])
-    plt.ylim([-20.0,5.0])
+    plt.xlim([1.0, 8.0])
+    #plt.ylim([-16.0,3.0])
 
-plt.xlabel('Time [days]')
-plt.ylabel('AB Magnitude')
-plt.legend(loc="best",prop={'size':10})
+plt.xlabel('Time [days]',fontsize=24)
+plt.ylabel('Absolute Magnitude',fontsize=24)
+plt.legend(loc="best",prop={'size':16},numpoints=1)
 plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)

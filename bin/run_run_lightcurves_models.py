@@ -16,9 +16,16 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-d","--dataDir",default="lightcurves")
+    parser.add_option("-o","--outputDir",default="../output")
+    parser.add_option("-p","--plotDir",default="../plots")
+    parser.add_option("-d","--dataDir",default="../lightcurves")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("-n","--name",default="tanaka_compactmergers")
+    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("--doMasses",  action="store_true", default=False)
+    parser.add_option("--doEjecta",  action="store_true", default=False)
+    parser.add_option("-e","--errorbudget",default=1.0,type=float)
 
     opts, args = parser.parse_args()
 
@@ -49,6 +56,11 @@ def loadLightcurves(filename):
 
 # Parse command line
 opts = parse_commandline()
+
+if not opts.model in ["BHNS", "BNS", "SN"]:
+   print "Model must be either: BHNS, BNS, SN"
+   exit(0)
+
 dataDir = opts.dataDir
 
 if opts.doGWs:
@@ -57,10 +69,17 @@ else:
     filename = "%s/lightcurves.tmp"%dataDir
 
 if opts.doModels:
-    filenames = glob.glob("output/BHNS/*.dat")
+    filenames = glob.glob("%s/%s/*.dat"%(opts.outputDir,opts.name))
     for filename in filenames:
+        if "Lbol" in filename: continue
         name = filename.split("/")[-1].replace(".dat","")
-        system_call = "python run_lightcurves_bhns.py --name %s --doModels"%(name)
+        if opts.doEjecta:
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doEjecta --errorbudget %.2f"%(opts.model,name,opts.errorbudget)
+        elif opts.doMasses:
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doMasses --errorbudget %.2f"%(opts.model,name,opts.errorbudget)
+        else:
+            print "Enable --doEjecta or --doMasses"
+            exit(0)
         os.system(system_call)
 else:
     data = loadLightcurves(filename)
@@ -100,8 +119,8 @@ else:
         if os.path.isfile(filename): continue
 
         if opts.doGWs:
-            system_call = "python run_lightcurves_bhns.py --name %s --doGWs"%(name)
+            system_call = "python run_lightcurves_models.py --name %s --doGWs"%(name)
         else:
-            system_call = "python run_lightcurves_bhns.py --name %s"%(name)
+            system_call = "python run_lightcurves_models.py --name %s"%(name)
         os.system(system_call)
 

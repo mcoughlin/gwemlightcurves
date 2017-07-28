@@ -28,7 +28,7 @@ def parse_commandline():
     parser.add_option("--vej",default=0.2,type=float)
     parser.add_option("--m1",default=1.35,type=float)
     parser.add_option("--m2",default=1.35,type=float)
-    parser.add_option("-z","--redshift",default=0.5,type=float)
+    parser.add_option("-z","--redshift",default=0.001,type=float)
     parser.add_option("--x0",default=1.0,type=float)
     parser.add_option("--x1",default=1.0,type=float)
     parser.add_option("-c","--c",default=1.0,type=float)
