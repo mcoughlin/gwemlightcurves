@@ -176,14 +176,14 @@ def myprior_bns(cube, ndim, nparams):
 
 def myprior_bhns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 3.0
-        #cube[1] = cube[1]*2.0 - 1.0
-        cube[1] = cube[1]*0.2 - 0.1
+        cube[1] = cube[1]*2.0 - 1.0
+        #cube[1] = cube[1]*1.8 - 0.9
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.17 + 0.08
 
 def myprior_bns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*2.0 + 1.0
-        cube[1] = cube[1]*0.17 + 0.10
+        cube[1] = cube[1]*0.17 + 0.08
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.17 + 0.08
 
@@ -373,17 +373,17 @@ kdedir = greedy_kde_areas_2d(pts)
 if opts.model == "BHNS":
     if opts.doEOSFit:
         parameters = ["q","chi_eff","mns","c"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$m_{ns}$",r"$C$"]
+        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$",r"$C$"]
         n_params = len(parameters)        
         pymultinest.run(myloglike_bhns_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEOSFix:
         parameters = ["q","chi_eff","mns"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$m_{ns}$"]
+        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$"]
         n_params = len(parameters)
         pymultinest.run(myloglike_bhns_EOSFix, myprior_bhns_EOSFix, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
         parameters = ["q","chi_eff","mns","mb","c"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$m_{ns}$",r"$m_b$",r"$C$"]
+        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$",r"$m_b$",r"$C$"]
         n_params = len(parameters)
         pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 elif opts.model == "BNS":
@@ -429,7 +429,7 @@ if opts.model == "BNS" and opts.doEOSFit:
     data_new[:,0] = 1/q
     data_new[:,1] = mchirp
     data_new[:,2] = data[:,1]
-    data_new[:,3] = data[:,2]
+    data_new[:,3] = data[:,3]
     data = data_new
 
 #loglikelihood = -(1/2.0)*data[:,1]
