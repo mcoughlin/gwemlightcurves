@@ -27,14 +27,12 @@ def parse_commandline():
     parser.add_option("-d","--dataDir",default="../lightcurves")
     #parser.add_option("-n","--name",default="BHNS_H4M005V20")
     #parser.add_option("-f","--outputName",default="BHNS_error")
-    #parser.add_option("-n","--name",default="BNS_H4M005V20")
-    #parser.add_option("-f","--outputName",default="BNS_error")
-    #parser.add_option("-n","--name",default="APR4-1215_k1,APR4-1314_k1,H4-1215_k1,H4-1314_k1,Sly-135_k1")
+    parser.add_option("-n","--name",default="BNS_H4M005V20")
+    parser.add_option("-f","--outputName",default="BNS_error")
     #parser.add_option("-n","--name",default="APR4-1314_k1,H4-1314_k1,Sly-135_k1")
     #parser.add_option("-f","--outputName",default="BNS_Tanaka")
-    #parser.add_option("-n","--name",default="APR4Q3a75_k1,H4Q3a75_k1,MS1Q3a75_k1,MS1Q7a75_k1")
-    parser.add_option("-n","--name",default="APR4Q3a75_k1,H4Q3a75_k1,MS1Q3a75_k1")
-    parser.add_option("-f","--outputName",default="BHNS_Tanaka")
+    #parser.add_option("-n","--name",default="APR4Q3a75_k1,H4Q3a75_k1,MS1Q3a75_k1")
+    #parser.add_option("-f","--outputName",default="BHNS_Tanaka")
 
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
@@ -43,10 +41,10 @@ def parse_commandline():
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
-    #parser.add_option("-e","--errorbudget",default="1.0,0.2,0.04")
-    parser.add_option("-e","--errorbudget",default="1.0,0.2")
-    #parser.add_option("-l","--labelType",default="errorbar")
-    parser.add_option("-l","--labelType",default="name")
+    parser.add_option("-e","--errorbudget",default="1.0,0.2,0.04")
+    #parser.add_option("-e","--errorbudget",default="1.0,0.2")
+    parser.add_option("-l","--labelType",default="errorbar")
+    #parser.add_option("-l","--labelType",default="name")
 
     opts, args = parser.parse_args()
 
@@ -242,7 +240,7 @@ for ii,name in enumerate(sorted(post.keys())):
         if opts.labelType == "errorbar":
             label = r"$\Delta$m: %.2f"%float(errorbudget)
         elif opts.labelType == "name":
-            label = r"%s"%(name)
+            label = r"%s"%(name.replace("_k1",""))
         else:
             label = []
         if opts.labelType == "errorbar":
@@ -259,45 +257,32 @@ for ii,name in enumerate(sorted(post.keys())):
             linestyle = '-'
 
         samples = np.log10(post[name][errorbudget]["mej"])
-        bins, hist1 = hist_results(samples,Nbins=31,bounds=[-3.5,0.0]) 
+        bins, hist1 = hist_results(samples,Nbins=25,bounds=[-3.5,0.0]) 
 
         if opts.labelType == "name" and jj > 0:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle))
+            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
         else:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label)
+            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
 
-
-        plt.semilogy([post[name][errorbudget]["truths"][1],post[name][errorbudget]["truths"][1]],[1e-3,10.0],'%s--'%colortrue)
+        plt.semilogy([post[name][errorbudget]["truths"][1],post[name][errorbudget]["truths"][1]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
         maxhist = np.max([maxhist,np.max(hist1)])
 
-plt.xlabel(r"$log_{10} (M_{ej})$",fontsize=24)
+plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':16})
-plt.xlim([-3.5,-1.0])
-plt.ylim([1e-1,4])
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+if opts.model == "BHNS" and opts.labelType == "errorbar":
+    plt.xlim([-3.0,-1.0])
+elif opts.model == "BHNS" and opts.labelType == "name":
+    plt.xlim([-3.0,0.5])
+elif opts.model == "BNS" and opts.labelType == "name":
+    plt.xlim([-3.5,0.0])
+elif opts.model == "BNS" and opts.labelType == "errorbar":
+    plt.xlim([-3.0,-1.4])
+if opts.labelType == "errorbar":
+    plt.ylim([1e-1,10])
+elif opts.labelType == "name":
+    plt.ylim([1e-1,10])
 plt.savefig(plotName)
 plt.close()
-
-plotName = "%s/vej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-maxhist = -1
-for name in post.keys():
-    for errorbudget in post[name].keys():
-        if opts.labelType == "errorbar":
-            label = r"$\Delta$m: %.2f"%float(errorbudget)
-        elif opts.labelType == "name":
-            label = r"%s"%(name)
-        else:
-            label = []
-        samples = post[name][errorbudget]["vej"]
-        bins, hist1 = hist_results(samples)
-        plt.plot(bins,hist1,'-',label=label)
-        plt.plot([post[name][errorbudget]["truths"][2],post[name][errorbudget]["truths"][2]],[0,np.max(hist1)],'k--')
-        maxhist = np.max([maxhist,np.max(hist1)])
-plt.xlabel(r"$v_{ej}$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':16})
-plt.ylim([0,maxhist])
-plt.savefig(plotName)
-plt.close()
-

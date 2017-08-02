@@ -176,8 +176,9 @@ def myprior_bns(cube, ndim, nparams):
 
 def myprior_bhns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 3.0
-        cube[1] = cube[1]*2.0 - 1.0
-        #cube[1] = cube[1]*1.8 - 0.9
+        #cube[1] = cube[1]*2.0 - 1.0
+        #cube[1] = cube[1]*1.5 - 0.75
+        cube[1] = cube[1]*0.75
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.17 + 0.08
 
@@ -373,12 +374,12 @@ kdedir = greedy_kde_areas_2d(pts)
 if opts.model == "BHNS":
     if opts.doEOSFit:
         parameters = ["q","chi_eff","mns","c"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$",r"$C$"]
+        labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$C$"]
         n_params = len(parameters)        
         pymultinest.run(myloglike_bhns_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEOSFix:
         parameters = ["q","chi_eff","mns"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$"]
+        labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$"]
         n_params = len(parameters)
         pymultinest.run(myloglike_bhns_EOSFix, myprior_bhns_EOSFix, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
@@ -389,7 +390,7 @@ if opts.model == "BHNS":
 elif opts.model == "BNS":
     if opts.doEOSFit:
         parameters = ["m1","c1","m2","c2"]
-        labels = [r"$m_{1}$",r"$C_{1}$",r"$m_{2}$",r"$C_{2}$"]
+        labels = [r"$m_{\rm 1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$C_{\rm 2}$"]
         n_params = len(parameters)
         pymultinest.run(myloglike_bns_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEOSFix:
@@ -424,7 +425,7 @@ data = np.loadtxt(multifile)
 
 if opts.model == "BNS" and opts.doEOSFit:
     data_new = np.zeros(data.shape)
-    labels = [r"q",r"$M_{c}$",r"$C_{1}$",r"$C_{2}$"] 
+    labels = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"] 
     mchirp,eta,q = ms2mc(data[:,0],data[:,2])
     data_new[:,0] = 1/q
     data_new[:,1] = mchirp
@@ -438,7 +439,9 @@ if opts.model == "BNS" and opts.doEOSFit:
 plotName = "%s/corner.pdf"%(plotDir)
 figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 12})
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".1f")
+figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
 plt.close()
 

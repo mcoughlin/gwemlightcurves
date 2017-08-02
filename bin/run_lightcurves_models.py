@@ -658,23 +658,23 @@ if opts.model in ["BHNS","BNS"]:
     if opts.doMasses:
         if opts.model == "BHNS":
             parameters = ["t0","q","chi_eff","mns","mb","c","th","ph","zp"]
-            labels = [r"$T_0$",r"$q$",r"$\chi_{eff}$",r"$m_{ns}$",r"$m_b$",r"$C$",r"$\theta_{ej}$",r"$\phi_{ej}$","ZP"]
+            labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$M_{\rm b}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","m1","mb1","c1","m2","mb2","c2","th","ph","zp"]
-            labels = [r"$T_0$",r"$m_{1}$",r"$m_{b1}$",r"$C_{1}$",r"$m_{2}$",r"$m_{b2}$",r"$C_{2}$",r"$\theta_{ej}$",r"$\phi_{ej}$","ZP"]
+            labels = [r"$T_0$",r"$m_{\rm 1}$",r"$m_{\rm b1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$m_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","th","ph","zp"]
-            labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$\theta_{ej}$",r"$\phi_{ej}$","ZP"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns_ejecta, myprior_bhns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BNS":
             parameters = ["t0","mej","vej","th","ph","zp"]
-            labels = [r"$T_0$",r"$log_{10} (M_{ej})$",r"$v_{ej}$",r"$\theta_{ej}$",r"$\phi_{ej}$","ZP"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
@@ -836,16 +836,16 @@ plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
     figure = corner.corner(data[:,1:5], labels=labels[1:5],
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 16},
-                       label_kwargs={"fontsize": 26}, title_fmt=".1f",
+                       show_titles=False, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".1f",
                        truths=truths[1:5])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 16},
+                       show_titles=True, title_kwargs={"fontsize": 24},
                        label_kwargs={"fontsize": 28}, title_fmt=".1f",
                        truths=truths)
-figure.set_size_inches(16,16)
+figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
 plt.close()
 
