@@ -50,17 +50,6 @@ def parse_commandline():
 
     return opts
 
-def plot_results(samples,label,plotName):
-
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(samples)
-    plt.plot(bins1, hist1)
-    plt.xlabel(label)
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
-
 def hist_results(samples,Nbins=16,bounds=None):
 
     if not bounds==None:

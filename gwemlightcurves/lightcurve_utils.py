@@ -11,6 +11,31 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
+def going_the_distance(dataDir,name):
+
+    data_out = {}
+    directory = '%s/going-the-distance_data/2015/compare/%s'%(dataDir,name)
+    filename = os.path.join(directory,'bayestar.fits.gz')
+
+    if not os.path.isfile(filename):
+        return data_out
+
+    filename = os.path.join(directory,'lalinference_nest/skymap.fits.gz')
+    filename_samples = os.path.join(directory,'lalinference_nest/posterior_samples.dat')
+
+    lines = [line.rstrip('\n') for line in open(filename_samples)]
+    data = np.loadtxt(filename_samples,skiprows=1)
+    line = lines[0]
+    params = line.split("\t")
+    params = filter(None, params)
+
+    for ii in xrange(len(params)):
+        param = params[ii]
+  
+        data_out[param] = data[:,ii]
+
+    return data_out
+
 def read_files_lbol(files,tmin=-100.0,tmax=100.0):
 
     names = []

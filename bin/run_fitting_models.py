@@ -28,17 +28,44 @@ def parse_commandline():
 
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
-    parser.add_option("-d","--dataDir",default="../lightcurves")
+    parser.add_option("-d","--dataDir",default="../data")
+    parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
+    parser.add_option("-n","--name",default="1087")
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--mej",default=0.005,type=float)
     parser.add_option("--vej",default=0.25,type=float)
-    parser.add_option("-e","--errorbudget",default=0.01,type=float)
+    parser.add_option("-e","--errorbudget",default=1.00,type=float)
+    parser.add_option("--doReduced",  action="store_true", default=False)
+    parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
-    parser.add_option("--doEOSFix",  action="store_true", default=False)
+    parser.add_option("--doSimulation",  action="store_true", default=False)
+    parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
+    parser.add_option("--doMasses",  action="store_true", default=False)
+    parser.add_option("--doEjecta",  action="store_true", default=False)
+    parser.add_option("-i","--injnum",default=0,type=int)
+    parser.add_option("-f","--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
 
     return opts
+
+def q2eta(q):
+    return q/(1+q)**2
+
+def mc2ms(mc,eta):
+    """
+    Utility function for converting mchirp,eta to component masses. The
+    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
+    """
+    root = np.sqrt(0.25-eta)
+    fraction = (0.5+root) / (0.5-root)
+    invfraction = 1/fraction
+
+    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
+
+    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
+    return (m1,m2)
 
 def ms2mc(m1,m2):
     eta = m1*m2/( (m1+m2)*(m1+m2) )
@@ -108,22 +135,15 @@ def kde_eval_single(kdedir,truth):
 
     return td
 
-def plot_results(samples,label,plotName):
+def hist_results(samples,Nbins=16,bounds=None):
 
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(samples)
-    plt.plot(bins1, hist1)
-    plt.xlabel(label)
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
-
-def hist_results(samples):
-
-    bins = np.linspace(np.min(samples),np.max(samples),11)
-    hist1, bin_edges = np.histogram(samples, bins=bins)
-    hist1 = hist1 / float(np.sum(hist1))
+    if not bounds==None:
+        bins = np.linspace(bounds[0],bounds[1],Nbins)
+    else:
+        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
+    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
+    hist1[hist1==0.0] = 1e-3
+    #hist1 = hist1 / float(np.sum(hist1))
     bins = (bins[1:] + bins[:-1])/2.0
 
     return bins, hist1
@@ -161,10 +181,12 @@ def get_post_file(basedir):
 
 def myprior_bhns(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 3.0
-        cube[1] = cube[1]*2.0 - 1.0
+        #cube[1] = cube[1]*2.0 - 1.0
+        cube[1] = cube[1]*0.75
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*2.0 + 1.0
-        cube[4] = cube[4]*0.17 + 0.08
+        #cube[4] = cube[4]*0.17 + 0.08
+        cube[4] = cube[4]*0.1 + 0.1
 
 def myprior_bns(cube, ndim, nparams):
         cube[0] = cube[0]*2.0 + 1.0
@@ -180,7 +202,8 @@ def myprior_bhns_EOSFit(cube, ndim, nparams):
         #cube[1] = cube[1]*1.5 - 0.75
         cube[1] = cube[1]*0.75
         cube[2] = cube[2]*2.0 + 1.0
-        cube[3] = cube[3]*0.17 + 0.08
+        #cube[3] = cube[3]*0.17 + 0.08
+        cube[3] = cube[3]*0.1 + 0.1
 
 def myprior_bns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*2.0 + 1.0
@@ -188,14 +211,9 @@ def myprior_bns_EOSFit(cube, ndim, nparams):
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.17 + 0.08
 
-def myprior_bhns_EOSFix(cube, ndim, nparams):
-        cube[0] = cube[0]*6.0 + 3.0
-        cube[1] = cube[1]*0.2 - 0.1
-        cube[2] = cube[2]*2.0 + 1.0
-
-def myprior_bns_EOSFix(cube, ndim, nparams):
-        cube[0] = cube[0]*2.0 + 1.0
-        cube[1] = cube[1]*2.0 + 1.0
+def myprior_combined(cube, ndim, nparams):
+        cube[0] = cube[0]*5.0 - 5.0
+        cube[1] = cube[1]*1.0
 
 def prior_bns(m1,mb1,c1,m2,mb2,c2):
         if m1 < m2:
@@ -223,6 +241,25 @@ def myloglike_bns(cube, ndim, nparams):
 
         return prob
 
+def myloglike_bns_gw(cube, ndim, nparams):
+        m1 = cube[0]
+        mb1 = cube[1]
+        c1 = cube[2]
+        m2 = cube[3]
+        mb2 = cube[4]
+        c2 = cube[5]
+
+        mej, vej = bns_model(m1,mb1,c1,m2,mb2,c2)
+
+        prob = calc_prob_gw(m1,m2)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
 def myloglike_bns_EOSFit(cube, ndim, nparams):
         m1 = cube[0]
         c1 = cube[1]
@@ -241,20 +278,22 @@ def myloglike_bns_EOSFit(cube, ndim, nparams):
 
         return prob
 
-def myloglike_bns_EOSFix(cube, ndim, nparams):
+def myloglike_bns_gw_EOSFit(cube, ndim, nparams):
         m1 = cube[0]
-        c1 = 0.147
-        m2 = cube[1]
-        c2 = 0.147
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
 
         mb1 = EOSfit(m1,c1)
         mb2 = EOSfit(m2,c2)
         mej, vej = bns_model(m1,mb1,c1,m2,mb2,c2)
 
-        prob = calc_prob(mej, vej)
+        prob = calc_prob_gw(m1, m2)
         prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
 
         if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
             prob = -np.inf
 
         return prob
@@ -291,18 +330,18 @@ def myloglike_bhns_EOSFit(cube, ndim, nparams):
 
         return prob
 
-def myloglike_bhns_EOSFix(cube, ndim, nparams):
-        q = cube[0]
-        chi_eff = cube[1]
-        mns = cube[2]
-        c = 0.147
+def myloglike_combined(cube, ndim, nparams):
+        mej = cube[0]
+        vej = cube[1]
+        vals = np.array([mej,vej]).T
 
-        mb = EOSfit(mns,c)
-        mej, vej = bhns_model(q,chi_eff,mns,mb,c)
+        kdeeval_gw = kde_eval(kdedir_gw,vals)[0]
+        prob_gw = np.log(kdeeval_gw)
+        kdeeval_em = kde_eval(kdedir_em,vals)[0]
+        prob_em = np.log(kdeeval_em)
+        prob = prob_gw + prob_em
 
-        prob = calc_prob(mej, vej)
-        prior = prior_bhns(q,chi_eff,mns,mb,c)
-        if prior == 0.0:
+        if np.isnan(prob):
             prob = -np.inf
 
         return prob
@@ -313,6 +352,22 @@ def calc_prob(mej, vej):
             prob = np.nan
         else:
             vals = np.array([mej,vej]).T
+            kdeeval = kde_eval(kdedir,vals)[0]
+            prob = np.log(kdeeval)
+
+        if np.isnan(prob):
+            prob = -np.inf
+
+        #if np.isfinite(prob):
+        #    print mej, vej, prob
+        return prob
+
+def calc_prob_gw(m1, m2):
+
+        if (m1==0.0) or (m2==0.0):
+            prob = np.nan
+        else:
+            vals = np.array([m1,m2]).T
             kdeeval = kde_eval(kdedir,vals)[0]
             prob = np.log(kdeeval)
 
@@ -334,26 +389,47 @@ if not opts.model in ["BHNS", "BNS"]:
    print "Model must be either: BHNS, BNS"
    exit(0)
 
+filters = opts.filters.split(",")
+
 baseplotDir = opts.plotDir
-if not os.path.isdir(baseplotDir):
-    os.mkdir(baseplotDir)
-plotDir = os.path.join(baseplotDir,'fitting')
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
-if opts.doEOSFit:
-    plotDir = os.path.join(baseplotDir,'fitting/%s_EOSFit'%opts.model)
-elif opts.doEOSFix:
-    plotDir = os.path.join(baseplotDir,'fitting/%s_EOSFix'%opts.model)
+if opts.doModels:
+    basename = 'fitting_models'
+elif opts.doGoingTheDistance:
+    basename = 'fitting_going-the-distance'
+elif opts.doSimulation:
+    basename = 'fitting'
 else:
-    plotDir = os.path.join(baseplotDir,'fitting/%s'%opts.model)
+    print "Need to enable --doModels, --doSimulation, or --doGoingTheDistance"
+    exit(0)
+plotDir = os.path.join(baseplotDir,basename)
+if opts.doEOSFit:
+    plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+else:
+    plotDir = os.path.join(plotDir,'%s'%opts.model)
+if opts.doModels:
+    if opts.doMasses:
+        plotDir = os.path.join(plotDir,'masses')
+    elif opts.doEjecta:
+        plotDir = os.path.join(plotDir,'ejecta')
+    plotDir = os.path.join(plotDir,opts.name)
+    plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+    dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","")
+elif opts.doSimulation:
+    plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
+    plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
+elif opts.doGoingTheDistance:
+    plotDir = os.path.join(plotDir,"_".join(filters))
+    if opts.doMasses:
+        plotDir = os.path.join(plotDir,'masses')
+    elif opts.doEjecta:
+        plotDir = os.path.join(plotDir,'ejecta')
+    plotDir = os.path.join(plotDir,opts.name)
+    dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
+    dataDir = os.path.join(dataDir,"%d"%opts.injnum)
+    dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
+
 if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
-plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
-plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    os.makedirs(plotDir)
 
 errorbudget = opts.errorbudget
 n_live_points = 1000
@@ -362,47 +438,94 @@ evidence_tolerance = 0.5
 seed = 1
 np.random.seed(seed=seed)
 
-mejvar = (opts.mej*opts.errorbudget)**2
-vejvar = (opts.vej*opts.errorbudget)**2
+if opts.doSimulation:
+    mejvar = (opts.mej*opts.errorbudget)**2
+    vejvar = (opts.vej*opts.errorbudget)**2
 
-nsamples = 1000
-mean = [opts.mej,opts.vej]
-cov = [[mejvar,0],[0,vejvar]]
-pts = np.random.multivariate_normal(mean, cov, nsamples)
+    nsamples = 1000
+    mean = [opts.mej,opts.vej]
+    cov = [[mejvar,0],[0,vejvar]]
+    pts = np.random.multivariate_normal(mean, cov, nsamples)
+elif opts.doModels:
+    multifile = get_post_file(dataDir)
+    data = np.loadtxt(multifile) 
+
+    if opts.doEjecta:
+        mej = 10**data[:,1]
+        vej = data[:,2]
+    elif opts.doMasses:
+        print "Masses not implemented..."
+        exit(0)
+    pts = np.vstack((mej,vej)).T
+
+elif opts.doGoingTheDistance:
+    data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
+    eta = q2eta(data_out["q"])
+    m1, m2 = mc2ms(data_out["mc"], eta)
+    pts = np.vstack((m1,m2)).T
+
+    multifile = get_post_file(dataDir)
+    data = np.loadtxt(multifile)
+
+    if opts.doEjecta:
+        mej_measured = data[:,1]
+        vej_measured = data[:,2]
+    elif opts.doMasses:
+        print "Masses not implemented..."
+        exit(0)
+
+    filename = os.path.join(dataDir,"truth.dat")
+    truths = np.loadtxt(filename)
+    truths[0] = np.log10(truths[0])
+
 kdedir = greedy_kde_areas_2d(pts)
 
-if opts.model == "BHNS":
-    if opts.doEOSFit:
-        parameters = ["q","chi_eff","mns","c"]
-        labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$C$"]
-        n_params = len(parameters)        
-        pymultinest.run(myloglike_bhns_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    elif opts.doEOSFix:
-        parameters = ["q","chi_eff","mns"]
-        labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_bhns_EOSFix, myprior_bhns_EOSFix, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    else:
-        parameters = ["q","chi_eff","mns","mb","c"]
-        labels = [r"$q$",r"$\chi_{eff}$",r"$M_{ns}$",r"$m_b$",r"$C$"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-elif opts.model == "BNS":
-    if opts.doEOSFit:
-        parameters = ["m1","c1","m2","c2"]
-        labels = [r"$m_{\rm 1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$C_{\rm 2}$"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_bns_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    elif opts.doEOSFix:
-        parameters = ["m1","m2"]
-        labels = [r"$m_{1}$",r"$m_{2}$"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_bns_EOSFix, myprior_bns_EOSFix, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    else:
-        parameters = ["m1","mb1","c1","m2","mb2","c2"]
-        labels = [r"$m_{1}$",r"$m_{b1}$",r"$C_{1}$",r"$m_{2}$",r"$m_{b2}$",r"$C_{2}$"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+if opts.doModels or opts.doSimulation:
+    if opts.model == "BHNS":
+        if opts.doEOSFit:
+            parameters = ["q","chi_eff","mns","c"]
+            labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$C$"]
+            n_params = len(parameters)        
+            pymultinest.run(myloglike_bhns_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        else:
+            parameters = ["q","chi_eff","mns","mb","c"]
+            labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$m_{\rm b}$",r"$C$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+    elif opts.model == "BNS":
+        if opts.doEOSFit:
+            parameters = ["m1","c1","m2","c2"]
+            labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        else:
+            parameters = ["m1","mb1","c1","m2","mb2","c2"]
+            labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+elif opts.doGoingTheDistance:
+    if opts.model == "BHNS":
+        if opts.doEOSFit:
+            parameters = ["q","chi_eff","mns","c"]
+            labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$C$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bhns_gw_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        else:
+            parameters = ["q","chi_eff","mns","mb","c"]
+            labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$m_{\rm b}$",r"$C$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bhns_gw, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+    elif opts.model == "BNS":
+        if opts.doEOSFit:
+            parameters = ["m1","c1","m2","c2"]
+            labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_gw_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        else:
+            parameters = ["m1","mb1","c1","m2","mb2","c2"]
+            labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_gw, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
 # lets analyse the results
 a = pymultinest.Analyzer(n_params = n_params, outputfiles_basename='%s/2-'%plotDir)
@@ -423,7 +546,7 @@ print("Global Evidence:\n\t%.15e +- %.15e" % ( s['nested sampling global log-evi
 multifile = get_post_file(plotDir)
 data = np.loadtxt(multifile)
 
-if opts.model == "BNS" and opts.doEOSFit:
+if (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOSFit:
     data_new = np.zeros(data.shape)
     labels = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"] 
     mchirp,eta,q = ms2mc(data[:,0],data[:,2])
@@ -432,18 +555,103 @@ if opts.model == "BNS" and opts.doEOSFit:
     data_new[:,2] = data[:,1]
     data_new[:,3] = data[:,3]
     data = data_new
+elif opts.doGoingTheDistance:
+    if opts.model == "BNS":
+        labels = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
+        if opts.doEOSFit:
+            mej, vej = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,c1,m2,c2 in data[:,:-1]:
+                mb1 = EOSfit(m1,c1)
+                mb2 = EOSfit(m2,c2)
+                mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                ii = ii + 1
+        else:
+            mej, vej = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,mb1,c1,m2,mb2,c2 in data[:,:-1]:
+                mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                ii = ii + 1
+        mej = np.log10(mej)
+        data = np.vstack((mej,vej,data[:,-1])).T       
+
+        pts_em = np.vstack((mej_measured,vej_measured)).T
+        pts_gw = np.vstack((mej,vej)).T
+        kdedir_em = greedy_kde_areas_2d(pts_em)
+        kdedir_gw = greedy_kde_areas_2d(pts_gw)
+
+        combinedDir = os.path.join(plotDir,"combined")
+        if not os.path.isdir(combinedDir):
+            os.makedirs(combinedDir)
+
+        parameters = ["mej","vej"]
+        n_params = len(parameters)
+        pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+
+        multifile = get_post_file(combinedDir)
+        data = np.loadtxt(multifile)
+        mej_combined = data[:,0]
+        vej_combined = data[:,1]
 
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
 
 plotName = "%s/corner.pdf"%(plotDir)
-figure = corner.corner(data[:,:-1], labels=labels,
+if opts.doGoingTheDistance:
+    figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": 24},
-                       label_kwargs={"fontsize": 28}, title_fmt=".1f")
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                       truths=truths)
+else:
+    figure = corner.corner(data[:,:-1], labels=labels,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f")
 figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
 plt.close()
+
+if opts.doGoingTheDistance:
+    colors = ['b','g','r','m','c']
+    linestyles = ['-', '-.', ':','--']
+
+    plotName = "%s/mej.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    bins, hist1 = hist_results(mej,Nbins=25,bounds=[-3.0,-1.0])
+    plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+    bins, hist1 = hist_results(mej_measured,Nbins=25,bounds=[-3.0,-1.0])
+    plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+    bins, hist1 = hist_results(mej_combined,Nbins=25,bounds=[-3.0,-1.0])
+    plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+    plt.semilogy([truths[0],truths[0]],[1e-3,10],'k--',linewidth=3,label="True")
+    plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.ylim([1e-1,10])
+    plt.savefig(plotName)
+    plt.close()
+
+    plotName = "%s/vej.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    bins, hist1 = hist_results(vej,Nbins=25,bounds=[0.0,1.0])
+    plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+    bins, hist1 = hist_results(vej_measured,Nbins=25,bounds=[0.0,1.0])
+    plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+    bins, hist1 = hist_results(vej_combined,Nbins=25,bounds=[0.0,1.0])
+    plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+    plt.semilogy([truths[1],truths[1]],[1e-3,10],'k--',linewidth=3,label="True")
+    plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.ylim([1e-1,10])
+    plt.savefig(plotName)
+    plt.close()
+
 
 if opts.model == "BHNS":
     q_min = 3.0

@@ -25,37 +25,68 @@ def parse_commandline():
 
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
-    parser.add_option("-d","--dataDir",default="../lightcurves")
+    parser.add_option("-d","--dataDir",default="../data")
+    parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-n","--name",default="PS1-13cyr")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
+    parser.add_option("-i","--injnum",default=0,type=int)
+    parser.add_option("-f","--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
 
     return opts
 
-def plot_results(samples,label,plotName):
+def norm_sym_ratio(eta): 
+    # Assume floating point precision issues
+    #if np.any(np.isclose(eta, 0.25)):
+    #eta[np.isclose(eta, 0.25)] = 0.25
 
-    plt.figure(figsize=(12,10))
-    bins1, hist1 = hist_results(samples)
-    plt.plot(bins1, hist1)
-    plt.xlabel(label)
-    plt.ylabel('Probability Density Function')
-    plt.show()
-    plt.savefig(plotName,dpi=200)
-    plt.close('all')
+    # Assert phyisicality
+    assert np.all(eta <= 0.25)
+ 
+    return np.sqrt(1 - 4. * eta)
 
-def hist_results(samples):
+def q2eta(q):
+    return q/(1+q)**2
+ 
+def mc2ms(mc,eta):
+    """
+    Utility function for converting mchirp,eta to component masses. The
+    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
+    """
+    root = np.sqrt(0.25-eta)
+    fraction = (0.5+root) / (0.5-root)
+    invfraction = 1/fraction
 
-    bins = np.linspace(np.min(samples),np.max(samples),11)
-    hist1, bin_edges = np.histogram(samples, bins=bins)
-    hist1 = hist1 / float(np.sum(hist1))
+    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
+
+    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
+    return (m1,m2)
+
+def ms2mc(m1,m2):
+    eta = m1*m2/( (m1+m2)*(m1+m2) )
+    mchirp = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
+    q = m2/m1
+
+    return (mchirp,eta,q)
+
+def hist_results(samples,Nbins=16,bounds=None):
+
+    if not bounds==None:
+        bins = np.linspace(bounds[0],bounds[1],Nbins)
+    else:
+        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
+    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
+    hist1[hist1==0.0] = 1e-3
+    #hist1 = hist1 / float(np.sum(hist1))
     bins = (bins[1:] + bins[:-1])/2.0
 
     return bins, hist1
@@ -366,6 +397,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             y = y[idx]
             sigma_y = sigma_y[idx]
 
+            if not key in filters: continue
+
             if key == "g":
                 #maginterp = np.interp(t,tmag,addconst(mag[1]),left=np.nan, right=np.nan)
                 ii = np.where(~np.isnan(mag[1]))[0]
@@ -524,6 +557,10 @@ def get_truths(name,model):
         truths = [0,np.log10(0.0079), 0.12,False,False,False]
     return truths
 
+def EOSfit(mns,c):
+    mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
+    return mb
+
 # Parse command line
 opts = parse_commandline()
 
@@ -531,41 +568,43 @@ if not opts.model in ["BHNS", "BNS", "SN"]:
    print "Model must be either: BHNS, BNS, SN"
    exit(0)
 
+filters = opts.filters.split(",")
+
 baseplotDir = opts.plotDir
-if not os.path.isdir(baseplotDir):
-    os.mkdir(baseplotDir)
-plotDir = os.path.join(baseplotDir,'models')
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
-if opts.doFixZPT0:
-    plotDir = os.path.join(baseplotDir,'models/%s_FixZPT0'%opts.model)
+if opts.doModels:
+    basename = 'models'
+elif opts.doGoingTheDistance:
+    basename = 'going-the-distance'
 else:
-    plotDir = os.path.join(baseplotDir,'models/%s'%opts.model)
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    basename = 'gws'
+plotDir = os.path.join(baseplotDir,basename)
+if opts.doFixZPT0:
+    plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+else:
+    plotDir = os.path.join(plotDir,'%s'%opts.model)
+plotDir = os.path.join(plotDir,"_".join(filters))
 if opts.model in ["BNS","BHNS"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
         plotDir = os.path.join(plotDir,'ejecta')
-    if not os.path.isdir(plotDir):
-        os.mkdir(plotDir)
 if opts.doReduced:
     plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
 else:
     plotDir = os.path.join(plotDir,opts.name)
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+if opts.doGoingTheDistance:
+    plotDir = os.path.join(plotDir,"%d"%opts.injnum)
 plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    os.makedirs(plotDir)
 
 dataDir = opts.dataDir
+lightcurvesDir = opts.lightcurvesDir
 
 if opts.doGWs:
-    filename = "%s/lightcurves_gw.tmp"%dataDir
+    filename = "%s/lightcurves_gw.tmp"%lightcurvesDir
 else:
-    filename = "%s/lightcurves.tmp"%dataDir
+    filename = "%s/lightcurves.tmp"%lightcurvesDir
 
 errorbudget = opts.errorbudget
 mint = 0.05
@@ -574,13 +613,42 @@ dt = 0.05
 n_live_points = 1000
 evidence_tolerance = 0.5
 
-if opts.doModels:
-    data_out = loadModels(opts.outputDir,opts.name)
-    if not opts.name in data_out:
-        print "%s not in file..."%opts.name
-        exit(0)
+if opts.doModels or opts.doGoingTheDistance:
+    if opts.doModels:
+        data_out = loadModels(opts.outputDir,opts.name)
+        if not opts.name in data_out:
+            print "%s not in file..."%opts.name
+            exit(0)
 
-    data_out = data_out[opts.name]
+        data_out = data_out[opts.name]
+    elif opts.doGoingTheDistance:
+
+        data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
+        eta = q2eta(data_out["q"])
+        m1, m2 = mc2ms(data_out["mc"], eta)
+
+        m1, m2 = m1[opts.injnum], m2[opts.injnum]
+        c1, c2 = 0.147, 0.147
+        mb1, mb2 = EOSfit(m1,c1), EOSfit(m2,c2)
+        th = 0.2
+        ph = 3.14
+
+        mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
+        vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+
+        filename = os.path.join(plotDir,'truth.dat')
+        fid = open(filename,'w+')
+        fid.write('%.5f %.5f\n'%(mej,vej))
+        fid.close()
+
+        t, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
+
+        data_out = {}
+        data_out["t"] = t
+        data_out["g"] = mag[1]
+        data_out["r"] = mag[2]
+        data_out["i"] = mag[3]
+        data_out["z"] = mag[4]
 
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
