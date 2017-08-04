@@ -1,5 +1,5 @@
 
-import os, sys, glob
+import os, sys, glob, copy
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
@@ -34,16 +34,16 @@ def parse_commandline():
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--mej",default=0.005,type=float)
     parser.add_option("--vej",default=0.25,type=float)
-    parser.add_option("-e","--errorbudget",default=1.00,type=float)
+    parser.add_option("-e","--errorbudget",default=0.2,type=float)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("--doSimulation",  action="store_true", default=False)
+    parser.add_option("--doFixMChirp",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
     parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
-    parser.add_option("-i","--injnum",default=0,type=int)
     parser.add_option("-f","--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
@@ -150,17 +150,8 @@ def hist_results(samples,Nbins=16,bounds=None):
 
 def bhns_model(q,chi_eff,mns,mb,c):
 
-    #q = 3.0
-    #chi_eff = 0.1
-    #c = 0.147
-    #mns = 1.35
-    #mb = mns*(0.69*(c-0.1)+1.055)
-
     meje = BHNSKilonovaLightcurve.calc_meje(q,chi_eff,c,mb,mns)
     vave = BHNSKilonovaLightcurve.calc_vave(q)
-
-    #print meje, vave
-    #exit(0)
   
     return meje, vave
 
@@ -253,6 +244,7 @@ def myloglike_bns_gw(cube, ndim, nparams):
 
         prob = calc_prob_gw(m1,m2)
         prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+
         if prior == 0.0:
             prob = -np.inf
         if mej == 0.0:
@@ -291,6 +283,29 @@ def myloglike_bns_gw_EOSFit(cube, ndim, nparams):
         prob = calc_prob_gw(m1, m2)
         prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
 
+        print m1, m2, prob
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_gw_EOSFit_FixMChirp(cube, ndim, nparams):
+        m1 = cube[0]
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
+
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+        mej, vej = bns_model(m1,mb1,c1,m2,mb2,c2)
+
+        #prob = calc_prob_mchirp(m1, m2)
+        prob = calc_prob_gw(m1, m2)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+
+        print m1, m2, prob
         if prior == 0.0:
             prob = -np.inf
         if mej == 0.0:
@@ -352,7 +367,7 @@ def calc_prob(mej, vej):
             prob = np.nan
         else:
             vals = np.array([mej,vej]).T
-            kdeeval = kde_eval(kdedir,vals)[0]
+            kdeeval = kde_eval(kdedir_pts,vals)[0]
             prob = np.log(kdeeval)
 
         if np.isnan(prob):
@@ -368,9 +383,28 @@ def calc_prob_gw(m1, m2):
             prob = np.nan
         else:
             vals = np.array([m1,m2]).T
-            kdeeval = kde_eval(kdedir,vals)[0]
+            kdeeval = kde_eval(kdedir_pts,vals)[0]
             prob = np.log(kdeeval)
 
+        if np.isnan(prob):
+            prob = -np.inf
+
+        #if np.isfinite(prob):
+        #    print mej, vej, prob
+        return prob
+
+def calc_prob_mchirp(m1, m2):
+
+        if (m1==0.0) or (m2==0.0):
+            prob = np.nan
+        else:
+            vals = np.array([m1,m2]).T
+            kdeeval = kde_eval(kdedir_pts,vals)[0]
+            prob1 = np.log(kdeeval)
+            kdeeval = kde_eval(kdedir_mchirp,vals)[0]
+            prob2 = np.log(kdeeval)
+            prob = prob1+prob2
+ 
         if np.isnan(prob):
             prob = -np.inf
 
@@ -425,7 +459,6 @@ elif opts.doGoingTheDistance:
         plotDir = os.path.join(plotDir,'ejecta')
     plotDir = os.path.join(plotDir,opts.name)
     dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
-    dataDir = os.path.join(dataDir,"%d"%opts.injnum)
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
 
 if not os.path.isdir(plotDir):
@@ -474,11 +507,15 @@ elif opts.doGoingTheDistance:
         print "Masses not implemented..."
         exit(0)
 
+    filename = os.path.join(dataDir,"truth_mej_vej.dat")
+    truths_mej_vej = np.loadtxt(filename)
+    truths_mej_vej[0] = np.log10(truths_mej_vej[0])
+
     filename = os.path.join(dataDir,"truth.dat")
     truths = np.loadtxt(filename)
-    truths[0] = np.log10(truths[0])
 
 kdedir = greedy_kde_areas_2d(pts)
+kdedir_pts = copy.deepcopy(kdedir)
 
 if opts.doModels or opts.doSimulation:
     if opts.model == "BHNS":
@@ -555,9 +592,28 @@ if (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOSFi
     data_new[:,2] = data[:,1]
     data_new[:,3] = data[:,3]
     data = data_new
+
+    if opts.doFixMChirp:
+        nsamples = 1000
+        mchirp = np.mean(mchirp) + 0.01*np.mean(mchirp)*np.random.randn(nsamples,)
+        q = 1.0 + 2.0*np.random.rand(nsamples,)
+        q = 1/q
+        eta = q/(1+q)**2
+        m1_mchirp, m2_mchirp = mc2ms(mchirp,eta)
+        pts_mchirp = np.vstack((m1_mchirp,m2_mchirp)).T
+        kdedir_mchirp = greedy_kde_areas_2d(pts_mchirp)
+
+        mchirpDir = os.path.join(plotDir,"mchirp")
+        if not os.path.isdir(mchirpDir):
+            os.makedirs(mchirpDir)
+
+        pymultinest.run(myloglike_bns_gw_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%mchirpDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+
+        print stop
+
 elif opts.doGoingTheDistance:
     if opts.model == "BNS":
-        labels = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
+        labels_mej_vej = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
         if opts.doEOSFit:
             mej, vej = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
             ii = 0
@@ -573,7 +629,6 @@ elif opts.doGoingTheDistance:
                 mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
                 ii = ii + 1
         mej = np.log10(mej)
-        data = np.vstack((mej,vej,data[:,-1])).T       
 
         pts_em = np.vstack((mej_measured,vej_measured)).T
         pts_gw = np.vstack((mej,vej)).T
@@ -589,9 +644,36 @@ elif opts.doGoingTheDistance:
         pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
         multifile = get_post_file(combinedDir)
-        data = np.loadtxt(multifile)
-        mej_combined = data[:,0]
-        vej_combined = data[:,1]
+        data_combined = np.loadtxt(multifile)
+        mej_combined = data_combined[:,0]
+        vej_combined = data_combined[:,1]
+
+        data_mej_vej = np.vstack((mej_combined,vej_combined)).T
+        plotName = "%s/corner_mej_vej.pdf"%(plotDir)
+        figure = corner.corner(data_mej_vej, labels=labels_mej_vej,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                       truths=truths_mej_vej)
+        figure.set_size_inches(14.0,14.0)
+        plt.savefig(plotName)
+        plt.close()
+
+        data_new = np.zeros(data.shape)
+        labels = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"]
+        mchirp,eta,q = ms2mc(data[:,0],data[:,2])
+        data_new[:,0] = 1/q
+        data_new[:,1] = mchirp
+        data_new[:,2] = data[:,1]
+        data_new[:,3] = data[:,3]
+        data = data_new
+        truths_new = np.zeros(truths.shape)
+        mchirp,eta,q = ms2mc(truths[0],truths[2])
+        truths_new[0] = 1/q
+        truths_new[1] = mchirp
+        truths_new[2] = truths[1]
+        truths_new[3] = truths[3]
+        truths = truths_new
 
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
@@ -624,12 +706,13 @@ if opts.doGoingTheDistance:
     plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
     bins, hist1 = hist_results(mej_combined,Nbins=25,bounds=[-3.0,-1.0])
     plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-    plt.semilogy([truths[0],truths[0]],[1e-3,10],'k--',linewidth=3,label="True")
+    plt.semilogy([truths_mej_vej[0],truths_mej_vej[0]],[1e-3,10],'k--',linewidth=3,label="True")
     plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
     plt.ylabel('Probability Density Function',fontsize=24)
     plt.legend(loc="best",prop={'size':24})
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
+    plt.xlim([-3.0,-1.3])
     plt.ylim([1e-1,10])
     plt.savefig(plotName)
     plt.close()
@@ -642,7 +725,7 @@ if opts.doGoingTheDistance:
     plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
     bins, hist1 = hist_results(vej_combined,Nbins=25,bounds=[0.0,1.0])
     plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-    plt.semilogy([truths[1],truths[1]],[1e-3,10],'k--',linewidth=3,label="True")
+    plt.semilogy([truths_mej_vej[1],truths_mej_vej[1]],[1e-3,10],'k--',linewidth=3,label="True")
     plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
     plt.ylabel('Probability Density Function',fontsize=24)
     plt.legend(loc="best",prop={'size':24})

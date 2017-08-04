@@ -33,11 +33,11 @@ def parse_commandline():
     parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
+    parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
-    parser.add_option("-i","--injnum",default=0,type=int)
     parser.add_option("-f","--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
@@ -181,12 +181,14 @@ def get_post_file(basedir):
 def myprior_bhns(cube, ndim, nparams):
 
         cube[0] = cube[0]*10.0 - 5.0
-        cube[1] = cube[1]*9.0 + 1.0
-        cube[2] = cube[2]*2.0 - 1.0
+        cube[1] = cube[1]*6.0 + 3.0
+        cube[2] = cube[2]*0.75
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*2.0 + 1.0
-        cube[5] = cube[5]*0.17 + 0.08
-        cube[6] = cube[6]*100.0 - 50.0
+        cube[5] = cube[5]*0.1 + 0.1
+        cube[6] = cube[6]*2.0 + 1.0
+        cube[7] = cube[7]*0.1 + 0.1
+        cube[8] = cube[8]*100.0 - 50.0
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
@@ -195,6 +197,15 @@ def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
         cube[5] = cube[5]*100.0 - 50.0
+
+def prior_bns(m1,mb1,c1,m2,mb2,c2):
+        if m1 < m2:
+            return 0.0
+        else:
+            return 1.0
+
+def prior_bhns(q,chi_eff,mns,mb,c):
+        return 1.0
 
 def myprior_bns(cube, ndim, nparams):
 
@@ -205,9 +216,22 @@ def myprior_bns(cube, ndim, nparams):
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*2.0 + 1.0
         cube[6] = cube[6]*0.17 + 0.08
+        cube[7] = cube[7]*np.pi/2
+        cube[8] = cube[8]*2*np.pi
+        cube[9] = cube[9]*100.0 - 50.0
+
+def myprior_bns_EOSFit(cube, ndim, nparams):
+
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*2.0 + 1.0
+        cube[2] = cube[2]*0.17 + 0.08
+        cube[3] = cube[3]*2.0 + 1.0
+        cube[4] = cube[4]*0.17 + 0.08
+        cube[5] = cube[5]*np.pi/2
+        cube[6] = cube[6]*2*np.pi
         cube[7] = cube[7]*100.0 - 50.0
 
-def myprior_bns_fixZPT0(cube, ndim, nparams):
+def myprior_bhns_ejecta_fixZPT0(cube, ndim, nparams):
         cube[0] = 0.0
         cube[1] = cube[1]*2.0 + 1
         cube[2] = cube[2]*2.0 + 1
@@ -277,18 +301,16 @@ def myloglike_bns(cube, ndim, nparams):
         m2 = cube[4]
         mb2 = cube[5]
         c2 = cube[6]
-        zp = cube[7]
+        th = cube[7]
+        ph = cube[8]
+        zp = cube[9]
 
-        #c = 0.147
-        #mb = 1.47
-        #m1 = 1.35
-        #m2 = 1.35
-        #t0 = 0.0
-        #zp = 0.0
-
-        tmag, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2)
+        tmag, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
 
         return prob
 
@@ -300,16 +322,32 @@ def myloglike_bns_ejecta(cube, ndim, nparams):
         ph = cube[4]
         zp = cube[5]
 
-        #c = 0.147
-        #mb = 1.47
-        #m1 = 1.35
-        #m2 = 1.35
-        #t0 = 0.0
-        #zp = 0.0
-
         tmag, lbol, mag = bns_model_ejecta(mej,vej,th,ph)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+        return prob
+
+def myloglike_bns_EOSFit(cube, ndim, nparams):
+
+        t0 = cube[0]
+        m1 = cube[1]
+        c1 = cube[2]
+        m2 = cube[3]
+        c2 = cube[4]
+        th = cube[5]
+        ph = cube[6]
+        zp = cube[7]
+
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+
+        tmag, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
 
         return prob
 
@@ -320,7 +358,9 @@ def myloglike_bhns(cube, ndim, nparams):
         mns = cube[3]
         mb = cube[4]
         c = cube[5]
-        zp = cube[6]
+        th = cube[6]
+        ph = cube[7]
+        zp = cube[8]
 
         #c = 0.161
         #mb = 1.49
@@ -329,9 +369,12 @@ def myloglike_bhns(cube, ndim, nparams):
         #t0 = 0.0
         #zp = 0.0
 
-        tmag, lbol, mag = bhns_model(q, chi_eff, mns, mb, c)
+        tmag, lbol, mag = bhns_model(q, chi_eff, mns, mb, c, th, ph)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bhns(q,chi_eff,mns,mb,c)
+        if prior == 0.0:
+            prob = -np.inf
 
         return prob
 
@@ -527,6 +570,9 @@ def get_truths(name,model):
     if not model in ["BHNS", "BNS"]:
         return truths        
 
+    if not opts.doEjecta:
+        return truths
+
     if name == "BNS_H4M005V20":
         truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
     elif name == "BHNS_H4M005V20":
@@ -578,8 +624,8 @@ elif opts.doGoingTheDistance:
 else:
     basename = 'gws'
 plotDir = os.path.join(baseplotDir,basename)
-if opts.doFixZPT0:
-    plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+if opts.doEOSFit:
+    plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
 else:
     plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
@@ -592,8 +638,6 @@ if opts.doReduced:
     plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
 else:
     plotDir = os.path.join(plotDir,opts.name)
-if opts.doGoingTheDistance:
-    plotDir = os.path.join(plotDir,"%d"%opts.injnum)
 plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
@@ -626,8 +670,10 @@ if opts.doModels or opts.doGoingTheDistance:
         data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
         eta = q2eta(data_out["q"])
         m1, m2 = mc2ms(data_out["mc"], eta)
+        q = m2/m1
+        mc = data_out["mc"]
 
-        m1, m2 = m1[opts.injnum], m2[opts.injnum]
+        m1, m2 = np.mean(m1), np.mean(m2)
         c1, c2 = 0.147, 0.147
         mb1, mb2 = EOSfit(m1,c1), EOSfit(m2,c2)
         th = 0.2
@@ -636,9 +682,14 @@ if opts.doModels or opts.doGoingTheDistance:
         mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
         vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
 
-        filename = os.path.join(plotDir,'truth.dat')
+        filename = os.path.join(plotDir,'truth_mej_vej.dat')
         fid = open(filename,'w+')
         fid.write('%.5f %.5f\n'%(mej,vej))
+        fid.close()
+
+        filename = os.path.join(plotDir,'truth.dat')
+        fid = open(filename,'w+')
+        fid.write('%.5f %.5f %.5f %.5f\n'%(m1,c1,m2,c2))
         fid.close()
 
         t, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
@@ -725,15 +776,27 @@ if opts.model in ["BHNS","BNS"]:
 
     if opts.doMasses:
         if opts.model == "BHNS":
-            parameters = ["t0","q","chi_eff","mns","mb","c","th","ph","zp"]
-            labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$M_{\rm b}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
-            n_params = len(parameters)
-            pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            if opts.doEOSFit:
+                parameters = ["t0","q","chi_eff","mns","c","th","ph","zp"]
+                labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            else:
+                parameters = ["t0","q","chi_eff","mns","mb","c","th","ph","zp"]
+                labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$M_{\rm b}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BNS":
-            parameters = ["t0","m1","mb1","c1","m2","mb2","c2","th","ph","zp"]
-            labels = [r"$T_0$",r"$m_{\rm 1}$",r"$m_{\rm b1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$m_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
-            n_params = len(parameters)
-            pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            if opts.doEOSFit:
+                parameters = ["t0","m1","c1","m2","c2","th","ph","zp"]
+                labels = [r"$T_0$",r"$m_{\rm 1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_bns_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            else:
+                parameters = ["t0","m1","mb1","c1","m2","mb2","c2","th","ph","zp"]
+                labels = [r"$T_0$",r"$m_{\rm 1}$",r"$m_{\rm b1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$m_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","th","ph","zp"]
@@ -827,29 +890,56 @@ if opts.model == "BHNS":
 elif opts.model == "BNS":
 
     if opts.doMasses:
-        t0 = data[:,0]
-        m1 = data[:,1]
-        mb1 = data[:,2]
-        c1 = data[:,3]
-        m2 = data[:,4]
-        mb2 = data[:,5]
-        c2 = data[:,6]
-        th = data[:,7]
-        ph = data[:,8]
-        zp = data[:,9]
-        loglikelihood = data[:,10]
-        idx = np.argmax(loglikelihood)
+        if opts.doEOSFit:
 
-        t0_best = data[idx,0]
-        m1_best = data[idx,1]
-        mb1_best = data[idx,2]
-        c1_best = data[idx,3]
-        m2_best = data[idx,4]
-        mb2_best = data[idx,5]
-        c2_best = data[idx,6]
-        th_best = data[idx,7]
-        ph_best = data[idx,8]
-        zp_best = data[idx,9]
+            t0 = data[:,0]
+            m1 = data[:,1]
+            c1 = data[:,2]
+            m2 = data[:,3]
+            c2 = data[:,4]
+            th = data[:,5]
+            ph = data[:,6]
+            zp = data[:,7]
+            loglikelihood = data[:,8]
+            idx = np.argmax(loglikelihood)
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            c1_best = data[idx,2]
+            m2_best = data[idx,3]
+            c2_best = data[idx,4]
+            th_best = data[idx,5]
+            ph_best = data[idx,6]
+            zp_best = data[idx,7]
+            mb1_best = mb1[idx]
+            mb2_best = mb2[idx]
+
+        else:
+            t0 = data[:,0]
+            m1 = data[:,1]
+            mb1 = data[:,2]
+            c1 = data[:,3]
+            m2 = data[:,4]
+            mb2 = data[:,5]
+            c2 = data[:,6]
+            th = data[:,7]
+            ph = data[:,8]
+            zp = data[:,9]
+            loglikelihood = data[:,10]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            mb1_best = data[idx,2]
+            c1_best = data[idx,3]
+            m2_best = data[idx,4]
+            mb2_best = data[idx,5]
+            c2_best = data[idx,6]
+            th_best = data[idx,7]
+            ph_best = data[idx,8]
+            zp_best = data[idx,9]
 
         tmag, lbol, mag = bns_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,th_best,ph_best)
     elif opts.doEjecta:
@@ -889,13 +979,6 @@ elif opts.model == "SN":
     c_best = data[idx,4]
     zp_best = data[idx,5]
 
-    #t0_best = 0.0
-    #z_best = 0.5
-    #x0_best = 1.0
-    #x1_best = 1.0
-    #c_best = 1.0
-    #zp_best = 0.0
-
     tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
 
 truths = get_truths(opts.name,opts.model)
@@ -913,7 +996,10 @@ else:
                        show_titles=True, title_kwargs={"fontsize": 24},
                        label_kwargs={"fontsize": 28}, title_fmt=".1f",
                        truths=truths)
-figure.set_size_inches(14.0,14.0)
+if n_params >= 8:
+    figure.set_size_inches(18.0,18.0)
+else:
+    figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
 plt.close()
 
