@@ -212,10 +212,10 @@ def myprior_bns(cube, ndim, nparams):
         cube[0] = cube[0]*10.0 - 5.0
         cube[1] = cube[1]*2.0 + 1.0
         cube[2] = cube[2]*2.0 + 1.0
-        cube[3] = cube[3]*0.17 + 0.08
+        cube[3] = cube[3]*0.16 + 0.08
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*2.0 + 1.0
-        cube[6] = cube[6]*0.17 + 0.08
+        cube[6] = cube[6]*0.16 + 0.08
         cube[7] = cube[7]*np.pi/2
         cube[8] = cube[8]*2*np.pi
         cube[9] = cube[9]*100.0 - 50.0
@@ -224,9 +224,9 @@ def myprior_bns_EOSFit(cube, ndim, nparams):
 
         cube[0] = cube[0]*10.0 - 5.0
         cube[1] = cube[1]*2.0 + 1.0
-        cube[2] = cube[2]*0.17 + 0.08
+        cube[2] = cube[2]*0.16 + 0.08
         cube[3] = cube[3]*2.0 + 1.0
-        cube[4] = cube[4]*0.17 + 0.08
+        cube[4] = cube[4]*0.16 + 0.08
         cube[5] = cube[5]*np.pi/2
         cube[6] = cube[6]*2*np.pi
         cube[7] = cube[7]*100.0 - 50.0
@@ -235,7 +235,7 @@ def myprior_bhns_ejecta_fixZPT0(cube, ndim, nparams):
         cube[0] = 0.0
         cube[1] = cube[1]*2.0 + 1
         cube[2] = cube[2]*2.0 + 1
-        cube[3] = cube[3]*0.17 + 0.08
+        cube[3] = cube[3]*0.16 + 0.08
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = 0.0
 
@@ -251,7 +251,7 @@ def myprior_bns_ejecta_fixZPT0(cube, ndim, nparams):
         cube[0] = 0.0
         cube[1] = cube[1]*4.0 - 5.0
         cube[2] = cube[2]*1.0
-        cube[3] = cube[3]*0.17 + 0.08
+        cube[3] = cube[3]*0.16 + 0.08
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = 0.0
 
@@ -668,6 +668,7 @@ if opts.doModels or opts.doGoingTheDistance:
     elif opts.doGoingTheDistance:
 
         data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
+
         eta = q2eta(data_out["q"])
         m1, m2 = mc2ms(data_out["mc"], eta)
         q = m2/m1
@@ -789,12 +790,12 @@ if opts.model in ["BHNS","BNS"]:
         elif opts.model == "BNS":
             if opts.doEOSFit:
                 parameters = ["t0","m1","c1","m2","c2","th","ph","zp"]
-                labels = [r"$T_0$",r"$m_{\rm 1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_bns_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
                 parameters = ["t0","m1","mb1","c1","m2","mb2","c2","th","ph","zp"]
-                labels = [r"$T_0$",r"$m_{\rm 1}$",r"$m_{\rm b1}$",r"$C_{\rm 1}$",r"$m_{\rm 2}$",r"$m_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
@@ -983,18 +984,25 @@ elif opts.model == "SN":
 
 truths = get_truths(opts.name,opts.model)
 
+if n_params >= 8:
+    title_fontsize = 26
+    label_fontsize = 30
+else:
+    title_fontsize = 24
+    label_fontsize = 28
+
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
     figure = corner.corner(data[:,1:5], labels=labels[1:5],
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=False, title_kwargs={"fontsize": 24},
-                       label_kwargs={"fontsize": 28}, title_fmt=".1f",
+                       show_titles=False, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
                        truths=truths[1:5])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 24},
-                       label_kwargs={"fontsize": 28}, title_fmt=".1f",
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
                        truths=truths)
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)

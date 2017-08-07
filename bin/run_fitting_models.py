@@ -34,7 +34,7 @@ def parse_commandline():
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--mej",default=0.005,type=float)
     parser.add_option("--vej",default=0.25,type=float)
-    parser.add_option("-e","--errorbudget",default=0.2,type=float)
+    parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
@@ -172,35 +172,30 @@ def get_post_file(basedir):
 
 def myprior_bhns(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 3.0
-        #cube[1] = cube[1]*2.0 - 1.0
         cube[1] = cube[1]*0.75
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*2.0 + 1.0
-        #cube[4] = cube[4]*0.17 + 0.08
         cube[4] = cube[4]*0.1 + 0.1
 
 def myprior_bns(cube, ndim, nparams):
         cube[0] = cube[0]*2.0 + 1.0
         cube[1] = cube[1]*2.0 + 1.0
-        cube[2] = cube[2]*0.17 + 0.08
+        cube[2] = cube[2]*0.16 + 0.08
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*2.0 + 1.0
-        cube[5] = cube[5]*0.17 + 0.08
+        cube[5] = cube[5]*0.16 + 0.08
 
 def myprior_bhns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 3.0
-        #cube[1] = cube[1]*2.0 - 1.0
-        #cube[1] = cube[1]*1.5 - 0.75
         cube[1] = cube[1]*0.75
         cube[2] = cube[2]*2.0 + 1.0
-        #cube[3] = cube[3]*0.17 + 0.08
         cube[3] = cube[3]*0.1 + 0.1
 
 def myprior_bns_EOSFit(cube, ndim, nparams):
         cube[0] = cube[0]*2.0 + 1.0
-        cube[1] = cube[1]*0.17 + 0.08
+        cube[1] = cube[1]*0.16 + 0.08
         cube[2] = cube[2]*2.0 + 1.0
-        cube[3] = cube[3]*0.17 + 0.08
+        cube[3] = cube[3]*0.16 + 0.08
 
 def myprior_combined(cube, ndim, nparams):
         cube[0] = cube[0]*5.0 - 5.0
@@ -270,6 +265,26 @@ def myloglike_bns_EOSFit(cube, ndim, nparams):
 
         return prob
 
+def myloglike_bns_EOSFit_FixMChirp(cube, ndim, nparams):
+        m1 = cube[0]
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
+
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+        mej, vej = bns_model(m1,mb1,c1,m2,mb2,c2)
+
+        prob1 = calc_prob(mej, vej)
+        prob2 = calc_prob_mchirp(m1, m2)
+        prob = prob1+prob2
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
 def myloglike_bns_gw_EOSFit(cube, ndim, nparams):
         m1 = cube[0]
         c1 = cube[1]
@@ -283,29 +298,6 @@ def myloglike_bns_gw_EOSFit(cube, ndim, nparams):
         prob = calc_prob_gw(m1, m2)
         prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
 
-        print m1, m2, prob
-        if prior == 0.0:
-            prob = -np.inf
-        if mej == 0.0:
-            prob = -np.inf
-
-        return prob
-
-def myloglike_bns_gw_EOSFit_FixMChirp(cube, ndim, nparams):
-        m1 = cube[0]
-        c1 = cube[1]
-        m2 = cube[2]
-        c2 = cube[3]
-
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        mej, vej = bns_model(m1,mb1,c1,m2,mb2,c2)
-
-        #prob = calc_prob_mchirp(m1, m2)
-        prob = calc_prob_gw(m1, m2)
-        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
-
-        print m1, m2, prob
         if prior == 0.0:
             prob = -np.inf
         if mej == 0.0:
@@ -339,6 +331,25 @@ def myloglike_bhns_EOSFit(cube, ndim, nparams):
         mej, vej = bhns_model(q,chi_eff,mns,mb,c)
 
         prob = calc_prob(mej, vej)
+        prior = prior_bhns(q,chi_eff,mns,mb,c)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bhns_EOSFit_FixMChirp(cube, ndim, nparams):
+        q = cube[0]
+        chi_eff = cube[1]
+        mns = cube[2]
+        c = cube[3]
+
+        mb = EOSfit(mns,c)
+        mej, vej = bhns_model(q,chi_eff,mns,mb,c)
+
+        prob1 = calc_prob(mej, vej)
+        prob2 = calc_prob_mchirp(q*mns, mns)
+        prob = prob1+prob2
+
         prior = prior_bhns(q,chi_eff,mns,mb,c)
         if prior == 0.0:
             prob = -np.inf
@@ -393,17 +404,16 @@ def calc_prob_gw(m1, m2):
         #    print mej, vej, prob
         return prob
 
+def Gaussian(x, mu, sigma):
+    return (1.0/np.sqrt(2.0*np.pi*sigma*sigma))*np.exp(-(x-mu)*(x-mu)/2.0/sigma/sigma)
+
 def calc_prob_mchirp(m1, m2):
 
         if (m1==0.0) or (m2==0.0):
             prob = np.nan
         else:
-            vals = np.array([m1,m2]).T
-            kdeeval = kde_eval(kdedir_pts,vals)[0]
-            prob1 = np.log(kdeeval)
-            kdeeval = kde_eval(kdedir_mchirp,vals)[0]
-            prob2 = np.log(kdeeval)
-            prob = prob1+prob2
+            mchirp,eta,q = ms2mc(m1,m2)
+            prob = np.log(Gaussian(mchirp, mchirp_mu, mchirp_sigma))
  
         if np.isnan(prob):
             prob = -np.inf
@@ -579,13 +589,37 @@ print()
 print("-" * 30, 'ANALYSIS', "-" * 30)
 print("Global Evidence:\n\t%.15e +- %.15e" % ( s['nested sampling global log-evidence'], s['nested sampling global log-evidence error'] ))
 
-#multifile= os.path.join(plotDir,'2-.txt')
 multifile = get_post_file(plotDir)
 data = np.loadtxt(multifile)
 
-if (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOSFit:
+if (opts.doModels or opts.doSimulation) and opts.model == "BHNS" and opts.doEOSFit:
+    m1 = data[:,0]*data[:,2]
+    m2 = data[:,2]
+    mchirp,eta,q = ms2mc(data[:,0],data[:,2])
+
+    if opts.doFixMChirp:
+        mchirp_mu, mchirp_sigma = np.mean(mchirp), 0.001*np.mean(mchirp)
+
+        mchirpDir = os.path.join(plotDir,"mchirp")
+        if not os.path.isdir(mchirpDir):
+            os.makedirs(mchirpDir)
+
+        pymultinest.run(myloglike_bhns_EOSFit_FixMChirp, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%mchirpDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        multifile = get_post_file(mchirpDir)
+        data_mchirp = np.loadtxt(multifile)
+
+        plotName = "%s/corner_mchirp.pdf"%(plotDir)
+        figure = corner.corner(data_mchirp[:,:-1], labels=labels,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f")
+        figure.set_size_inches(14.0,14.0)
+        plt.savefig(plotName)
+        plt.close()
+
+elif (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOSFit:
     data_new = np.zeros(data.shape)
-    labels = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"] 
+    labels = [r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"] 
     mchirp,eta,q = ms2mc(data[:,0],data[:,2])
     data_new[:,0] = 1/q
     data_new[:,1] = mchirp
@@ -594,22 +628,33 @@ if (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOSFi
     data = data_new
 
     if opts.doFixMChirp:
-        nsamples = 1000
-        mchirp = np.mean(mchirp) + 0.01*np.mean(mchirp)*np.random.randn(nsamples,)
-        q = 1.0 + 2.0*np.random.rand(nsamples,)
-        q = 1/q
-        eta = q/(1+q)**2
-        m1_mchirp, m2_mchirp = mc2ms(mchirp,eta)
-        pts_mchirp = np.vstack((m1_mchirp,m2_mchirp)).T
-        kdedir_mchirp = greedy_kde_areas_2d(pts_mchirp)
+        mchirp_mu, mchirp_sigma = np.mean(mchirp), 0.001*np.mean(mchirp)
 
         mchirpDir = os.path.join(plotDir,"mchirp")
         if not os.path.isdir(mchirpDir):
             os.makedirs(mchirpDir)
 
-        pymultinest.run(myloglike_bns_gw_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%mchirpDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        pymultinest.run(myloglike_bns_EOSFit_FixMChirp, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%mchirpDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
-        print stop
+        multifile = get_post_file(mchirpDir)
+        data_mchirp = np.loadtxt(multifile)
+        data_new = np.zeros(data_mchirp.shape)
+        labels_mchirp = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"]
+        mchirp,eta,q = ms2mc(data_mchirp[:,0],data_mchirp[:,2])
+        data_new[:,0] = 1/q
+        data_new[:,1] = mchirp
+        data_new[:,2] = data_mchirp[:,1]
+        data_new[:,3] = data_mchirp[:,3]
+        data_mchirp = data_new
+
+        plotName = "%s/corner_mchirp.pdf"%(plotDir)
+        figure = corner.corner(data_mchirp[:,:-1], labels=labels_mchirp,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f")
+        figure.set_size_inches(14.0,14.0)
+        plt.savefig(plotName)
+        plt.close()
 
 elif opts.doGoingTheDistance:
     if opts.model == "BNS":
