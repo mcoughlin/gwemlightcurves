@@ -197,9 +197,13 @@ def myprior_bns_EOSFit(cube, ndim, nparams):
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.16 + 0.08
 
-def myprior_combined(cube, ndim, nparams):
+def myprior_combined_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*5.0 - 5.0
         cube[1] = cube[1]*1.0
+
+def myprior_combined_masses(cube, ndim, nparams):
+        cube[0] = cube[0]*2.0 + 1.0
+        cube[1] = cube[1]*2.0 + 0.0
 
 def prior_bns(m1,mb1,c1,m2,mb2,c2):
         if m1 < m2:
@@ -357,9 +361,9 @@ def myloglike_bhns_EOSFit_FixMChirp(cube, ndim, nparams):
         return prob
 
 def myloglike_combined(cube, ndim, nparams):
-        mej = cube[0]
-        vej = cube[1]
-        vals = np.array([mej,vej]).T
+        var1 = cube[0]
+        var2 = cube[1]
+        vals = np.array([var1,var2]).T
 
         kdeeval_gw = kde_eval(kdedir_gw,vals)[0]
         prob_gw = np.log(kdeeval_gw)
@@ -468,8 +472,12 @@ elif opts.doGoingTheDistance:
     elif opts.doEjecta:
         plotDir = os.path.join(plotDir,'ejecta')
     plotDir = os.path.join(plotDir,opts.name)
-    dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
+    #dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
+    dataDir = plotDir.replace("fitting_","")
+    if opts.doEjecta:
+        dataDir = dataDir.replace("_EOSFit","")
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
+    plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
@@ -511,18 +519,30 @@ elif opts.doGoingTheDistance:
     data = np.loadtxt(multifile)
 
     if opts.doEjecta:
-        mej_measured = data[:,1]
-        vej_measured = data[:,2]
+        mej_em = data[:,1]
+        vej_em = data[:,2]
+
+        filename = os.path.join(dataDir,"truth_mej_vej.dat")
+        truths_mej_vej = np.loadtxt(filename)
+        truths_mej_vej[0] = np.log10(truths_mej_vej[0])
+        mej_true = truths_mej_vej[0]
+        vej_true = truths_mej_vej[1]
+
+        filename = os.path.join(dataDir,"truth.dat")
+        truths = np.loadtxt(filename)
+
     elif opts.doMasses:
-        print "Masses not implemented..."
-        exit(0)
+        mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,3])
+        q_em = 1/q_em  
+ 
+        filename = os.path.join(dataDir,"truth_mej_vej.dat")
+        truths_mej_vej = np.loadtxt(filename)
+        truths_mej_vej[0] = np.log10(truths_mej_vej[0])
 
-    filename = os.path.join(dataDir,"truth_mej_vej.dat")
-    truths_mej_vej = np.loadtxt(filename)
-    truths_mej_vej[0] = np.log10(truths_mej_vej[0])
-
-    filename = os.path.join(dataDir,"truth.dat")
-    truths = np.loadtxt(filename)
+        filename = os.path.join(dataDir,"truth.dat")
+        truths = np.loadtxt(filename)
+        mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
+        q_true = 1/q_true
 
 kdedir = greedy_kde_areas_2d(pts)
 kdedir_pts = copy.deepcopy(kdedir)
@@ -660,65 +680,70 @@ elif opts.doGoingTheDistance:
     if opts.model == "BNS":
         labels_mej_vej = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
         if opts.doEOSFit:
-            mej, vej = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,2])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
             ii = 0
             for m1,c1,m2,c2 in data[:,:-1]:
                 mb1 = EOSfit(m1,c1)
                 mb2 = EOSfit(m2,c2)
-                mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
                 ii = ii + 1
         else:
-            mej, vej = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,3])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
             ii = 0
             for m1,mb1,c1,m2,mb2,c2 in data[:,:-1]:
-                mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
                 ii = ii + 1
-        mej = np.log10(mej)
-
-        pts_em = np.vstack((mej_measured,vej_measured)).T
-        pts_gw = np.vstack((mej,vej)).T
-        kdedir_em = greedy_kde_areas_2d(pts_em)
-        kdedir_gw = greedy_kde_areas_2d(pts_gw)
+        q_gw = 1/q_gw 
+        mej_gw = np.log10(mej_gw)
 
         combinedDir = os.path.join(plotDir,"combined")
         if not os.path.isdir(combinedDir):
-            os.makedirs(combinedDir)
+            os.makedirs(combinedDir)       
 
-        parameters = ["mej","vej"]
-        n_params = len(parameters)
-        pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        if opts.doEjecta:
+            pts_em = np.vstack((mej_em,vej_em)).T
+            pts_gw = np.vstack((mej_gw,vej_gw)).T
+            kdedir_em = greedy_kde_areas_2d(pts_em)
+            kdedir_gw = greedy_kde_areas_2d(pts_gw)
 
-        multifile = get_post_file(combinedDir)
-        data_combined = np.loadtxt(multifile)
-        mej_combined = data_combined[:,0]
-        vej_combined = data_combined[:,1]
+            parameters = ["mej","vej"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_combined, myprior_combined_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
-        data_mej_vej = np.vstack((mej_combined,vej_combined)).T
-        plotName = "%s/corner_mej_vej.pdf"%(plotDir)
-        figure = corner.corner(data_mej_vej, labels=labels_mej_vej,
+            labels_combined = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
+            multifile = get_post_file(combinedDir)
+            data_combined = np.loadtxt(multifile)
+            mej_combined = data_combined[:,0]
+            vej_combined = data_combined[:,1]
+
+            data_combined = np.vstack((mej_combined,vej_combined)).T
+            plotName = "%s/corner_combined.pdf"%(plotDir)
+            figure = corner.corner(data_combined, labels=labels_combined,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": 24},
                        label_kwargs={"fontsize": 28}, title_fmt=".2f",
                        truths=truths_mej_vej)
-        figure.set_size_inches(14.0,14.0)
-        plt.savefig(plotName)
-        plt.close()
+            figure.set_size_inches(14.0,14.0)
+            plt.savefig(plotName)
+            plt.close()
+        elif opts.doMasses:
+            pts_em = np.vstack((q_em,mchirp_em)).T
+            pts_gw = np.vstack((q_gw,mchirp_gw)).T
 
-        data_new = np.zeros(data.shape)
-        labels = [r"q",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$"]
-        mchirp,eta,q = ms2mc(data[:,0],data[:,2])
-        data_new[:,0] = 1/q
-        data_new[:,1] = mchirp
-        data_new[:,2] = data[:,1]
-        data_new[:,3] = data[:,3]
-        data = data_new
-        truths_new = np.zeros(truths.shape)
-        mchirp,eta,q = ms2mc(truths[0],truths[2])
-        truths_new[0] = 1/q
-        truths_new[1] = mchirp
-        truths_new[2] = truths[1]
-        truths_new[3] = truths[3]
-        truths = truths_new
+            kdedir_em = greedy_kde_areas_2d(pts_em)
+            kdedir_gw = greedy_kde_areas_2d(pts_gw)
+
+            parameters = ["q","mchirp"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_combined, myprior_combined_masses, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+
+            labels_mej_vej = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
+            multifile = get_post_file(combinedDir)
+            data_combined = np.loadtxt(multifile)
+            q_combined = data_combined[:,0]
+            mchirp_combined = data_combined[:,1]
 
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
@@ -743,43 +768,82 @@ if opts.doGoingTheDistance:
     colors = ['b','g','r','m','c']
     linestyles = ['-', '-.', ':','--']
 
-    plotName = "%s/mej.pdf"%(plotDir)
-    plt.figure(figsize=(10,8))
-    bins, hist1 = hist_results(mej,Nbins=25,bounds=[-3.0,-1.0])
-    plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
-    bins, hist1 = hist_results(mej_measured,Nbins=25,bounds=[-3.0,-1.0])
-    plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
-    bins, hist1 = hist_results(mej_combined,Nbins=25,bounds=[-3.0,-1.0])
-    plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-    plt.semilogy([truths_mej_vej[0],truths_mej_vej[0]],[1e-3,10],'k--',linewidth=3,label="True")
-    plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
-    plt.ylabel('Probability Density Function',fontsize=24)
-    plt.legend(loc="best",prop={'size':24})
-    plt.xticks(fontsize=24)
-    plt.yticks(fontsize=24)
-    plt.xlim([-3.0,-1.3])
-    plt.ylim([1e-1,10])
-    plt.savefig(plotName)
-    plt.close()
+    if opts.doEjecta:
+        plotName = "%s/mej.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        bins, hist1 = hist_results(mej_gw,Nbins=25,bounds=[-3.0,-1.0])
+        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        bins, hist1 = hist_results(mej_em,Nbins=25,bounds=[-3.0,-1.0])
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        bins, hist1 = hist_results(mej_combined,Nbins=25,bounds=[-3.0,-1.0])
+        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+        plt.semilogy([mej_true,mej_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+        plt.ylabel('Probability Density Function',fontsize=24)
+        plt.legend(loc="best",prop={'size':24})
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.xlim([-3.0,-1.3])
+        plt.ylim([1e-1,10])
+        plt.savefig(plotName)
+        plt.close()
+    
+        plotName = "%s/vej.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        bins, hist1 = hist_results(vej_gw,Nbins=25,bounds=[0.0,1.0])
+        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        bins, hist1 = hist_results(vej_em,Nbins=25,bounds=[0.0,1.0])
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        bins, hist1 = hist_results(vej_combined,Nbins=25,bounds=[0.0,1.0])
+        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+        plt.semilogy([vej_true,vej_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
+        plt.ylabel('Probability Density Function',fontsize=24)
+        plt.legend(loc="best",prop={'size':24})
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.ylim([1e-1,10])
+        plt.savefig(plotName)
+        plt.close()
+    
+    elif opts.doMasses:
+        plotName = "%s/mchirp.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        bins, hist1 = hist_results(mchirp_gw,Nbins=25,bounds=[0.8,2.0])
+        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        bins, hist1 = hist_results(mchirp_em,Nbins=25,bounds=[0.8,2.0])
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        bins, hist1 = hist_results(mchirp_combined,Nbins=25,bounds=[0.8,2.0])
+        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+        plt.semilogy([mchirp_true,mchirp_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.xlabel(r"${\rm M}_{\rm c}$",fontsize=24)
+        plt.ylabel('Probability Density Function',fontsize=24)
+        plt.legend(loc="best",prop={'size':24})
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.xlim([0.8,2.0])
+        plt.ylim([1e-1,10])
+        plt.savefig(plotName)
+        plt.close()
 
-    plotName = "%s/vej.pdf"%(plotDir)
-    plt.figure(figsize=(10,8))
-    bins, hist1 = hist_results(vej,Nbins=25,bounds=[0.0,1.0])
-    plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
-    bins, hist1 = hist_results(vej_measured,Nbins=25,bounds=[0.0,1.0])
-    plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
-    bins, hist1 = hist_results(vej_combined,Nbins=25,bounds=[0.0,1.0])
-    plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-    plt.semilogy([truths_mej_vej[1],truths_mej_vej[1]],[1e-3,10],'k--',linewidth=3,label="True")
-    plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
-    plt.ylabel('Probability Density Function',fontsize=24)
-    plt.legend(loc="best",prop={'size':24})
-    plt.xticks(fontsize=24)
-    plt.yticks(fontsize=24)
-    plt.ylim([1e-1,10])
-    plt.savefig(plotName)
-    plt.close()
-
+        plotName = "%s/q.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        bins, hist1 = hist_results(q_gw,Nbins=25,bounds=[0.0,2.0])
+        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        bins, hist1 = hist_results(q_em,Nbins=25,bounds=[0.0,2.0])
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        bins, hist1 = hist_results(q_combined,Nbins=25,bounds=[0.0,2.0])
+        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+        plt.semilogy([q_true,q_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.xlabel(r"$q$",fontsize=24)
+        plt.ylabel('Probability Density Function',fontsize=24)
+        plt.legend(loc="best",prop={'size':24})
+        plt.xticks(fontsize=24)
+        plt.yticks(fontsize=24)
+        plt.xlim([0.9,2.0])
+        plt.ylim([1e-1,10])
+        plt.savefig(plotName)
+        plt.close()
 
 if opts.model == "BHNS":
     q_min = 3.0
