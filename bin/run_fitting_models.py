@@ -717,14 +717,14 @@ elif opts.doGoingTheDistance:
             data_combined = np.loadtxt(multifile)
             mej_combined = data_combined[:,0]
             vej_combined = data_combined[:,1]
-
             data_combined = np.vstack((mej_combined,vej_combined)).T
+
             plotName = "%s/corner_combined.pdf"%(plotDir)
             figure = corner.corner(data_combined, labels=labels_combined,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": 24},
                        label_kwargs={"fontsize": 28}, title_fmt=".2f",
-                       truths=truths_mej_vej)
+                       truths=[mej_true,vej_true])
             figure.set_size_inches(14.0,14.0)
             plt.savefig(plotName)
             plt.close()
@@ -739,11 +739,22 @@ elif opts.doGoingTheDistance:
             n_params = len(parameters)
             pymultinest.run(myloglike_combined, myprior_combined_masses, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
-            labels_mej_vej = [r"log10 ${\rm M}_{\rm ej}$",r"${\rm v}_{\rm ej}$"]
+            labels_combined = [r"${\rm M}_{\rm c}$",r"$q$"]
             multifile = get_post_file(combinedDir)
             data_combined = np.loadtxt(multifile)
             q_combined = data_combined[:,0]
             mchirp_combined = data_combined[:,1]
+            data_combined = np.vstack((q_combined,mchirp_combined)).T
+
+            plotName = "%s/corner_combined.pdf"%(plotDir)
+            figure = corner.corner(data_combined, labels=labels_combined,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": 24},
+                       label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                       truths=[q_true,mchirp_true])
+            figure.set_size_inches(14.0,14.0)
+            plt.savefig(plotName)
+            plt.close()
 
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
@@ -805,7 +816,19 @@ if opts.doGoingTheDistance:
         plt.ylim([1e-1,10])
         plt.savefig(plotName)
         plt.close()
-    
+   
+        plotName = "%s/combined.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        h = pu.plot_kde_posterior_2d(data_combined,cmap='viridis')
+        #pu.plot_greedy_kde_interval_2d(pts_em,np.array([0.5]),colors='b')
+        #pu.plot_greedy_kde_interval_2d(pts_gw,np.array([0.5]),colors='g')
+        pu.plot_greedy_kde_interval_2d(data_combined,np.array([0.5]),colors='r')
+        plt.plot(mej_true,vej_true,'kx',markersize=20)
+        plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$")
+        plt.ylabel(r"${v}_{\rm ej}$")
+        plt.savefig(plotName)
+        plt.close('all')
+
     elif opts.doMasses:
         plotName = "%s/mchirp.pdf"%(plotDir)
         plt.figure(figsize=(10,8))
@@ -844,6 +867,18 @@ if opts.doGoingTheDistance:
         plt.ylim([1e-1,10])
         plt.savefig(plotName)
         plt.close()
+
+        plotName = "%s/combined.pdf"%(plotDir)
+        plt.figure(figsize=(10,8))
+        h = pu.plot_kde_posterior_2d(data_combined,cmap='viridis')
+        #pu.plot_greedy_kde_interval_2d(pts_em,np.array([0.5]),colors='b')
+        #pu.plot_greedy_kde_interval_2d(pts_gw,np.array([0.5]),colors='g')
+        pu.plot_greedy_kde_interval_2d(data_combined,np.array([0.5]),colors='r')
+        plt.plot(q_true,mchirp_true,'kx',markersize=20)
+        plt.ylabel(r"${\rm M}_{\rm c}$")
+        plt.xlabel(r"$q$")
+        plt.savefig(plotName)
+        plt.close('all')
 
 if opts.model == "BHNS":
     q_min = 3.0
