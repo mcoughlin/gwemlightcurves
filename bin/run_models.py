@@ -19,8 +19,10 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
-    parser.add_option("-m","--model",default="barnes_kilonova_spec") 
+    parser.add_option("-m","--model",default="barnes_kilonova_spectra") 
     parser.add_option("-n","--name",default="rpft_m001_v1")
+    parser.add_option("--doAB",  action="store_true", default=False)
+    parser.add_option("--doSpec",  action="store_true", default=False)    
 
     opts, args = parser.parse_args()
 
@@ -202,6 +204,58 @@ def getMagSpec(filename,band,model):
 
     return t_d, mag_d, L_d
 
+def getSpec(filename,model):
+    #u = np.genfromtxt(opts.name)
+    u = np.loadtxt(filename,skiprows=1)
+    if model == "kilonova_wind_spectra":
+        u = u[u[:,2]==0.05]
+
+    D_cm = 10*3.0857e16*100 # 10 pc in cm
+
+    if model == "kilonova_wind_spectra":
+        u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+        u[:,0] /= (24*3600) # time in days
+    elif model == "macronovae-rosswog":
+        u[:,2] /= 1.0
+    else:
+        u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+        u[:,0] /= (24*3600) # time in days
+
+    t = u[0,0]
+
+    w=[]
+    L=[]
+
+    t_d = []
+    lambda_d = []
+    spec_d = []
+
+    for i in u:
+        if i[0]==t:
+            if model == "kilonova_wind_spectra":
+                w.append(i[1])
+                L.append(i[3])
+            else:
+                w.append(i[1])
+                L.append(i[2])
+        else:
+            w = np.array(w)
+            L = np.array(L)
+
+            t=i[0]
+            t_d.append(t)
+            lambda_d = w
+            spec_d.append(L)
+
+            w=[]
+            L=[]
+
+    t_d = np.array(t_d)
+    lambda_d = np.array(lambda_d)
+    spec_d = np.array(spec_d)
+
+    return t_d, lambda_d, spec_d
+
 # Parse command line
 opts = parse_commandline()
 
@@ -237,72 +291,102 @@ elif opts.model in absABmodels:
 else:
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
 
-mag_ds = {}
-for ii in xrange(5):
-    mag_ds[ii] = np.array([])
+if opts.doAB:
+    mag_ds = {}
+    for ii in xrange(5):
+        mag_ds[ii] = np.array([])
+    
+    filts = np.genfromtxt('../input/PS1_filters.txt')
+    filtnames = ["g","r","i","z","y"]
+    #g = filts[:,1], r=2, i=3, z=4, y=5
+    for ii in xrange(5):
+        band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
+        if opts.model in specmodels:
+            t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
+        elif opts.model in absABmodels:
+            t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
+        elif opts.model in Lbolmodels:
+            t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
+        else:
+            t_d, mag_d, L_d = getMagAB(filename,band,opts.model)
+        mag_ds[ii] = mag_d
+    
+    filename = "%s/%s.dat"%(outputDir,opts.name)
+    fid = open(filename,'w')
+    fid.write('# t[days] g-band  r-band i-band  z-band  w-band\n')
+    for ii in xrange(len(t_d)):
+        fid.write("%.5f "%t_d[ii])
+        for jj in xrange(5):
+            fid.write("%.3f "%mag_ds[jj][ii])
+        fid.write("\n")
+    fid.close()
+    
+    mag_ds = np.loadtxt(filename)
+    mag1 = mag_ds[:,1]
+    indexes = np.where(~np.isnan(mag1))[0]
+    index1 = indexes[0]
+    index2 = indexes[-1]
+    mag_ds = mag_ds[index1:index2,:]
+    t = mag_ds[:,0]
+    
+    plotName = "%s/%s.pdf"%(plotDir,opts.name)
+    plt.figure()
+    plt.plot(t,mag_ds[:,1],'y',label='g-band')
+    plt.plot(t,mag_ds[:,2],'g',label='r-band')
+    plt.plot(t,mag_ds[:,3],'b',label='i-band')
+    plt.plot(t,mag_ds[:,4],'c',label='z-band')
+    plt.plot(t,mag_ds[:,5],'k',label='y-band')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Absolute AB Magnitude')
+    plt.legend(loc="best")
+    plt.gca().invert_yaxis()
+    plt.savefig(plotName)
+    plt.close()
+    
+    filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
+    fid = open(filename,'w')
+    fid.write('# t[days] Lbol[erg/s]\n')
+    for ii in xrange(len(t_d)):
+        fid.write("%.5f %.5e\n"%(t_d[ii],L_d[ii]))
+    fid.close()
+    
+    Lbol_ds = np.loadtxt(filename)
+    t = Lbol_ds[:,0]
+    Lbol = Lbol_ds[:,1]
+    
+    plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
+    plt.figure()
+    plt.semilogy(t,Lbol,'k--')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Bolometric Luminosity [erg/s]')
+    plt.savefig(plotName)
+    plt.close()
+elif opts.doSpec:
 
-filts = np.genfromtxt('../input/PS1_filters.txt')
-filtnames = ["g","r","i","z","y"]
-#g = filts[:,1], r=2, i=3, z=4, y=5
-for ii in xrange(5):
-    band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
-    if opts.model in specmodels:
-        t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
-    elif opts.model in absABmodels:
-        t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
-    elif opts.model in Lbolmodels:
-        t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
-    else:
-        t_d, mag_d, L_d = getMagAB(filename,band,opts.model)
-    mag_ds[ii] = mag_d
+    t_d, lambda_d, spec_d = getSpec(filename,opts.model)
 
-filename = "%s/%s.dat"%(outputDir,opts.name)
-fid = open(filename,'w')
-fid.write('# t[days] g-band  r-band i-band  z-band  w-band\n')
-for ii in xrange(len(t_d)):
-    fid.write("%.5f "%t_d[ii])
-    for jj in xrange(5):
-        fid.write("%.3f "%mag_ds[jj][ii])
+    filename = "%s/%s_spec.dat"%(outputDir,opts.name)
+    fid = open(filename,'w')
+    fid.write("nan")
+    for jj in xrange(len(lambda_d)):
+        fid.write(" %.3f"%lambda_d[jj])
     fid.write("\n")
-fid.close()
+    for ii in xrange(len(t_d)):
+        fid.write("%.5f "%t_d[ii])
+        for jj in xrange(len(lambda_d)):
+            fid.write("%.5e "%spec_d[ii][jj])
+        fid.write("\n")
+    fid.close()
 
-mag_ds = np.loadtxt(filename)
-mag1 = mag_ds[:,1]
-indexes = np.where(~np.isnan(mag1))[0]
-index1 = indexes[0]
-index2 = indexes[-1]
-mag_ds = mag_ds[index1:index2,:]
-t = mag_ds[:,0]
+    data_out = np.loadtxt(filename) 
+    t_d, lambda_d, spec_d = data_out[1:,0], data_out[0,1:], data_out[1:,1:]
 
-plotName = "%s/%s.pdf"%(plotDir,opts.name)
-plt.figure()
-plt.plot(t,mag_ds[:,1],'y',label='g-band')
-plt.plot(t,mag_ds[:,2],'g',label='r-band')
-plt.plot(t,mag_ds[:,3],'b',label='i-band')
-plt.plot(t,mag_ds[:,4],'c',label='z-band')
-plt.plot(t,mag_ds[:,5],'k',label='y-band')
-plt.xlabel('Time [days]')
-plt.ylabel('Absolute AB Magnitude')
-plt.legend(loc="best")
-plt.gca().invert_yaxis()
-plt.savefig(plotName)
-plt.close()
+    TGRID,LAMBDAGRID = np.meshgrid(t_d,lambda_d)
+    plotName = "%s/%s_spec.pdf"%(plotDir,opts.name)
+    plt.figure(figsize=(12,10))
+    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d.T,vmin=np.min(spec_d),vmax=np.max(spec_d))
+    plt.xlabel('Time [days]')
+    plt.ylabel(r'$\lambda [\AA]$')
+    plt.savefig(plotName)
+    plt.close()
 
-filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
-fid = open(filename,'w')
-fid.write('# t[days] Lbol[erg/s]\n')
-for ii in xrange(len(t_d)):
-    fid.write("%.5f %.5e\n"%(t_d[ii],L_d[ii]))
-fid.close()
-
-Lbol_ds = np.loadtxt(filename)
-t = Lbol_ds[:,0]
-Lbol = Lbol_ds[:,1]
-
-plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
-plt.figure()
-plt.semilogy(t,Lbol,'k--')
-plt.xlabel('Time [days]')
-plt.ylabel('Bolometric Luminosity [erg/s]')
-plt.savefig(plotName)
-plt.close()

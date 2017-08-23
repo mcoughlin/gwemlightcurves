@@ -25,10 +25,10 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../lightcurves")
-    #parser.add_option("-n","--name",default="BHNS_H4M005V20")
-    #parser.add_option("--outputName",default="BHNS_error")
-    parser.add_option("-n","--name",default="BNS_H4M005V20")
-    parser.add_option("--outputName",default="BNS_error")
+    parser.add_option("-n","--name",default="BHNS_H4M005V20")
+    parser.add_option("--outputName",default="BHNS_error")
+    #parser.add_option("-n","--name",default="BNS_H4M005V20")
+    #parser.add_option("--outputName",default="BNS_error")
     #parser.add_option("-n","--name",default="APR4-1314_k1,H4-1314_k1,Sly-135_k1")
     #parser.add_option("--outputName",default="BNS_Tanaka")
     #parser.add_option("-n","--name",default="APR4Q3a75_k1,H4Q3a75_k1,MS1Q3a75_k1")
@@ -246,14 +246,18 @@ for ii,name in enumerate(sorted(post.keys())):
             linestyle = '-'
 
         samples = np.log10(post[name][errorbudget]["mej"])
-        bins, hist1 = hist_results(samples,Nbins=25,bounds=[-3.5,0.0]) 
+        if (opts.labelType == "errorbar") and (float(errorbudget) < 1.0):
+            bounds=[-2.8,-1.8]
+        else:
+            bounds=[-3.5,0.0]
+        bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
 
         if opts.labelType == "name" and jj > 0:
             plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
         else:
             plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
 
-        plt.semilogy([post[name][errorbudget]["truths"][1],post[name][errorbudget]["truths"][1]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
+        plt.semilogy([post[name][errorbudget]["truths"][1],post[name][errorbudget]["truths"][1]],[1e-3,100.0],'%s--'%colortrue,linewidth=3)
         maxhist = np.max([maxhist,np.max(hist1)])
 
 plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
@@ -269,9 +273,14 @@ elif opts.model == "BNS" and opts.labelType == "name":
     plt.xlim([-3.5,0.0])
 elif opts.model == "BNS" and opts.labelType == "errorbar":
     plt.xlim([-3.0,-1.4])
-if opts.labelType == "errorbar":
+
+if opts.model == "BHNS" and opts.labelType == "errorbar":
+    plt.ylim([1e-1,20])
+elif opts.model == "BHNS" and opts.labelType == "name":
     plt.ylim([1e-1,10])
-elif opts.labelType == "name":
+elif opts.model == "BNS" and opts.labelType == "name":
     plt.ylim([1e-1,10])
+elif opts.model == "BNS" and opts.labelType == "errorbar":
+    plt.ylim([1e-1,20])
 plt.savefig(plotName)
 plt.close()

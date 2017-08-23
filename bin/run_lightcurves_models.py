@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 20})
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm 
 
 import corner
 
@@ -29,8 +30,13 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-n","--name",default="PS1-13cyr")
     parser.add_option("--doGWs",  action="store_true", default=False)
+    parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--distance",default=40.0,type=float)
+    parser.add_option("--T0",default=57982.5285236896,type=float)
+    parser.add_option("--doCoverage",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
     parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
+    parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
     parser.add_option("--doEOSFit",  action="store_true", default=False)
@@ -186,8 +192,8 @@ def myprior_bhns(cube, ndim, nparams):
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*0.1 + 0.1
-        cube[6] = cube[6]*2.0 + 1.0
-        cube[7] = cube[7]*0.1 + 0.1
+        cube[6] = cube[6]*np.pi/2
+        cube[7] = cube[7]*2*np.pi
         cube[8] = cube[8]*100.0 - 50.0
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
@@ -197,6 +203,17 @@ def myprior_bhns_ejecta(cube, ndim, nparams):
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
         cube[5] = cube[5]*100.0 - 50.0
+
+def myprior_bhns_EOSFit(cube, ndim, nparams):
+
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*6.0 + 3.0
+        cube[2] = cube[2]*0.75
+        cube[3] = cube[3]*2.0 + 1.0
+        cube[4] = cube[4]*0.1 + 0.1
+        cube[5] = cube[5]*np.pi/2
+        cube[6] = cube[6]*2*np.pi
+        cube[7] = cube[7]*100.0 - 50.0
 
 def prior_bns(m1,mb1,c1,m2,mb2,c2):
         if m1 < m2:
@@ -362,13 +379,6 @@ def myloglike_bhns(cube, ndim, nparams):
         ph = cube[7]
         zp = cube[8]
 
-        #c = 0.161
-        #mb = 1.49
-        #q = 3.0
-        #chi = 0.3
-        #t0 = 0.0
-        #zp = 0.0
-
         tmag, lbol, mag = bhns_model(q, chi_eff, mns, mb, c, th, ph)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
@@ -386,16 +396,30 @@ def myloglike_bhns_ejecta(cube, ndim, nparams):
         ph = cube[4]
         zp = cube[5]
 
-        #c = 0.161
-        #mb = 1.49
-        #q = 3.0
-        #chi = 0.3
-        #t0 = 0.0
-        #zp = 0.0
-
         tmag, lbol, mag = bhns_model_ejecta(mej,vej,th,ph)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+        return prob
+
+def myloglike_bhns_EOSFit(cube, ndim, nparams):
+        t0 = cube[0]
+        q = cube[1]
+        chi_eff = cube[2]
+        mns = cube[3]
+        c = cube[4]
+        th = cube[5]
+        ph = cube[6]
+        zp = cube[7]
+
+        mb = EOSfit(mns,c)
+
+        tmag, lbol, mag = bhns_model(q, chi_eff, mns, mb, c, th, ph)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bhns(q,chi_eff,mns,mb,c)
+        if prior == 0.0:
+            prob = -np.inf
 
         return prob
 
@@ -429,6 +453,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
 
         count = 0
         chisquare = np.nan
+        gaussprob = np.nan
         for key in data_out:
             samples = data_out[key]
             t = samples[:,0]
@@ -443,7 +468,6 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             if not key in filters: continue
 
             if key == "g":
-                #maginterp = np.interp(t,tmag,addconst(mag[1]),left=np.nan, right=np.nan)
                 ii = np.where(~np.isnan(mag[1]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
@@ -451,7 +475,6 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     f = interp.interp1d(tmag[ii], mag[1][ii], fill_value='extrapolate')
                     maginterp = f(t)
             elif key == "r":
-                #maginterp = np.interp(t,tmag,addconst(mag[2]),left=np.nan, right=np.nan)
                 ii = np.where(~np.isnan(mag[2]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
@@ -459,8 +482,6 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     f = interp.interp1d(tmag[ii], mag[2][ii], fill_value='extrapolate')
                     maginterp = f(t)
             elif key == "i":
-                #maginterp = np.interp(t,tmag,addconst(mag[3]),left=np.nan, right=np.nan)
-
                 ii = np.where(~np.isnan(mag[3]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
@@ -468,15 +489,41 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     f = interp.interp1d(tmag[ii], mag[3][ii], fill_value='extrapolate')
                     maginterp = f(t)
             elif key == "z":
-                #maginterp = np.interp(t,tmag,addconst(mag[4]),left=np.nan, right=np.nan)
                 ii = np.where(~np.isnan(mag[4]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
                 else:
                     f = interp.interp1d(tmag[ii], mag[4][ii], fill_value='extrapolate')
                     maginterp = f(t)
+            elif key == "y":
+                ii = np.where(~np.isnan(mag[5]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[5][ii], fill_value='extrapolate')
+                    maginterp = f(t)
+            elif key == "J":
+                ii = np.where(~np.isnan(mag[5]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[6][ii], fill_value='extrapolate')
+                    maginterp = f(t)
+            elif key == "H":
+                ii = np.where(~np.isnan(mag[6]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[6][ii], fill_value='extrapolate')
+                    maginterp = f(t)
+            elif key == "K":
+                ii = np.where(~np.isnan(mag[7]))[0]
+                if len(ii) == 0:
+                    maginterp = np.nan*np.ones(t.shape)
+                else:
+                    f = interp.interp1d(tmag[ii], mag[7][ii], fill_value='extrapolate')
+                    maginterp = f(t)
             elif key == "w":
-                #maginterp = np.interp(t,tmag,addconst((mag[1]+mag[2]+mag[3])/3.0),left=np.nan, right=np.nan)
                 magave = (mag[1]+mag[2]+mag[3])/3.0
                 ii = np.where(~np.isnan(magave))[0]
                 if len(ii) == 0:
@@ -488,12 +535,18 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                 continue
 
             maginterp = maginterp + zp
-            chisquarevals = ((y-maginterp)/sigma_y)**2
-            idx = np.where(~np.isnan(chisquarevals))[0]
-            #if float(len(idx))/float(len(chisquarevals)) > 0.95:
-            #    chisquarevals = chisquarevals[idx] 
-            chisquaresum = np.sum(chisquarevals)
 
+            sigma = np.sqrt(errorbudget**2 + sigma_y**2)
+            chisquarevals = np.zeros(y.shape)
+            chisquarevals = ((y-maginterp)/sigma)**2
+            idx = np.where(~np.isfinite(sigma))[0]
+            if len(idx) > 0:
+                gaussprobvals = scipy.stats.norm.cdf(y[idx], maginterp[idx], errorbudget)
+                gaussprobsum = np.sum(np.log(gaussprobvals)) 
+            else:
+                gaussprobsum = 0.0
+
+            chisquaresum = np.sum(chisquarevals)
             if np.isnan(chisquaresum):
                 chisquare = np.nan
                 break
@@ -501,8 +554,10 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
             if count == 0:
                 chisquare = chisquaresum
+                gaussprob = gaussprobsum
             else:
                 chisquare = chisquare + chisquaresum
+                gaussprob = gaussprob + gaussprobsum
             #count = count + len(chisquarevals)
             count = count + 1
 
@@ -512,7 +567,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             #prob = scipy.stats.chi2.logpdf(chisquare, count, loc=0, scale=1)
             #prob = -chisquare/2.0
             #prob = chisquare
-            prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+            chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+            prob = chiprob + gaussprob
 
         if np.isnan(prob):
             prob = -np.inf
@@ -520,47 +576,6 @@ def calc_prob(tmag, lbol, mag, t0, zp):
         #if np.isfinite(prob):
         #    print t0, zp, prob
         return prob
-
-def loadLightcurves(filename):
-    lines = [line.rstrip('\n') for line in open(filename)]
-    lines = lines[1:]
-    lines = filter(None,lines)
-    
-    data = {}
-    for line in lines:
-        lineSplit = line.split(" ")
-        numid = float(lineSplit[0])
-        psid = lineSplit[1]
-        filt = lineSplit[2]
-        mjd = float(lineSplit[3])
-        mag = float(lineSplit[4])
-        dmag = float(lineSplit[5])
-    
-        if not psid in data:
-            data[psid] = {}
-        if not filt in data[psid]:
-            data[psid][filt] = np.empty((0,3), float)
-        data[psid][filt] = np.append(data[psid][filt],np.array([[mjd,mag,dmag]]),axis=0)
-
-    return data
-
-def loadModels(outputDir,name):
-
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)"]
-
-    filenames = []
-    legend_names = []
-    for ii,model in enumerate(models):
-        filename = '%s/%s/%s.dat'%(outputDir,model,name)
-        if not os.path.isfile(filename):
-            continue
-        filenames.append(filename)
-        legend_names.append(models_ref[ii])
-        break
-    mags, names = lightcurve_utils.read_files(filenames)
-
-    return mags
 
 def get_truths(name,model):
     truths = []
@@ -621,6 +636,8 @@ if opts.doModels:
     basename = 'models'
 elif opts.doGoingTheDistance:
     basename = 'going-the-distance'
+elif opts.doMassGap:
+    basename = 'massgap'
 else:
     basename = 'gws'
 plotDir = os.path.join(baseplotDir,basename)
@@ -647,6 +664,8 @@ lightcurvesDir = opts.lightcurvesDir
 
 if opts.doGWs:
     filename = "%s/lightcurves_gw.tmp"%lightcurvesDir
+elif opts.doEvent:
+    filename = "%s/%s.dat"%(lightcurvesDir,opts.name)
 else:
     filename = "%s/lightcurves.tmp"%lightcurvesDir
 
@@ -657,43 +676,69 @@ dt = 0.05
 n_live_points = 1000
 evidence_tolerance = 0.5
 
-if opts.doModels or opts.doGoingTheDistance:
+if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
     if opts.doModels:
-        data_out = loadModels(opts.outputDir,opts.name)
+        data_out = lightcurve_utils.loadModels(opts.outputDir,opts.name)
         if not opts.name in data_out:
             print "%s not in file..."%opts.name
             exit(0)
 
         data_out = data_out[opts.name]
-    elif opts.doGoingTheDistance:
+    elif opts.doGoingTheDistance or opts.doMassGap:
 
-        data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
+        truths = {}
+        if opts.doGoingTheDistance:
+            data_out = lightcurve_utils.going_the_distance(opts.dataDir,opts.name)
+        elif opts.doMassGap:
+            data_out, truths = lightcurve_utils.massgap(opts.dataDir,opts.name)
 
-        eta = q2eta(data_out["q"])
-        m1, m2 = mc2ms(data_out["mc"], eta)
-        q = m2/m1
-        mc = data_out["mc"]
+        if "m1" in truths:
+            eta = q2eta(truths["q"])
+            m1, m2 = truths["m1"], truths["m2"]
+            mchirp,eta,q = ms2mc(m1,m2)
+            q = 1/q 
+            chi_eff = truths["a1"]
+        else:
+            eta = q2eta(data_out["q"])
+            m1, m2 = mc2ms(data_out["mc"], eta)
+            q = m2/m1
+            mc = data_out["mc"]
 
-        m1, m2 = np.mean(m1), np.mean(m2)
+            m1, m2 = np.mean(m1), np.mean(m2)
+            chi_eff = 0.0       
+
         c1, c2 = 0.147, 0.147
         mb1, mb2 = EOSfit(m1,c1), EOSfit(m2,c2)
         th = 0.2
         ph = 3.14
 
-        mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
-        vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+        if m1 > 3:
+            mej = BHNSKilonovaLightcurve.calc_meje(q,chi_eff,c2,mb2,m2)
+            vej = BHNSKilonovaLightcurve.calc_vave(q)
+        else:
+            mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
+            vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
 
         filename = os.path.join(plotDir,'truth_mej_vej.dat')
         fid = open(filename,'w+')
         fid.write('%.5f %.5f\n'%(mej,vej))
         fid.close()
 
-        filename = os.path.join(plotDir,'truth.dat')
-        fid = open(filename,'w+')
-        fid.write('%.5f %.5f %.5f %.5f\n'%(m1,c1,m2,c2))
-        fid.close()
+        if m1 > 3:
+            filename = os.path.join(plotDir,'truth.dat')
+            fid = open(filename,'w+')
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(q,chi_eff,c2,mb2,m2))
+            fid.close()
 
-        t, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
+            t, lbol, mag = bhns_model(q,chi_eff,m2,mb2,c2,th,ph) 
+
+        else:
+            filename = os.path.join(plotDir,'truth.dat')
+            fid = open(filename,'w+')
+            fid.write('%.5f %.5f %.5f %.5f\n'%(m1,c1,m2,c2))
+            fid.close()
+
+            t, lbol, mag = bns_model(m1,mb1,c1,m2,mb2,c2,th,ph)
 
         data_out = {}
         data_out["t"] = t
@@ -752,26 +797,58 @@ if opts.doModels or opts.doGoingTheDistance:
     #    data_out[key][:,0] = data_out[key][:,0] - t0_save
 
 else:
-    data_out = loadLightcurves(filename)
-    if not opts.name in data_out:
-        print "%s not in file..."%opts.name
-        exit(0)
+    if opts.doEvent:
+        data_out = lightcurve_utils.loadEvent(filename)
+    else:
+        data_out = lightcurve_utils.loadLightcurves(filename)
+        if not opts.name in data_out:
+            print "%s not in file..."%opts.name
+            exit(0)
 
-    data_out = data_out[opts.name]
+        data_out = data_out[opts.name]
+
+    for ii,key in enumerate(data_out.iterkeys()):
+        if key == "t":
+            continue
+        else:
+            data_out[key][:,0] = data_out[key][:,0] - opts.T0
+            data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+
+    for ii,key in enumerate(data_out.iterkeys()):
+        idxs = np.where(~np.isnan(data_out[key][:,2]))[0]
+        if key == "t":
+            continue
+        else:
+            data_out[key] = data_out[key][idxs,:]
+
+    for ii,key in enumerate(data_out.keys()):
+        if not key in filters:
+            del data_out[key]
 
     for ii,key in enumerate(data_out.iterkeys()):
         if ii == 0:
             samples = data_out[key].copy()
         else:
             samples = np.vstack((samples,data_out[key].copy()))
+
     idx = np.argmin(samples[:,0])
-    t0_save = samples[idx,0] -  1.0
-    samples[:,0] = samples[:,0] - t0_save
-    idx = np.argsort(samples[:,0])
     samples = samples[idx,:]
 
-    for ii,key in enumerate(data_out.iterkeys()):
-        data_out[key][:,0] = data_out[key][:,0] - t0_save
+    filename = os.path.join(plotDir,'truth_mej_vej.dat')
+    fid = open(filename,'w+')
+    fid.write('%.5f %.5f\n'%(np.nan,np.nan))
+    fid.close()
+
+    if opts.model == "BHNS":
+        filename = os.path.join(plotDir,'truth.dat')
+        fid = open(filename,'w+')
+        fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan,np.nan))
+        fid.close()
+    else:
+        filename = os.path.join(plotDir,'truth.dat')
+        fid = open(filename,'w+')
+        fid.write('%.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan))
+        fid.close()
 
 if opts.model in ["BHNS","BNS"]:
 
@@ -781,7 +858,7 @@ if opts.model in ["BHNS","BNS"]:
                 parameters = ["t0","q","chi_eff","mns","c","th","ph","zp"]
                 labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                 n_params = len(parameters)
-                pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+                pymultinest.run(myloglike_bhns_EOSFit, myprior_bhns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
                 parameters = ["t0","q","chi_eff","mns","mb","c","th","ph","zp"]
                 labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$M_{\rm b}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
@@ -846,29 +923,54 @@ data = np.loadtxt(multifile)
 
 if opts.model == "BHNS":
     if opts.doMasses:
-        t0 = data[:,0]
-        q = data[:,1]
-        chi_eff = data[:,2]
-        mns = data[:,3]
-        mb = data[:,4]
-        c = data[:,5]
-        th = data[:,6]
-        ph = data[:,7]
-        zp = data[:,8]
-        loglikelihood = data[:,9]
-        idx = np.argmax(loglikelihood)
+        if opts.doEOSFit:
+            t0 = data[:,0]
+            q = data[:,1]
+            chi_eff = data[:,2]
+            mns = data[:,3]
+            c = data[:,4]
+            th = data[:,5]
+            ph = data[:,6]
+            zp = data[:,7]
+            loglikelihood = data[:,8]
+            idx = np.argmax(loglikelihood)
+            mb = EOSfit(mns,c)
 
-        t0_best = data[idx,0]
-        q_best = data[idx,1]
-        chi_best = data[idx,2]
-        mns_best = data[idx,3]
-        mb_best = data[idx,4]
-        c_best = data[idx,5]
-        th_best = data[idx,6]
-        ph_best = data[idx,7]
-        zp_best = data[idx,8]
+            t0_best = data[idx,0]
+            q_best = data[idx,1]
+            chi_best = data[idx,2]
+            mns_best = data[idx,3]
+            c_best = data[idx,4]
+            th_best = data[idx,5]
+            ph_best = data[idx,6]
+            zp_best = data[idx,7]
+            mb_best = mb[idx]
 
-        tmag, lbol, mag = bhns_model(q_best,chi_best,mns_best,mb_best,c_best,th_best,ph_best)
+            tmag, lbol, mag = bhns_model(q_best,chi_best,mns_best,mb_best,c_best,th_best,ph_best)
+        else:
+            t0 = data[:,0]
+            q = data[:,1]
+            chi_eff = data[:,2]
+            mns = data[:,3]
+            mb = data[:,4]
+            c = data[:,5]
+            th = data[:,6]
+            ph = data[:,7]
+            zp = data[:,8]
+            loglikelihood = data[:,9]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            q_best = data[idx,1]
+            chi_best = data[idx,2]
+            mns_best = data[idx,3]
+            mb_best = data[idx,4]
+            c_best = data[idx,5]
+            th_best = data[idx,6]
+            ph_best = data[idx,7]
+            zp_best = data[idx,8]
+
+            tmag, lbol, mag = bhns_model(q_best,chi_best,mns_best,mb_best,c_best,th_best,ph_best)
     elif opts.doEjecta:
         t0 = data[:,0]
         mej = 10**data[:,1]
@@ -916,6 +1018,20 @@ elif opts.model == "BNS":
             zp_best = data[idx,7]
             mb1_best = mb1[idx]
             mb2_best = mb2[idx]
+
+            data_new = np.zeros(data.shape)
+            parameters = ["t0","m1","c1","m2","c2","th","ph","zp"]
+            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
+            mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+            data_new[:,0] = data[:,0]
+            data_new[:,1] = 1/q
+            data_new[:,2] = mchirp
+            data_new[:,3] = data[:,2]
+            data_new[:,4] = data[:,4]
+            data_new[:,5] = data[:,5]
+            data_new[:,6] = data[:,6]
+            data_new[:,7] = data[:,7]
+            data = data_new
 
         else:
             t0 = data[:,0]
@@ -1002,7 +1118,7 @@ else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths)
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
@@ -1013,30 +1129,23 @@ plt.close()
 
 tmag = tmag + t0_best
 
-filts = ["g","r","i","z","y"]
-colors = ["y","g","b","c","k"]
-magidxs = [1,2,3,4,5]
+filts = ["g","r","i","z","y","J","H","K"]
+#colors = ["y","g","b","c","k","pink","orange","purple"]
+colors=cm.rainbow(np.linspace(0,1,len(filts)))
+magidxs = [1,2,3,4,5,5,6,7]
 
 plotName = "%s/lightcurve.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for filt, color, magidx in zip(filts,colors,magidxs):
     if not filt in data_out: continue
     samples = data_out[filt]
-    t = samples[:,0]
-    y = samples[:,1]
-    sigma_y = samples[:,2]
-    
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
     idx = np.where(~np.isnan(y))[0]
-    t = t[idx]
-    y = y[idx]
-    sigma_y = sigma_y[idx]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 
-    plt.errorbar(t,y,sigma_y,fmt='%so'%color,label='%s-band'%filt)
-    #plt.plot(tmag,mag[magidx]+zp_best,'k--')
+    plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
-    tini = np.min(t)
-    tmax = 10.0
-    dt = 0.1
+    tini, tmax, dt = np.min(t), 10.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -1046,10 +1155,8 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
-    #plt.ylim([-15.0,5.0])
 else:
     plt.xlim([1.0, 8.0])
-    #plt.ylim([-16.0,3.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -1059,11 +1166,121 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
+plotName = "%s/lightcurve_zoom.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for filt, color, magidx in zip(filts,colors,magidxs):
+    if not filt in data_out: continue
+    samples = data_out[filt]
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    idx = np.where(~np.isnan(y))[0]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+  
+    idx = np.where(np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,label='%s-band'%filt)
+
+    idx = np.where(~np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
+
+    tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini = 0.0
+    tt = np.arange(tini,tmax,dt)
+
+    ii = np.where(~np.isnan(mag[magidx]))[0]
+    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    maginterp = f(tt)
+    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
+    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+
+if opts.model == "SN":
+    plt.xlim([0.0, 10.0])
+else:
+    plt.xlim([0.5, 7.0])
+    plt.ylim([-20.0,-10.0])
+
+plt.xlabel('Time [days]',fontsize=24)
+plt.ylabel('Absolute Magnitude',fontsize=24)
+plt.legend(loc="best",prop={'size':16},numpoints=1)
+plt.grid()
+plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+plotName = "%s/lightcurve_zoom_optical.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for filt, color, magidx in zip(filts,colors,magidxs):
+    if not filt in data_out: continue
+    if not filt in ["u","g","r","i","z","y"]: continue
+    samples = data_out[filt]
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    idx = np.where(~np.isnan(y))[0]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+
+    plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
+
+    tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini = 0.0
+    tt = np.arange(tini,tmax,dt)
+
+    ii = np.where(~np.isnan(mag[magidx]))[0]
+    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    maginterp = f(tt)
+    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
+    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+
+if opts.model == "SN":
+    plt.xlim([0.0, 10.0])
+else:
+    plt.xlim([0.5, 7.0])
+    plt.ylim([-20.0,-10.0])
+
+plt.xlabel('Time [days]',fontsize=24)
+plt.ylabel('Absolute Magnitude',fontsize=24)
+plt.legend(loc="best",prop={'size':16},numpoints=1)
+plt.grid()
+plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+plotName = "%s/lightcurve_zoom_nir.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for filt, color, magidx in zip(filts,colors,magidxs):
+    if not filt in data_out: continue
+    if not filt in ["J","H","K"]: continue
+    samples = data_out[filt]
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    idx = np.where(~np.isnan(y))[0]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+
+    plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
+
+    tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini = 0.0
+    tt = np.arange(tini,tmax,dt)
+
+    ii = np.where(~np.isnan(mag[magidx]))[0]
+    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    maginterp = f(tt)
+    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
+    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+
+if opts.model == "SN":
+    plt.xlim([0.0, 10.0])
+else:
+    plt.xlim([0.5, 7.0])
+    plt.ylim([-20.0,-10.0])
+
+plt.xlabel('Time [days]',fontsize=24)
+plt.ylabel('Absolute Magnitude',fontsize=24)
+plt.legend(loc="best",prop={'size':16},numpoints=1)
+plt.grid()
+plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
 if opts.model == "BHNS":
     if opts.doMasses:
         filename = os.path.join(plotDir,'samples.dat')
         fid = open(filename,'w+')
-        for i, j, k, l,m,n,o in zip(t0,q,chi,mns,mb,c,zp):
+        for i, j, k, l,m,n,o in zip(t0,q,chi_eff,mns,mb,c,zp):
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o))
         fid.close()
 
@@ -1098,13 +1315,13 @@ elif opts.model == "BNS":
     elif opts.doEjecta:
         filename = os.path.join(plotDir,'samples.dat')
         fid = open(filename,'w+')
-        for i, j, k, l in zip(t0,mej,vej,zp):
-            fid.write('%.5f %.5f %.5f %.5f\n'%(i,j,k,l))
+        for i, j, k, l, m, n in zip(t0,mej,vej,th,ph,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
         fid.close()
 
         filename = os.path.join(plotDir,'best.dat')
         fid = open(filename,'w')
-        fid.write('%.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,zp_best))
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,th_best,ph_best,zp_best))
         fid.close()
 
 elif opts.model == "SN":

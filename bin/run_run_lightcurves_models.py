@@ -18,9 +18,13 @@ def parse_commandline():
 
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
-    parser.add_option("-d","--dataDir",default="../lightcurves")
+    parser.add_option("-d","--dataDir",default="../data")
+    parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
+    parser.add_option("--doMassGap",  action="store_true", default=False)
+    parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("-n","--name",default="tanaka_compactmergers")
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("--doMasses",  action="store_true", default=False)
@@ -61,12 +65,17 @@ if not opts.model in ["BHNS", "BNS", "SN"]:
    print "Model must be either: BHNS, BNS, SN"
    exit(0)
 
-dataDir = opts.dataDir
+lightcurvesDir = opts.lightcurvesDir
 
 if opts.doGWs:
-    filename = "%s/lightcurves_gw.tmp"%dataDir
+    filename = "%s/lightcurves_gw.tmp"%lightcurvesDir
 else:
-    filename = "%s/lightcurves.tmp"%dataDir
+    filename = "%s/lightcurves.tmp"%lightcurvesDir
+
+if opts.doEOSFit:
+    eosfitFlag = "--doEOSFit"
+else:
+    eosfitFlag = ""
 
 if opts.doModels:
     filenames = glob.glob("%s/%s/*.dat"%(opts.outputDir,opts.name))
@@ -74,13 +83,60 @@ if opts.doModels:
         if "Lbol" in filename: continue
         name = filename.split("/")[-1].replace(".dat","")
         if opts.doEjecta:
-            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doEjecta --errorbudget %.2f"%(opts.model,name,opts.errorbudget)
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doEjecta --errorbudget %.2f %s"%(opts.model,name,opts.errorbudget,eosfitFlag)
         elif opts.doMasses:
-            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doMasses --errorbudget %.2f"%(opts.model,name,opts.errorbudget)
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doMasses --errorbudget %.2f %s"%(opts.model,name,opts.errorbudget,eosfitFlag)
         else:
             print "Enable --doEjecta or --doMasses"
             exit(0)
         os.system(system_call)
+elif opts.doGoingTheDistance:
+    folders = glob.glob("%s/going-the-distance_data/2015/compare/*"%(opts.dataDir))
+    for folder in folders:
+        name = folder.split("/")[-1]
+
+        if opts.doEjecta:
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doGoingTheDistance --doEjecta --errorbudget %.2f %s"%(opts.model,name,opts.errorbudget,eosfitFlag)
+        elif opts.doMasses:
+            system_call = "python run_lightcurves_models.py --model %s --name %s --doModels --doMasses --errorbudget %.2f %s"%(opts.model,name,opts.errorbudget,eosfitFlag)
+        else:
+            print "Enable --doEjecta or --doMasses"
+            exit(0)
+        os.system(system_call)
+
+elif opts.doMassGap:
+    filename = "%s/massgap_data/injected_values.txt"%(opts.dataDir)
+    data_out = np.loadtxt(filename)
+    injnum = data_out[:,0].astype(int)
+    snr = data_out[:,1]
+    m1 = data_out[:,2]
+    m2 = data_out[:,3]
+    q = 1/data_out[:,4]
+    eff_spin = data_out[:,5]
+    totmass = data_out[:,6]
+    a1 = data_out[:,7]
+    a2 = data_out[:,8]
+
+    for ii in xrange(len(injnum)):
+        if not ((q[ii] >= 3) and (q[ii] <=9)): continue
+        if not ((m2[ii] >= 1) and (m2[ii] <=3)): continue
+        #if not ((q[ii] >= 3) and (q[ii] <=5)): continue
+        print injnum[ii], m1[ii], m2[ii], q[ii], a1[ii]
+
+        if opts.doEOSFit:
+            eosfitFlag = "--doEOSFit"
+        else:
+            eosfitFlag = ""
+
+        if opts.doEjecta:
+            system_call = "python run_lightcurves_models.py --model %s --name %d --doMassGap --doEjecta --errorbudget %.2f %s"%(opts.model,injnum[ii],opts.errorbudget,eosfitFlag)
+        elif opts.doMasses:
+            system_call = "python run_lightcurves_models.py --model %s --name %d --doModels --doMasses --errorbudget %.2f %s"%(opts.model,injnum[ii],opts.errorbudget,eosfitFlag)
+        else:
+            print "Enable --doEjecta or --doMasses"
+            exit(0)
+        os.system(system_call)
+
 else:
     data = loadLightcurves(filename)
     for name in data.iterkeys():

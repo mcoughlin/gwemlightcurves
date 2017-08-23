@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
-from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2
+from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2, BOXFit
 from gwemlightcurves import BHNSKilonovaLightcurveOpt
 
 def parse_commandline():
@@ -20,6 +20,7 @@ def parse_commandline():
 
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots") 
+    parser.add_option("-b","--boxfitDir",default="../boxfit")
     parser.add_option("-m","--model",default="BHNS")
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=3.0,type=float)
@@ -34,6 +35,10 @@ def parse_commandline():
     parser.add_option("-c","--c",default=1.0,type=float)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
+    parser.add_option("--theta_0",default=0.1,type=float)
+    parser.add_option("--E",default=1e53,type=float)
+    parser.add_option("--n",default=1.0,type=float)
+    parser.add_option("--theta_obs",default=0.0,type=float)
 
     opts, args = parser.parse_args()
  
@@ -42,12 +47,18 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
+boxfitDir = opts.boxfitDir
+
 m1 = opts.m1
 m2 = opts.m2
 q = opts.massratio
 chi_eff = opts.chi_eff
 mej = opts.mej
 vej = opts.vej
+theta_0 = opts.theta_0
+E = opts.E
+n = opts.n
+theta_obs = opts.theta_obs
 
 if opts.eos == "APR4":
     c = 0.180
@@ -78,6 +89,11 @@ alp = 1.2
 eth = 0.5
 flgbct = 1
 
+p = 2.5    
+epsilon_B = 1e-2 
+epsilon_E = 1e-1
+ksi_N = 1
+
 if opts.model == "BHNS":
     if opts.doEjecta:
         t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
@@ -100,13 +116,28 @@ elif opts.model == "BNS":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
+
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0
     t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,opts.redshift,t0,opts.x0,opts.x1,opts.c)
     name = "z%.0fx0%.0fx1%.0fc%.0f"%(opts.redshift*100,opts.x0*10000,opts.x1*10000,opts.c*10000)
+
+elif opts.model == "Afterglow":
+    tini = 0.0
+    tmax = 10.0
+    dt = 0.1
+    p = 2.5
+    epsilon_B = 1e-2
+    epsilon_E = 1e-1
+    ksi_N = 1
+
+    t, lbol, mag = BOXFit.lightcurve(boxfitDir,tini,tmax,dt,theta_0,E,n,theta_obs,p,epsilon_B,epsilon_E,ksi_N)
+
+    name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
+
 else:
-   print "Model must be either: BHNS, BNS, SN"
+   print "Model must be either: BHNS, BNS, SN, Afterglow"
    exit(0)
 
 if np.sum(lbol) == 0.0:

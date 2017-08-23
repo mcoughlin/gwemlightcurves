@@ -39,6 +39,7 @@ def parse_commandline():
     parser.add_option("--doFixMChirp",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
     parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
+    parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
@@ -130,10 +131,12 @@ if opts.doModels:
     basename = 'fitting_models'
 elif opts.doGoingTheDistance:
     basename = 'fitting_going-the-distance'
+elif opts.doMassGap:
+    basename = 'fitting_massgap'
 elif opts.doSimulation:
     basename = 'fitting'
 else:
-    print "Need to enable --doModels, --doSimulation, or --doGoingTheDistance"
+    print "Need to enable --doModels, --doSimulation, --doMassGap, or --doGoingTheDistance"
     exit(0)
 plotDir = os.path.join(baseplotDir,basename)
 if opts.doEOSFit:
@@ -149,7 +152,7 @@ if opts.doModels:
     dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","")
 elif opts.doSimulation:
     plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
-elif opts.doGoingTheDistance:
+elif opts.doGoingTheDistance or opts.doMassGap:
     plotDir = os.path.join(plotDir,"_".join(filters))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
@@ -177,37 +180,43 @@ for name in names:
             dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","")
         elif opts.doSimulation:
             plotDir = os.path.join(baseplotDir,"%.3f"%(float(errorbudget)*100.0))
-        elif opts.doGoingTheDistance:
+        elif opts.doGoingTheDistance or opts.doMassGap:
             dataDir = os.path.join(basedataDir,"%.2f"%float(errorbudget))
             plotDir = os.path.join(baseplotDir,"%.2f"%float(errorbudget))
 
             multifile = get_post_file(dataDir)
             data = np.loadtxt(multifile)
 
+            filename = os.path.join(dataDir,"truth_mej_vej.dat")
+            truths_mej_vej = np.loadtxt(filename)
+            truths_mej_vej[0] = np.log10(truths_mej_vej[0])
+
+            filename = os.path.join(dataDir,"truth.dat")
+            truths = np.loadtxt(filename)
+
             if opts.doEjecta:
                 mej_em = data[:,1]
                 vej_em = data[:,2]
 
-                filename = os.path.join(dataDir,"truth_mej_vej.dat")
-                truths_mej_vej = np.loadtxt(filename)
-                truths_mej_vej[0] = np.log10(truths_mej_vej[0])
                 mej_true = truths_mej_vej[0]
                 vej_true = truths_mej_vej[1]
 
-                filename = os.path.join(dataDir,"truth.dat")
-                truths = np.loadtxt(filename)
-
             elif opts.doMasses:
-                mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,3])
+                if opts.model == "BNS":
+                    if opts.doEOSFit:
+                        mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,3])
+                        mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
+                    else:
+                        mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,4])
+                        mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
+                elif opts.model == "BHNS":
+                    if opts.doEOSFit:
+                        mchirp_em,eta_em,q_em = ms2mc(data[:,1]*data[:,3],data[:,3])
+                        mchirp_true,eta_true,q_true = ms2mc(truths[0]*truths[4],truths[4])
+                    else:
+                        mchirp_em,eta_em,q_em = ms2mc(data[:,1]*data[:,3],data[:,3])
+                        mchirp_true,eta_true,q_true = ms2mc(truths[0]*truths[4],truths[4])
                 q_em = 1/q_em
-
-                filename = os.path.join(dataDir,"truth_mej_vej.dat")
-                truths_mej_vej = np.loadtxt(filename)
-                truths_mej_vej[0] = np.log10(truths_mej_vej[0])
-
-                filename = os.path.join(dataDir,"truth.dat")
-                truths = np.loadtxt(filename)
-                mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
                 q_true = 1/q_true
 
         multifile = get_post_file(plotDir)
@@ -215,7 +224,7 @@ for name in names:
         data = np.loadtxt(multifile)
 
         post[name][errorbudget] = {}
-        if opts.doGoingTheDistance:
+        if opts.doGoingTheDistance or opts.doMassGap:
             if opts.model == "BNS":
                 if opts.doEOSFit:
                     mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,2])
@@ -235,38 +244,56 @@ for name in names:
                         ii = ii + 1
                 q_gw = 1/q_gw
                 mej_gw = np.log10(mej_gw)
+            elif opts.model == "BHNS":
+                if opts.doEOSFit:
+                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0]*data[:,2],data[:,2])
+                    mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+                    ii = 0
+                    for q,chi,mns,c in data[:,:-1]:
+                        mb = EOSfit(mns,c)
+                        mej_gw[ii], vej_gw[ii] = bhns_model(q,chi,mns,mb,c)
+                        ii = ii + 1
+                else:
+                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0]*data[:,2],data[:,3])
+                    mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+                    ii = 0
+                    for q,chi,mns,mb,c in data[:,:-1]:
+                        mej_gw[ii], vej_gw[ii] = bhns_model(q,chi,mns,mb,c)
+                        ii = ii + 1
+                q_gw = 1/q_gw
+                mej_gw = np.log10(mej_gw)
 
-                combinedDir = os.path.join(plotDir,"combined")
-                multifile = get_post_file(combinedDir)
-                data_combined = np.loadtxt(multifile)
+            combinedDir = os.path.join(plotDir,"combined")
+            multifile = get_post_file(combinedDir)
+            data_combined = np.loadtxt(multifile)
 
-                if opts.doEjecta:
-                    mej_combined = data_combined[:,0]
-                    vej_combined = data_combined[:,1]
+            if opts.doEjecta:
+                mej_combined = data_combined[:,0]
+                vej_combined = data_combined[:,1]
 
-                    post[name][errorbudget]["mej_em"] = mej_em
-                    post[name][errorbudget]["vej_em"] = vej_em
-                    post[name][errorbudget]["mej_gw"] = mej_gw
-                    post[name][errorbudget]["vej_gw"] = vej_gw
-                    post[name][errorbudget]["mej_combined"] = mej_combined
-                    post[name][errorbudget]["vej_combined"] = vej_combined
-                    post[name][errorbudget]["mej_true"] = mej_true
-                    post[name][errorbudget]["vej_true"] = vej_true
+                post[name][errorbudget]["mej_em"] = mej_em
+                post[name][errorbudget]["vej_em"] = vej_em
+                post[name][errorbudget]["mej_gw"] = mej_gw
+                post[name][errorbudget]["vej_gw"] = vej_gw
+                post[name][errorbudget]["mej_combined"] = mej_combined
+                post[name][errorbudget]["vej_combined"] = vej_combined
+                post[name][errorbudget]["mej_true"] = mej_true
+                post[name][errorbudget]["vej_true"] = vej_true
 
-                elif opts.doMasses:
-                    q_combined = data_combined[:,0]
-                    mchirp_combined = data_combined[:,1]
+            elif opts.doMasses:
+                q_combined = data_combined[:,0]
+                mchirp_combined = data_combined[:,1]
 
-                    post[name][errorbudget]["q_em"] = q_em
-                    post[name][errorbudget]["mchirp_em"] = mchirp_em
-                    post[name][errorbudget]["q_gw"] = q_gw
-                    post[name][errorbudget]["mchirp_gw"] = mchirp_gw
-                    post[name][errorbudget]["q_combined"] = q_combined
-                    post[name][errorbudget]["mchirp_combined"] = mchirp_combined
-                    post[name][errorbudget]["q_true"] = q_true
-                    post[name][errorbudget]["mchirp_true"] = mchirp_true
+                post[name][errorbudget]["q_em"] = q_em
+                post[name][errorbudget]["mchirp_em"] = mchirp_em
+                post[name][errorbudget]["q_gw"] = q_gw
+                post[name][errorbudget]["mchirp_gw"] = mchirp_gw
+                post[name][errorbudget]["q_combined"] = q_combined
+                post[name][errorbudget]["mchirp_combined"] = mchirp_combined
+                post[name][errorbudget]["q_true"] = q_true
+                post[name][errorbudget]["mchirp_true"] = mchirp_true
 
-                post[name][errorbudget]["truths"] = truths
+            post[name][errorbudget]["truths"] = truths
 
 plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
@@ -276,6 +303,16 @@ colors = ['b','g','r','m','c']
 linestyles = ['-', '-.', ':','--']
 
 if opts.doEjecta:
+
+    if opts.model == "BHNS":
+        bounds = [-3.0,0.0]
+        xlims = [-3.0,0.0]
+        ylims = [1e-1,10]
+    elif opts.model == "BNS":
+        bounds = [-3.0,-1.0]
+        xlims = [-3.0,-1.3]
+        ylims = [1e-1,10]
+
     plotName = "%s/mej.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     maxhist = -1
@@ -289,7 +326,7 @@ if opts.doEjecta:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["mej_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=[-3.5,0.0]) 
+                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["mej_true"],post[name][errorbudget]["mej_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -298,7 +335,7 @@ if opts.doEjecta:
 
             label = "EM"
             samples = post[name][errorbudget]["mej_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[-3.5,0.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:            
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -308,7 +345,7 @@ if opts.doEjecta:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["mej_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[-3.5,0.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -321,10 +358,19 @@ if opts.doEjecta:
     plt.legend(loc="best",prop={'size':24})
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
-    plt.xlim([-3.0,-1.4])
-    plt.ylim([1e-1,10])
+    plt.xlim(xlims)
+    plt.ylim(ylims)
     plt.savefig(plotName)
     plt.close()
+
+    if opts.model == "BHNS":
+        bounds = [0.0,1.0]
+        xlims = [0.0,1.0]
+        ylims = [1e-1,20]
+    elif opts.model == "BNS":
+        bounds = [0.0,1.0]
+        xlims = [0.0,1.0]
+        ylims = [1e-1,10]
 
     plotName = "%s/vej.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
@@ -339,7 +385,7 @@ if opts.doEjecta:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["vej_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.0,1.0])
+                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["vej_true"],post[name][errorbudget]["vej_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -348,7 +394,7 @@ if opts.doEjecta:
 
             label = "EM"
             samples = post[name][errorbudget]["vej_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.0,1.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -358,7 +404,7 @@ if opts.doEjecta:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["vej_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.0,1.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -371,12 +417,21 @@ if opts.doEjecta:
     plt.legend(loc="best",prop={'size':24})
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
-    plt.xlim([0.0,1.0])
-    plt.ylim([1e-1,10])
+    plt.xlim(xlims)
+    plt.ylim(ylims)
     plt.savefig(plotName)
     plt.close()
 
 elif opts.doMasses:
+
+    if opts.model == "BHNS":
+        bounds = [0.8,4.0]
+        xlims = [0.8,4.0]
+        ylims = [1e-1,10]
+    elif opts.model == "BNS":
+        bounds = [0.8,2.0]
+        xlims = [0.8,2.0]
+        ylims = [1e-1,10]
 
     plotName = "%s/mchirp.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
@@ -391,7 +446,7 @@ elif opts.doMasses:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["mchirp_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.8,2.0])
+                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["mchirp_true"],post[name][errorbudget]["mchirp_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -399,7 +454,7 @@ elif opts.doMasses:
             color = colors[ii+1]
             label = "EM"
             samples = post[name][errorbudget]["mchirp_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.2,2.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -409,7 +464,7 @@ elif opts.doMasses:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["mchirp_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.8,2.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -422,10 +477,19 @@ elif opts.doMasses:
     plt.legend(loc="best",prop={'size':24})
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
-    plt.xlim([0.8,2.0])
-    plt.ylim([1e-1,10])
+    plt.xlim(xlims)
+    plt.ylim(ylims)
     plt.savefig(plotName)
     plt.close()
+
+    if opts.model == "BHNS":
+        bounds = [2.9,9.1]
+        xlims = [2.9,9.1]
+        ylims = [1e-1,10]
+    elif opts.model == "BNS":
+        bounds = [0.0,2.0]
+        xlims = [0.9,2.0]
+        ylims = [1e-1,10]
 
     plotName = "%s/q.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
@@ -440,7 +504,7 @@ elif opts.doMasses:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["q_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.95,2.0])
+                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["q_true"],post[name][errorbudget]["q_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -448,7 +512,7 @@ elif opts.doMasses:
             color = colors[ii+1]
             label = "EM"
             samples = post[name][errorbudget]["q_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.95,2.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -458,7 +522,7 @@ elif opts.doMasses:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["q_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=[0.95,2.0])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -471,7 +535,7 @@ elif opts.doMasses:
     plt.legend(loc="best",prop={'size':24})
     plt.xticks(fontsize=24)
     plt.yticks(fontsize=24)
-    plt.xlim([0.95,2.0])
-    plt.ylim([1e-1,10])
+    plt.xlim(xlims)
+    plt.ylim(ylims)
     plt.savefig(plotName)
     plt.close()
