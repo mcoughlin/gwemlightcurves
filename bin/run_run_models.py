@@ -3,7 +3,7 @@ import os, sys
 import glob
 import numpy as np
 
-models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_AB","tanaka_compactmergers","macronovae-rosswog"]
+models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","tanaka_compactmergers","macronovae-rosswog"]
 
 for model in models:
     files = glob.glob("../data/%s/*"%model)
@@ -14,7 +14,7 @@ for model in models:
         if os.path.isfile(filename): continue
 
         system_call = "python run_models.py --doAB --model %s --name %s"%(model,name)
-        #os.system(system_call)
+        os.system(system_call)
 
 models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
 
@@ -28,5 +28,5 @@ for model in models:
         filename = "../output/%s/%s_spec.dat"%(model,name)
         if os.path.isfile(filename): continue
         system_call = "python run_models.py --doSpec --model %s --name %s"%(model,name)
-        os.system(system_call)
+        #os.system(system_call)
 

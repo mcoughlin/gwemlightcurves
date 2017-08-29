@@ -42,15 +42,22 @@ def easyint(x,y,xref):
 
 def getMagAbsAB(filename_AB,filename_bol,filtname,model):
 
-    u = np.loadtxt(filename_AB)
-    cols = ["t","u","g","r","i","z","y","H","K"]
-    idx = cols.index(filtname)
-
-    t = u[:,0]
-    mag = u[:,idx]
-        
     u = np.loadtxt(filename_bol)
     L = u[:,1]
+
+    u = np.loadtxt(filename_AB)
+    t = u[:,0]
+    if filtname == "y":
+        wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
+        wavelength_interp = 9603.1
+
+        mag = np.zeros(t.shape)
+        for ii in xrange(len(t)):
+            mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,1:])
+    else:
+        cols = ["t","u","g","r","i","z","J","H","K"]
+        idx = cols.index(filtname)
+        mag = u[:,idx]
 
     return t, mag, L
 
@@ -293,13 +300,15 @@ else:
 
 if opts.doAB:
     mag_ds = {}
-    for ii in xrange(5):
+    for ii in xrange(9):
         mag_ds[ii] = np.array([])
     
-    filts = np.genfromtxt('../input/PS1_filters.txt')
-    filtnames = ["g","r","i","z","y"]
+    #filts = np.genfromtxt('../input/PS1_filters.txt')
+    #filtnames = ["g","r","i","z","y"]
     #g = filts[:,1], r=2, i=3, z=4, y=5
-    for ii in xrange(5):
+    filts = np.genfromtxt('../input/filters.dat')
+    filtnames = ["u","g","r","i","z","y","J","H","K"]
+    for ii in xrange(9):
         band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
         if opts.model in specmodels:
             t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
@@ -313,10 +322,10 @@ if opts.doAB:
     
     filename = "%s/%s.dat"%(outputDir,opts.name)
     fid = open(filename,'w')
-    fid.write('# t[days] g-band  r-band i-band  z-band  w-band\n')
+    fid.write('# t[days] u g r i z y J H K\n')
     for ii in xrange(len(t_d)):
         fid.write("%.5f "%t_d[ii])
-        for jj in xrange(5):
+        for jj in xrange(9):
             fid.write("%.3f "%mag_ds[jj][ii])
         fid.write("\n")
     fid.close()
@@ -331,11 +340,11 @@ if opts.doAB:
     
     plotName = "%s/%s.pdf"%(plotDir,opts.name)
     plt.figure()
-    plt.plot(t,mag_ds[:,1],'y',label='g-band')
-    plt.plot(t,mag_ds[:,2],'g',label='r-band')
-    plt.plot(t,mag_ds[:,3],'b',label='i-band')
-    plt.plot(t,mag_ds[:,4],'c',label='z-band')
-    plt.plot(t,mag_ds[:,5],'k',label='y-band')
+    plt.plot(t,mag_ds[:,2],'y',label='g-band')
+    plt.plot(t,mag_ds[:,3],'g',label='r-band')
+    plt.plot(t,mag_ds[:,4],'b',label='i-band')
+    plt.plot(t,mag_ds[:,5],'c',label='z-band')
+    plt.plot(t,mag_ds[:,6],'k',label='y-band')
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
     plt.legend(loc="best")

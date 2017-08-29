@@ -171,10 +171,11 @@ if not os.path.isdir(plotDir):
 
 filename = "%s/%s.dat"%(outputDir,name)
 fid = open(filename,'w')
-fid.write('# t[days] g-band r-band  i-band z-band\n')
+#fid.write('# t[days] g-band r-band  i-band z-band\n')
+fid.write('# t[days] u g r i z y J H K\n')
 for ii in xrange(len(t)):
     fid.write("%.2f "%t[ii])
-    for jj in np.arange(1,5):
+    for jj in np.arange(0,9):
         fid.write("%.3f "%mag[jj][ii])
     fid.write("\n")
 fid.close()

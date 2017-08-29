@@ -247,6 +247,14 @@ def read_files(files,tmin=-100.0,tmax=100.0):
         mags[name]["i"] = mag_d[indexes,3]
         mags[name]["z"] = mag_d[indexes,4]
 
+        try:
+            mags[name]["y"] = mag_d[indexes,5]
+            mags[name]["J"] = mag_d[indexes,6]
+            mags[name]["H"] = mag_d[indexes,7]
+            mags[name]["K"] = mag_d[indexes,8]
+        except:
+            print "No infrared data..."
+
         names.append(name)
 
     return mags, names

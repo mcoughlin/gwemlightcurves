@@ -32,13 +32,20 @@ def parse_commandline():
     #parser.add_option("-f","--outputName",default="fiducial")
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
-    #parser.add_option("-n","--name",default="neutron_precursor5")
-    parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
-    parser.add_option("-f","--outputName",default="fiducial_spec")
-    
+    #parser.add_option("-n","--name",default="rprocess")
+    #parser.add_option("-f","--outputName",default="G298048_rprocess")
+    #parser.add_option("-f","--outputName",default="G298048_lanthanides")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
+    #parser.add_option("-f","--outputName",default="fiducial_spec")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
+    #parser.add_option("-f","--outputName",default="fiducial_spec")
+    #parser.add_option("-n","--name",default="a80_leak_HR,t000A3,t100A3p15_SD1e-2,t300A3p15,tInfA3p15")
+    parser.add_option("-n","--name",default="a80_leak_HR")
+    parser.add_option("-f","--outputName",default="kilonova_wind")    
+
     parser.add_option("--doEvent",  action="store_true", default=False)
-    #parser.add_option("-e","--event",default="G298048_GROND")
-    parser.add_option("-e","--event",default="G298048_20170822")
+    parser.add_option("-e","--event",default="G298048_GROND")
+    #parser.add_option("-e","--event",default="G298048_20170822")
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
 
@@ -50,6 +57,9 @@ def parse_commandline():
 
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
+
+    parser.add_option("--errorbudget",default=1.0,type=float)
+    parser.add_option("--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
 
@@ -78,6 +88,8 @@ def bns_model_ejecta(mej,vej,th,ph):
 # Parse command line
 opts = parse_commandline()
 
+filters = opts.filters.split(",")
+
 lightcurvesDir = opts.lightcurvesDir
 spectraDir = opts.spectraDir
 
@@ -89,8 +101,8 @@ plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
-models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow"]
-models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)"]
+models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess"]
+models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)"]
 
 if opts.doAB:
 
@@ -188,7 +200,8 @@ if opts.doAB:
         plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
     
     plt.xlim([10**-2,50])
-    plt.ylim([-15,5])
+    #plt.ylim([-15,5])
+    plt.ylim([-20,5])
     plt.xlabel('Time [days]',fontsize=24)
     plt.ylabel('Absolute Magnitude',fontsize=24)
     plt.legend(loc="best")
@@ -208,9 +221,9 @@ if opts.doAB:
     tt = np.arange(tini,tmax,dt)
     
     for filt, color, magidx in zip(filts,colors,magidxs):
-        if not filt in data_out: continue
     
         if opts.doEvent:
+            if not filt in data_out: continue
             samples = data_out[filt]
             t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
             idx = np.where(~np.isnan(y))[0]
@@ -228,7 +241,8 @@ if opts.doAB:
         for ii,name in enumerate(names):
             mag_d = mags[name]
             if not filt in mag_d: continue
-            if not filt in ["g","r"]: continue
+            if not filt in filters: continue
+            #if not filt in ["g","r"]: continue
             offset = 0.0
             t = mag_d["t"]
             linestyle = "%s-"%colors[ii]
@@ -237,10 +251,10 @@ if opts.doAB:
             f = interp.interp1d(t[ii], mag_d[filt][ii], fill_value='extrapolate')
             maginterp = f(tt)
             zp_best_tmp = -7.0
-            zp_best_tmp = -2.5
-            zp_best_tmp = 9.0
+            zp_best_tmp = -1.0
+            #zp_best_tmp = 0.0
             plt.plot(tt,maginterp+zp_best_tmp,'--',c=color,linewidth=2)
-            plt.fill_between(tt,maginterp+zp_best_tmp-errorbudget,maginterp+zp_best_tmp+errorbudget,facecolor=color,alpha=0.2)
+            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=color,alpha=0.2)
     
     plt.xlim([0.0, 3.5])
     plt.ylim([-20.0,-10.0])

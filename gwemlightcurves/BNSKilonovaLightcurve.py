@@ -115,7 +115,25 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     t_d = np.array(t_d)
     lbol_d = np.array(lbol_d)
 
-    return t_d, lbol_d, mag_d
+    wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
+    wavelength_interp = 9603.1
+
+    mag_y = np.zeros(t_d.shape)
+    for ii in xrange(len(t_d)):
+        mags = [mag_d[jj][ii] for jj in xrange(8)]
+        mag_y[ii] = np.interp(wavelength_interp,wavelengths,mags)
+    mag_new = {}
+    mag_new[0] = mag_d[0]
+    mag_new[1] = mag_d[1]
+    mag_new[2] = mag_d[2]
+    mag_new[3] = mag_d[3]
+    mag_new[4] = mag_d[4]
+    mag_new[5] = mag_y
+    mag_new[6] = mag_d[5]
+    mag_new[7] = mag_d[6]
+    mag_new[8] = mag_d[7]
+  
+    return t_d, lbol_d, mag_new
 
 def mag_bol(lbol,d):
   f0=2.52e-5

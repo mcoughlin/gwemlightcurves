@@ -1,5 +1,6 @@
 
 import os, sys, glob
+from time import time
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
@@ -51,6 +52,26 @@ def get_post_file(basedir):
         filename = []
     return filename
 
+def spec_model(specs,t0,model):
+
+        #model = 12
+        #t0 = 1.0
+        #print speckeys[model]
+ 
+        spec = specs[speckeys[model]]
+
+        #f = interp.interp2d(spec["t"],spec["lambda"],spec["data"].T)
+        f = spec["f"]
+        xnew = t0
+        ynew = data_out["lambda"]
+        znew = f(xnew,ynew)
+
+        #znew[znew == 0.0] = np.max(znew)/1e10
+        spec1 = znew/np.sum(znew)
+        spec1 = np.squeeze(spec1)
+
+        return spec1
+
 def myloglike(cube, ndim, nparams):
 
         t0 = cube[0]
@@ -62,18 +83,34 @@ def myloglike(cube, ndim, nparams):
             prob = -np.inf
             return prob
 
-        spec = specs[speckeys[model]]
+        spec1 = spec_model(specs,t0,model)
+        spec2 = data_out["data"]/np.sum(data_out["data"])
 
-        f = interp.interp2d(spec["t"],spec["lambda"],spec["data"].T)
-        xnew = t0
-        ynew = data_out["lambda"]
-        znew = f(xnew,ynew)
+        sigma = np.sqrt(np.max(spec1)**2 + np.max(spec2)**2)
+        #sigma = np.sqrt(errorbudget**2)
+        chisquarevals = np.zeros(spec1.shape)
+        chisquarevals = ((spec1-spec2)/sigma)**2 * np.abs(spec2)
 
-        inner_product = (znew/np.sum(znew)) * (data_out["data"]/np.sum(data_out["data"]))
-        prob = np.log(np.sum(inner_product))
+        chisquaresum = np.sum(chisquarevals)
+        chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
+        chisquare = chisquaresum
+
+        #print chisquaresum
+        #exit(0)
+
+        if np.isnan(chisquare):
+            prob = -np.inf
+        else:
+            prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+
+        if np.isnan(prob):
+            prob = -np.inf
 
         if prob == 0.0:
             prob = -np.inf
+
+        #if np.isfinite(prob):
+        #    print t0, model, prob
 
         return prob
 
@@ -96,6 +133,7 @@ else:
     basename = 'gws_spec'
 plotDir = os.path.join(baseplotDir,basename)
 plotDir = os.path.join(plotDir,opts.model)
+plotDir = os.path.join(plotDir,opts.name)
 plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
@@ -105,12 +143,15 @@ lightcurvesDir = opts.lightcurvesDir
 spectraDir = opts.spectraDir
 
 if opts.doEvent:
-    filename = "%s/%s.dat"%(spectraDir,opts.event)
+    filename = "%s/%s.dat"%(spectraDir,opts.name)
 
 fileDir = os.path.join(opts.outputDir,opts.model)
 filenames = glob.glob('%s/*_spec.dat'%fileDir)
 specs, names = lightcurve_utils.read_files_spec(filenames)
 speckeys = specs.keys()
+for key in speckeys:
+    f = interp.interp2d(specs[key]["t"],specs[key]["lambda"],specs[key]["data"].T)
+    specs[key]["f"] = f
 
 errorbudget = opts.errorbudget
 n_live_points = 1000
@@ -130,7 +171,7 @@ if opts.doModels:
     znew = f(xnew,ynew)
     data_out = {}
     data_out["lambda"] = ynew
-    data_out["data"] = znew
+    data_out["data"] = np.squeeze(znew)
 
 elif opts.doEvent:
     data_out = lightcurve_utils.loadEventSpec(filename)
@@ -168,14 +209,9 @@ t0_best = data[idx,0]
 model_best = int(np.round(data[idx,1]))
 truths = [np.nan,np.nan]
 
-spec = specs[speckeys[model_best]]
-
-f = interp.interp2d(spec["t"],spec["lambda"],spec["data"].T)
-xnew = t0_best
-ynew = data_out["lambda"]
-znew = f(xnew,ynew)
+znew = spec_model(specs,t0_best,model_best)
 spec_best = {}
-spec_best["lambda"] = ynew
+spec_best["lambda"] = data_out["lambda"]
 spec_best["data"] = znew
 
 if n_params >= 8:
@@ -200,8 +236,8 @@ plt.close()
 
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-plt.loglog(spec_best["lambda"],spec_best["data"],'k--',linewidth=2)
 plt.loglog(data_out["lambda"],data_out["data"],'r-',linewidth=2)
+plt.loglog(spec_best["lambda"],spec_best["data"]*np.max(data_out["data"])/np.max(spec_best["data"]),'k--',linewidth=2)
 plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
 plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
 #plt.legend(loc="best",prop={'size':16},numpoints=1)
