@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
-from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2, BOXFit
+from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2, BOXFit, BlueKilonovaLightcurve
 from gwemlightcurves import BHNSKilonovaLightcurveOpt
 
 def parse_commandline():
@@ -39,7 +39,9 @@ def parse_commandline():
     parser.add_option("--E",default=1e53,type=float)
     parser.add_option("--n",default=1.0,type=float)
     parser.add_option("--theta_obs",default=0.0,type=float)
-
+    parser.add_option("--beta",default=3.0,type=float)
+    parser.add_option("--kappa_r",default=10.0,type=float)
+    
     opts, args = parser.parse_args()
  
     return opts
@@ -59,6 +61,8 @@ theta_0 = opts.theta_0
 E = opts.E
 n = opts.n
 theta_obs = opts.theta_obs
+beta = opts.beta
+kappa_r = opts.kappa_r
 
 if opts.eos == "APR4":
     c = 0.180
@@ -116,7 +120,16 @@ elif opts.model == "BNS":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
-
+elif opts.model == "Blue":
+    if opts.doEjecta:
+        t, lbol, mag = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+    elif opts.doMasses:
+        t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0
@@ -137,7 +150,7 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print "Model must be either: BHNS, BNS, SN, Afterglow"
+   print "Model must be either: BHNS, BNS, Blue, SN, Afterglow"
    exit(0)
 
 if np.sum(lbol) == 0.0:

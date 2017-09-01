@@ -15,7 +15,7 @@ from matplotlib.pyplot import cm
 import corner
 
 import pymultinest
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2, BlueKilonovaLightcurve
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -129,6 +129,26 @@ def bhns_model_ejecta(mej,vej,th,ph):
 
     return t, lbol, mag
 
+def blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+
+    return t, lbol, mag
+
+def blue_model_ejecta(mej,vej,beta,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+
+    return t, lbol, mag
+
 def bns_model(m1,mb1,c1,m2,mb2,c2,th,ph):
 
     tini = 0.1
@@ -224,6 +244,38 @@ def prior_bns(m1,mb1,c1,m2,mb2,c2):
 def prior_bhns(q,chi_eff,mns,mb,c):
         return 1.0
 
+def myprior_blue(cube, ndim, nparams):
+
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*2.0 + 1.0
+        cube[2] = cube[2]*2.0 + 1.0
+        cube[3] = cube[3]*0.16 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
+        cube[5] = cube[5]*2.0 + 1.0
+        cube[6] = cube[6]*0.16 + 0.08
+        cube[7] = cube[7]*10.0
+        cube[8] = cube[8]*50.0
+        cube[9] = cube[9]*100.0 - 50.0
+
+def myprior_blue_EOSFit(cube, ndim, nparams):
+
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*2.0 + 1.0
+        cube[2] = cube[2]*0.16 + 0.08
+        cube[3] = cube[3]*2.0 + 1.0
+        cube[4] = cube[4]*0.16 + 0.08
+        cube[5] = cube[5]*10.0
+        cube[6] = cube[6]*50.0
+        cube[7] = cube[7]*100.0 - 50.0
+
+def myprior_blue_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*10.0 - 5.0
+        cube[1] = cube[1]*5.0 - 5.0
+        cube[2] = cube[2]*1.0
+        cube[3] = cube[3]*10.0
+        cube[4] = cube[4]*50.0
+        cube[5] = cube[5]*100.0 - 50.0
+
 def myprior_bns(cube, ndim, nparams):
 
         cube[0] = cube[0]*10.0 - 5.0
@@ -308,6 +360,65 @@ def findconst(array):
         return np.nan
     else:
         return array[idx[-1]]
+
+def myloglike_blue(cube, ndim, nparams):
+
+        t0 = cube[0]
+        m1 = cube[1]
+        mb1 = cube[2]
+        c1 = cube[3]
+        m2 = cube[4]
+        mb2 = cube[5]
+        c2 = cube[6]
+        beta = cube[7]
+        kappa_r = cube[8]
+        zp = cube[9]
+
+        tmag, lbol, mag = blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_blue_ejecta(cube, ndim, nparams):
+        t0 = cube[0]
+        mej = 10**cube[1]
+        vej = cube[2]
+        beta = cube[3]
+        kappa_r = cube[4]
+        zp = cube[5]
+
+        tmag, lbol, mag = blue_model_ejecta(mej,vej,beta,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+        return prob
+
+def myloglike_blue_EOSFit(cube, ndim, nparams):
+
+        t0 = cube[0]
+        m1 = cube[1]
+        c1 = cube[2]
+        m2 = cube[3]
+        c2 = cube[4]
+        beta = cube[5]
+        kappa_r = cube[6]
+        zp = cube[7]
+
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+
+        tmag, lbol, mag = blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
     
 def myloglike_bns(cube, ndim, nparams):
 
@@ -467,61 +578,15 @@ def calc_prob(tmag, lbol, mag, t0, zp):
 
             if not key in filters: continue
 
-            if key == "g":
-                ii = np.where(~np.isnan(mag[1]))[0]
+            keyslist = ["u","g","r","i","z","y","J","H","K"]
+
+            if key in keyslist:
+                idx = keyslist.index(key)
+                ii = np.where(~np.isnan(mag[idx]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
                 else:
-                    f = interp.interp1d(tmag[ii], mag[1][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "r":
-                ii = np.where(~np.isnan(mag[2]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[2][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "i":
-                ii = np.where(~np.isnan(mag[3]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[3][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "z":
-                ii = np.where(~np.isnan(mag[4]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[4][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "y":
-                ii = np.where(~np.isnan(mag[5]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[5][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "J":
-                ii = np.where(~np.isnan(mag[5]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[6][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "H":
-                ii = np.where(~np.isnan(mag[6]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[6][ii], fill_value='extrapolate')
-                    maginterp = f(t)
-            elif key == "K":
-                ii = np.where(~np.isnan(mag[7]))[0]
-                if len(ii) == 0:
-                    maginterp = np.nan*np.ones(t.shape)
-                else:
-                    f = interp.interp1d(tmag[ii], mag[7][ii], fill_value='extrapolate')
+                    f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value='extrapolate')
                     maginterp = f(t)
             elif key == "w":
                 magave = (mag[1]+mag[2]+mag[3])/3.0
@@ -625,8 +690,8 @@ def EOSfit(mns,c):
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["BHNS", "BNS", "SN"]:
-   print "Model must be either: BHNS, BNS, SN"
+if not opts.model in ["BHNS", "BNS", "SN","Blue"]:
+   print "Model must be either: BHNS, BNS, SN, Blue"
    exit(0)
 
 filters = opts.filters.split(",")
@@ -646,7 +711,7 @@ if opts.doEOSFit:
 else:
     plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
-if opts.model in ["BNS","BHNS"]:
+if opts.model in ["BNS","BHNS","Blue"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -684,6 +749,7 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
             exit(0)
 
         data_out = data_out[opts.name]
+
     elif opts.doGoingTheDistance or opts.doMassGap:
 
         truths = {}
@@ -850,7 +916,7 @@ else:
         fid.write('%.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan))
         fid.close()
 
-if opts.model in ["BHNS","BNS"]:
+if opts.model in ["BHNS","BNS","Blue"]:
 
     if opts.doMasses:
         if opts.model == "BHNS":
@@ -875,6 +941,17 @@ if opts.model in ["BHNS","BNS"]:
                 labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.model == "Blue":
+            if opts.doEOSFit:
+                parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_blue_EOSFit, myprior_blue_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            else:
+                parameters = ["t0","m1","mb1","c1","m2","mb2","c2","beta","kappa_r","zp"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_blue, myprior_blue, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","th","ph","zp"]
@@ -886,6 +963,11 @@ if opts.model in ["BHNS","BNS"]:
             labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.model == "Blue":
+            parameters = ["t0","mej","vej","beta","kappa_r","zp"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_blue_ejecta, myprior_blue_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
@@ -1078,6 +1160,95 @@ elif opts.model == "BNS":
 
         tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
 
+elif opts.model == "Blue":
+
+    if opts.doMasses:
+        if opts.doEOSFit:
+
+            t0 = data[:,0]
+            m1 = data[:,1]
+            c1 = data[:,2]
+            m2 = data[:,3]
+            c2 = data[:,4]
+            beta = data[:,5]
+            kappa_r = data[:,6]
+            zp = data[:,7]
+            loglikelihood = data[:,8]
+            idx = np.argmax(loglikelihood)
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            c1_best = data[idx,2]
+            m2_best = data[idx,3]
+            c2_best = data[idx,4]
+            beta_best = data[idx,5]
+            kappa_r_best = data[idx,6]
+            zp_best = data[idx,7]
+            mb1_best = mb1[idx]
+            mb2_best = mb2[idx]
+
+            data_new = np.zeros(data.shape)
+            parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
+            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+            data_new[:,0] = data[:,0]
+            data_new[:,1] = 1/q
+            data_new[:,2] = mchirp
+            data_new[:,3] = data[:,2]
+            data_new[:,4] = data[:,4]
+            data_new[:,5] = data[:,5]
+            data_new[:,6] = data[:,6]
+            data_new[:,7] = data[:,7]
+            data = data_new
+
+        else:
+            t0 = data[:,0]
+            m1 = data[:,1]
+            mb1 = data[:,2]
+            c1 = data[:,3]
+            m2 = data[:,4]
+            mb2 = data[:,5]
+            c2 = data[:,6]
+            beta = data[:,7]
+            kappa_r = data[:,8]
+            zp = data[:,9]
+            loglikelihood = data[:,10]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            mb1_best = data[idx,2]
+            c1_best = data[idx,3]
+            m2_best = data[idx,4]
+            mb2_best = data[idx,5]
+            c2_best = data[idx,6]
+            beta_best = data[idx,7]
+            kappa_r_best = data[idx,8]
+            zp_best = data[idx,9]
+
+        tmag, lbol, mag = blue_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,beta_best,kappa_r_best)
+
+    elif opts.doEjecta:
+        t0 = data[:,0]
+        mej = 10**data[:,1]
+        vej = data[:,2]
+        beta = data[:,3]
+        kappa_r = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        mej_best = 10**data[idx,1]
+        vej_best = data[idx,2]
+        beta_best = data[idx,3]
+        kappa_r_best = data[idx,4]
+        zp_best = data[idx,5]
+
+        tmag, lbol, mag = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+
 elif opts.model == "SN":
 
     t0 = data[:,0]
@@ -1129,10 +1300,10 @@ plt.close()
 
 tmag = tmag + t0_best
 
-filts = ["g","r","i","z","y","J","H","K"]
+filts = ["u","g","r","i","z","y","J","H","K"]
 #colors = ["y","g","b","c","k","pink","orange","purple"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
-magidxs = [1,2,3,4,5,5,6,7]
+magidxs = [0,1,2,3,4,5,6,7,8]
 
 plotName = "%s/lightcurve.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
@@ -1322,6 +1493,30 @@ elif opts.model == "BNS":
         filename = os.path.join(plotDir,'best.dat')
         fid = open(filename,'w')
         fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,th_best,ph_best,zp_best))
+        fid.close()
+
+elif opts.model == "Blue":
+    if opts.doMasses:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l, m, n, o, p in zip(t0,m1,mb1,c1,m2,mb2,c2,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,zp_best))
+        fid.close()
+    elif opts.doEjecta:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l, m, n in zip(t0,mej,vej,beta,kappa_r,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
         fid.close()
 
 elif opts.model == "SN":

@@ -28,11 +28,13 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-s","--spectraDir",default="../spectra")
 
-    #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10,SAd_magnitudes_m0.005_v0.2")
     #parser.add_option("-f","--outputName",default="fiducial")
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
+    parser.add_option("-n","--name",default="bluekilonova")
+    parser.add_option("-f","--outputName",default="G298048_bluekilonova")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
@@ -40,8 +42,8 @@ def parse_commandline():
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
     #parser.add_option("-f","--outputName",default="fiducial_spec")
     #parser.add_option("-n","--name",default="a80_leak_HR,t000A3,t100A3p15_SD1e-2,t300A3p15,tInfA3p15")
-    parser.add_option("-n","--name",default="a80_leak_HR")
-    parser.add_option("-f","--outputName",default="kilonova_wind")    
+    #parser.add_option("-n","--name",default="a80_leak_HR")
+    #parser.add_option("-f","--outputName",default="kilonova_wind")    
 
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("-e","--event",default="G298048_GROND")
@@ -101,8 +103,8 @@ plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
-models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess"]
-models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)"]
+models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","metzger_bluekilonova"]
+models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
 
 if opts.doAB:
 
@@ -150,7 +152,8 @@ if opts.doAB:
                 data_out[key][:,0] = data_out[key][:,0] - opts.T0
                 data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
     
-    colors = ["g","r","c","y","m"]
+    #colors = ["g","r","c","y","m"]
+    colors=cm.rainbow(np.linspace(0,1,len(names)))
     plotName = "%s/models.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     for ii,name in enumerate(names):
@@ -161,10 +164,8 @@ if opts.doAB:
         offset = -mag_d["g"][index2] + ii*3
         offset = 0.0
         t = mag_d["t"]
-        linestyle = "%s-"%colors[ii]
-        plt.semilogx(t,mag_d["i"]+offset,linestyle,label=legend_names[ii],linewidth=2)
-        linestyle = "%s--"%colors[ii]
-        plt.semilogx(t,mag_d["g"]+offset,linestyle,linewidth=2)
+        plt.semilogx(t,mag_d["i"]+offset,'-',label=legend_names[ii],linewidth=2,c=colors[ii])
+        plt.semilogx(t,mag_d["g"]+offset,'--',linewidth=2,c=colors[ii])
     
     if opts.doEvent:
     
@@ -245,7 +246,6 @@ if opts.doAB:
             #if not filt in ["g","r"]: continue
             offset = 0.0
             t = mag_d["t"]
-            linestyle = "%s-"%colors[ii]
                
             ii = np.where(~np.isnan(mag_d[filt]))[0]
             f = interp.interp1d(t[ii], mag_d[filt][ii], fill_value='extrapolate')
@@ -267,7 +267,6 @@ if opts.doAB:
     plt.savefig(plotName)
     plt.close()
     
-    colors = ["g","r","c","y","m"]
     plotName = "%s/models_iminusg.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     for ii,name in enumerate(names):
@@ -278,8 +277,7 @@ if opts.doAB:
         offset = -mag_d["g"][index2] + ii*3
         offset = 0.0
         t = mag_d["t"]
-        linestyle = "%s-"%colors[ii]
-        plt.semilogx(t,mag_d["i"]-mag_d["g"],linestyle,label=legend_names[ii],linewidth=2)
+        plt.semilogx(t,mag_d["i"]-mag_d["g"],'-',label=legend_names[ii],linewidth=2,color=colors[ii])
     plt.xlim([10**-2,50])
     #plt.ylim([-15,5])
     plt.xlabel('Time [days]',fontsize=24)
@@ -311,8 +309,7 @@ if opts.doAB:
         index2 = int(len(indexes)/2)
         offset = 0.0
         t = Lbol_d["t"]
-        linestyle = "%s-"%colors[ii]
-        plt.loglog(t,Lbol_d["Lbol"]+offset,linestyle,label=legend_names[ii],linewidth=2)
+        plt.loglog(t,Lbol_d["Lbol"]+offset,'-',label=legend_names[ii],linewidth=2,color=colors[ii])
     plt.xlim([10**-2,50])
     plt.ylim([10.0**39,10.0**43])
     plt.xlabel('Time [days]',fontsize=24)

@@ -42,22 +42,39 @@ def easyint(x,y,xref):
 
 def getMagAbsAB(filename_AB,filename_bol,filtname,model):
 
-    u = np.loadtxt(filename_bol)
-    L = u[:,1]
-
     u = np.loadtxt(filename_AB)
     t = u[:,0]
-    if filtname == "y":
-        wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
-        wavelength_interp = 9603.1
 
-        mag = np.zeros(t.shape)
-        for ii in xrange(len(t)):
-            mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,1:])
+    if filename_bol:
+        u_bol = np.loadtxt(filename_bol)
+        L = u_bol[:,1]
     else:
-        cols = ["t","u","g","r","i","z","J","H","K"]
-        idx = cols.index(filtname)
-        mag = u[:,idx]
+        L = u[:,1]
+
+    if model == "tanaka_compactmergers": 
+        if filtname == "y":
+            wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
+            wavelength_interp = 9603.1
+
+            mag = np.zeros(t.shape)
+            for ii in xrange(len(t)):
+                mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,1:])
+        else:
+            cols = ["t","u","g","r","i","z","J","H","K"]
+            idx = cols.index(filtname)
+            mag = u[:,idx]
+    elif model == "korobkin_kilonova":
+        if filtname == "u":
+            wavelengths = [4775.6, 6129.5, 7484.6, 8657.8, 9603.1, 12350, 16620, 21590]
+            wavelength_interp = 3543
+
+            mag = np.zeros(t.shape)
+            for ii in xrange(len(t)):
+                mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,2:])
+        else:
+            cols = ["t","g","r","i","z","y","J","H","K"]
+            idx = cols.index(filtname)+1
+            mag = u[:,idx]
 
     return t, mag, L
 
@@ -284,12 +301,15 @@ dataDir = opts.dataDir
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
-absABmodels = ["tanaka_compactmergers"]
+absABmodels = ["tanaka_compactmergers","korobkin_kilonova"]
 
 if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
 elif opts.model == "macronovae-rosswog":
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
+elif opts.model == "korobkin_kilonova":
+    filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
+    filename_bol = []
 elif opts.model in specmodels:
     filename = "%s/%s/%s.spec"%(dataDir,opts.model,opts.name)
 elif opts.model in absABmodels:

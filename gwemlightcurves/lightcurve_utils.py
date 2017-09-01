@@ -217,43 +217,26 @@ def read_files_spec(files):
 
     return specs, names
 
-def read_files(files,tmin=-100.0,tmax=100.0):
+def read_files(files):
 
     names = []
     mags = {}
     for filename in files:
         name = filename.replace(".txt","").replace(".dat","").split("/")[-1]
         mag_d = np.loadtxt(filename)
-        #mag_d = mag_d[1:,:]
 
         t = mag_d[:,0]
-        g = mag_d[:,1]
-        try:
-            index = np.nanargmin(g)
-            index = 0
-        except:
-            index = 0
-        t0 = t[index]
-
         mags[name] = {}
         mags[name]["t"] = mag_d[:,0]
-        indexes1 = np.where(mags[name]["t"]>=tmin)[0]
-        indexes2 = np.where(mags[name]["t"]<=tmax)[0] 
-        indexes = np.intersect1d(indexes1,indexes2)
-
-        mags[name]["t"] = mag_d[indexes,0]
-        mags[name]["g"] = mag_d[indexes,1]
-        mags[name]["r"] = mag_d[indexes,2]
-        mags[name]["i"] = mag_d[indexes,3]
-        mags[name]["z"] = mag_d[indexes,4]
-
-        try:
-            mags[name]["y"] = mag_d[indexes,5]
-            mags[name]["J"] = mag_d[indexes,6]
-            mags[name]["H"] = mag_d[indexes,7]
-            mags[name]["K"] = mag_d[indexes,8]
-        except:
-            print "No infrared data..."
+        mags[name]["u"] = mag_d[:,1]
+        mags[name]["g"] = mag_d[:,2]
+        mags[name]["r"] = mag_d[:,3]
+        mags[name]["i"] = mag_d[:,4]
+        mags[name]["z"] = mag_d[:,5]
+        mags[name]["y"] = mag_d[:,6]
+        mags[name]["J"] = mag_d[:,7]
+        mags[name]["H"] = mag_d[:,8]
+        mags[name]["K"] = mag_d[:,9]
 
         names.append(name)
 

@@ -46,6 +46,7 @@ def parse_commandline():
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
+    parser.add_option("--doLoveC",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
 
     opts, args = parser.parse_args()
@@ -75,6 +76,50 @@ def ms2mc(m1,m2):
     q = m2/m1
 
     return (mchirp,eta,q)
+
+# Give the compactness-Love and Love-compactness relations
+# NKJ-M, 08.2017
+
+import numpy as np
+
+def CLove(lmbda):
+    """
+    Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
+
+    Input: Dimensionless quadrupolar tidal deformability lmbda
+    Output: Compactness (mass over radius, in geometrized units, so the result is dimensionless)
+    """
+
+    # Give coefficients
+    a0 = 0.360
+    a1 = -0.0355
+    a2 = 0.000705
+
+    # Compute fit
+    lmbda = np.atleast_1d(lmbda)
+    ll = np.log(lmbda)
+    cc = a0 + (a1 + a2*ll)*ll
+
+    for kk in np.arange(len(cc)):
+        if cc[kk] > 4./9.:
+            print("Warning: Returned a compactness of 4/9 = 0.44... though the fit gives a compactness of %f for the input value of lambda = %f"%(cc[kk], lmbda[kk]))
+            cc[kk] = 4./9.
+        elif cc[kk] < 0.:
+            print("Warning: Returned a compactness of 0. though the fit gives a compactness of %f for the input value of lambda = %f"%(cc[kk], lmbda[kk]))
+            cc[kk] = 0.
+    return cc
+
+def LoveC(cc):
+    """
+    Invert the compactness-Love relation given above.
+    """
+    # Give coefficients
+    a0 = 0.360
+    a1 = -0.0355
+    a2 = 0.000705
+    ll = -(a1 + (a1*a1 - 4.*a2*(a0 - cc))**0.5)/(2.*a2)
+
+    return np.exp(ll)
 
 def greedy_kde_areas_2d(pts):
 
@@ -483,6 +528,7 @@ if opts.doEOSFit:
 else:
     plotDir = os.path.join(plotDir,'%s'%opts.model)
 if opts.doModels:
+    plotDir = os.path.join(plotDir,"_".join(filters))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -688,6 +734,11 @@ elif (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOS
     data_new[:,2] = data[:,1]
     data_new[:,3] = data[:,3]
     data = data_new
+
+    if opts.doLoveC:
+        labels = [r"$q$",r"$M_{\rm c}$",r"$\log_{\rm 10} \lambda_{\rm 1}$",r"$\log_{\rm 10} \lambda_{\rm 2}$"]
+        data[:,2] = np.log10(LoveC(data[:,2]))
+        data[:,3] = np.log10(LoveC(data[:,3]))
 
     if opts.doFixMChirp:
         mchirp_mu, mchirp_sigma = np.mean(mchirp), 0.001*np.mean(mchirp)
