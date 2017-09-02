@@ -45,6 +45,9 @@ def parse_commandline():
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("-f","--filters",default="g,r,i,z")
+    parser.add_option("--tmax",default=7.0,type=float)
+    parser.add_option("--tmin",default=0.05,type=float)
+    parser.add_option("--dt",default=0.05,type=float)
 
     opts, args = parser.parse_args()
 
@@ -616,7 +619,9 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                 chisquare = np.nan
                 break
 
-            chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
+            if not float(len(chisquarevals)-1) == 0:
+                chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
+
             if count == 0:
                 chisquare = chisquaresum
                 gaussprob = gaussprobsum
@@ -735,9 +740,9 @@ else:
     filename = "%s/lightcurves.tmp"%lightcurvesDir
 
 errorbudget = opts.errorbudget
-mint = 0.05
-maxt = 7.0
-dt = 0.05
+mint = opts.tmin
+maxt = opts.tmax
+dt = opts.dt
 n_live_points = 1000
 evidence_tolerance = 0.5
 
@@ -808,10 +813,15 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
 
         data_out = {}
         data_out["t"] = t
+        data_out["u"] = mag[0]
         data_out["g"] = mag[1]
         data_out["r"] = mag[2]
         data_out["i"] = mag[3]
         data_out["z"] = mag[4]
+        data_out["y"] = mag[5]
+        data_out["J"] = mag[6]
+        data_out["H"] = mag[7]
+        data_out["K"] = mag[8]
 
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
@@ -879,6 +889,13 @@ else:
         else:
             data_out[key][:,0] = data_out[key][:,0] - opts.T0
             data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+
+    for ii,key in enumerate(data_out.iterkeys()):
+        if key == "t":
+            continue
+        else:
+            idxs = np.intersect1d(np.where(data_out[key][:,0]>=mint)[0],np.where(data_out[key][:,0]<=maxt)[0])
+            data_out[key] = data_out[key][idxs,:]
 
     for ii,key in enumerate(data_out.iterkeys()):
         idxs = np.where(~np.isnan(data_out[key][:,2]))[0]

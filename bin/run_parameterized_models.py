@@ -123,7 +123,7 @@ elif opts.model == "BNS":
 elif opts.model == "Blue":
     if opts.doEjecta:
         t, lbol, mag = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
-        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+        name = "Blue_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)

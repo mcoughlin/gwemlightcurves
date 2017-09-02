@@ -2,7 +2,6 @@
 # includes heating from r-process nuclei, free neutrons, and remnant magnetar
 # based on physics in Metzger et al. 2010, Fernandez & Metzger 2014, Metzger 2017
 # Brian Metzger, 2016
-# Modified by Michael Coughlin, 2017
 
 import os, sys
 import numpy as np
@@ -261,7 +260,8 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     Ek[0] = Ek[0]/1.0e20
     v[0] = v0
     R[0] = t[0]*v[0]
-   
+
+    dt = t[1:]-t[:-1]   
     dm = m[1:]-m[:-1]
     marray = np.tile(m,(tprec,1)).T
     dmarray = np.tile(dm,(tprec,1)).T
@@ -279,10 +279,10 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
         tlc0 = R[j]/c
         tdiff0 = tdiff0+tlc0
         Lrad[j] = E[j]/tdiff0
-        Ek[j+1] = Ek[j] + LPdV*(t[j+1]-t[j])
+        Ek[j+1] = Ek[j] + LPdV*(dt[j])
         v[j+1] = 1.0e20*(2.0*Ek[j]/(M0))**(0.5)
-        E[j+1] = (Lr[j] + Lsd[j]-LPdV-Lrad[j])*(t[j+1]-t[j]) + E[j]
-        R[j+1] = v[j+1]*(t[j+1]-t[j]) + R[j]
+        E[j+1] = (Lr[j] + Lsd[j]-LPdV-Lrad[j])*(dt[j]) + E[j]
+        R[j+1] = v[j+1]*(dt[j]) + R[j]
         taues[j+1] = (M0)*0.4/(4.0*R[j+1]**(2.0))
    
         templayer = (3.0*ene[:-1,j]*dm*Msun/(arad*4.0*np.pi*(t[j]*vm[:-1])**(3.0)))**(0.25) 
@@ -294,7 +294,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
         tdiff[:-1,j] = 0.08*kappa[:-1,j]*m[:-1]*Msun*3*kappa_correction/(vm[:-1]*c*t[j]*beta)
         tau[:-1,j] = m[:-1]*Msun*kappa[:-1,j]/(4.0*np.pi*(t[j]*vm[:-1])**(2.0))
         lum[:-1,j] = ene[:-1,j]/(tdiff[:-1,j] + t[j]*(vm[:-1]/c))
-        ene[:-1,j+1] = (edot[:-1,j] - (ene[:-1,j]/t[j]) - lum[:-1,j])*(t[j+1]-t[j]) + ene[:-1,j]
+        ene[:-1,j+1] = (edot[:-1,j] - (ene[:-1,j]/t[j]) - lum[:-1,j])*(dt[j]) + ene[:-1,j]
         lum[:-1,j] = lum[:-1,j]*(dm)*Msun
 
         tau[mprec-1,j] = tau[mprec-2,j]
