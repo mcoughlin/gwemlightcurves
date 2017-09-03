@@ -716,6 +716,7 @@ if opts.doEOSFit:
 else:
     plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
+plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 if opts.model in ["BNS","BHNS","Blue"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
@@ -1369,7 +1370,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini, tmax, dt = np.min(t), 14.0, 0.1
     tini = 0.0
     tt = np.arange(tini,tmax,dt)
 
@@ -1382,8 +1383,18 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
 else:
-    plt.xlim([0.5, 7.0])
-    plt.ylim([-20.0,-10.0])
+    if opts.model == "Blue":
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-20.0,-5.0])
+    elif opts.model == "BNS":
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-20.0,-5.0])
+    elif opts.model == "BHNS":
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-20.0,-5.0])
+    else:
+        plt.xlim([1.0, 7.0])
+        plt.ylim([-16.0,-10.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -1464,6 +1475,7 @@ plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
+
 if opts.model == "BHNS":
     if opts.doMasses:
         filename = os.path.join(plotDir,'samples.dat')
