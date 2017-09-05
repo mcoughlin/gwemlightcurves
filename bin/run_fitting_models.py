@@ -48,6 +48,9 @@ def parse_commandline():
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("--doLoveC",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
+    parser.add_option("--tmax",default=7.0,type=float)
+    parser.add_option("--tmin",default=0.05,type=float)
+    parser.add_option("--dt",default=0.05,type=float)
 
     opts, args = parser.parse_args()
 
@@ -529,6 +532,7 @@ else:
     plotDir = os.path.join(plotDir,'%s'%opts.model)
 if opts.doModels:
     plotDir = os.path.join(plotDir,"_".join(filters))
+    plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -541,6 +545,7 @@ elif opts.doSimulation:
     plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     plotDir = os.path.join(plotDir,"_".join(filters))
+    plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:

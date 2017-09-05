@@ -19,6 +19,11 @@ import pymultinest
 from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
+from astropy.modeling.models import BlackBody1D
+from astropy.modeling.blackbody import FLAM
+from astropy import units as u
+from astropy.visualization import quantity_support
+
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -31,13 +36,13 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-s","--spectraDir",default="../spectra")
 
-    parser.add_option("-n","--name",default="rpft_m005_v2")
+    parser.add_option("-n","--name",default="G298048_XSH_20170821")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=1.0,type=float)
     parser.add_option("--doModels",  action="store_true", default=False)
-    parser.add_option("-m","--model",default="barnes_kilonova_spectra")
+    parser.add_option("-m","--model",default="BlackBody1D")
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
 
     opts, args = parser.parse_args()
@@ -52,51 +57,34 @@ def get_post_file(basedir):
         filename = []
     return filename
 
-def spec_model(specs,t0,model):
+def spec_model(T,F):
 
-        #model = 12
-        #t0 = 1.0
-        #print speckeys[model]
- 
-        spec = specs[speckeys[model]]
+        bb = BlackBody1D(temperature=T*u.K,bolometric_flux=F*u.erg/(u.cm**2 * u.s))
+        wav = np.arange(1000, 110000) * u.AA
+        flux = bb(wav).to(FLAM, u.spectral_density(wav))
 
-        #f = interp.interp2d(spec["t"],spec["lambda"],spec["data"].T)
-        f = spec["f"]
-        xnew = t0
-        ynew = data_out["lambda"]
-        znew = f(xnew,ynew)
-
-        #znew[znew == 0.0] = np.max(znew)/1e10
-        spec1 = znew/np.sum(znew)
-        spec1 = np.squeeze(spec1)
-
-        return spec1
+        return wav, flux
 
 def myloglike(cube, ndim, nparams):
 
-        t0 = cube[0]
-        model = int(np.round(cube[1]))
+        T = cube[0]
+        F = 10**(cube[1])
 
-        nspecs = len(speckeys)
+        wav1, flux1 = spec_model(T,F)
+        wav2, flux2, error = data_out["lambda"], data_out["data"], data_out["error"]
+        sigma = np.abs(error/(flux2*np.log(10)))
 
-        if model > nspecs-1:
-            prob = -np.inf
-            return prob
+        flux1 = np.log10(np.abs(flux1.value))
+        flux2 = np.log10(np.abs(flux2))
 
-        spec1 = spec_model(specs,t0,model)
-        spec2 = data_out["data"]/np.sum(data_out["data"])
+        f = interp.interp1d(wav1,flux1)
+        flux1new = f(wav2)
 
-        sigma = np.sqrt(np.max(spec1)**2 + np.max(spec2)**2)
-        #sigma = np.sqrt(errorbudget**2)
-        chisquarevals = np.zeros(spec1.shape)
-        chisquarevals = ((spec1-spec2)/sigma)**2 * np.abs(spec2)
+        chisquarevals = ((flux1new-flux2)/sigma)**2
 
         chisquaresum = np.sum(chisquarevals)
         chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
         chisquare = chisquaresum
-
-        #print chisquaresum
-        #exit(0)
 
         if np.isnan(chisquare):
             prob = -np.inf
@@ -110,20 +98,20 @@ def myloglike(cube, ndim, nparams):
             prob = -np.inf
 
         #if np.isfinite(prob):
-        #    print t0, model, prob
+        #    print T, F, prob
 
         return prob
 
 def myprior(cube, ndim, nparams):
 
-        cube[0] = cube[0]*50.0
-        cube[1] = cube[1]*50.0
+        cube[0] = cube[0]*10000.0
+        cube[1] = cube[1]*10.0 - 20.0
 
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]:
-   print "Model must be either: barnes_kilonova_spectra,ns_merger_spectra,kilonova_wind_spectra, or macronovae-rosswog"
+if not opts.model in ["BlackBody1D"]:
+   print "Model must be either: BlackBody1D"
    exit(0)
 
 baseplotDir = opts.plotDir
@@ -141,17 +129,6 @@ if not os.path.isdir(plotDir):
 dataDir = opts.dataDir
 lightcurvesDir = opts.lightcurvesDir
 spectraDir = opts.spectraDir
-
-if opts.doEvent:
-    filename = "%s/%s.dat"%(spectraDir,opts.name)
-
-fileDir = os.path.join(opts.outputDir,opts.model)
-filenames = glob.glob('%s/*_spec.dat'%fileDir)
-specs, names = lightcurve_utils.read_files_spec(filenames)
-speckeys = specs.keys()
-for key in speckeys:
-    f = interp.interp2d(specs[key]["t"],specs[key]["lambda"],specs[key]["data"].T)
-    specs[key]["f"] = f
 
 errorbudget = opts.errorbudget
 n_live_points = 1000
@@ -174,10 +151,18 @@ if opts.doModels:
     data_out["data"] = np.squeeze(znew)
 
 elif opts.doEvent:
+    #events = opts.name.split(",")
+    #data_out = {}
+    #for event in events:
+    #    filename = "%s/%s.dat"%(spectraDir,event)
+    #    data_out_event = lightcurve_utils.loadEventSpec(filename)
+    #    data_out[event] = data_out_event
+
+    filename = "%s/%s.dat"%(spectraDir,opts.name)
     data_out = lightcurve_utils.loadEventSpec(filename)
 
-parameters = ["t0","model"]
-labels = [r"$T_0$",r"Model"]
+parameters = ["T","F"]
+labels = [r"$T$",r"F"]
 n_params = len(parameters)
 pymultinest.run(myloglike, myprior, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
@@ -200,19 +185,19 @@ print("Global Evidence:\n\t%.15e +- %.15e" % ( s['nested sampling global log-evi
 multifile = get_post_file(plotDir)
 data = np.loadtxt(multifile)
 
-t0 = data[:,0]
-model = data[:,1]
+T = data[:,0]
+F = data[:,1]
 loglikelihood = data[:,2]
 idx = np.argmax(loglikelihood)
 
-t0_best = data[idx,0]
-model_best = int(np.round(data[idx,1]))
+T_best = data[idx,0]
+F_best = data[idx,1]
 truths = [np.nan,np.nan]
 
-znew = spec_model(specs,t0_best,model_best)
+wav, flux = spec_model(T_best,10**F_best)
 spec_best = {}
-spec_best["lambda"] = data_out["lambda"]
-spec_best["data"] = znew
+spec_best["lambda"] = wav
+spec_best["data"] = flux
 
 if n_params >= 8:
     title_fontsize = 26
@@ -236,22 +221,23 @@ plt.close()
 
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-plt.loglog(data_out["lambda"],data_out["data"],'r-',linewidth=2)
-plt.loglog(spec_best["lambda"],spec_best["data"]*np.max(data_out["data"])/np.max(spec_best["data"]),'k--',linewidth=2)
+plt.loglog(data_out["lambda"],np.abs(data_out["data"]),'r-',linewidth=2)
+plt.loglog(spec_best["lambda"],spec_best["data"],'k--',linewidth=2)
 plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
 plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
 #plt.legend(loc="best",prop={'size':16},numpoints=1)
+plt.ylim([np.min(np.abs(data_out["data"])),np.max(np.abs(data_out["data"]))])
 plt.grid()
 plt.savefig(plotName)
 plt.close()
 
 filename = os.path.join(plotDir,'samples.dat')
 fid = open(filename,'w+')
-for i, j in zip(t0,model):
+for i, j in zip(T,F):
     fid.write('%.5f %.5f\n'%(i,j))
 fid.close()
 
 filename = os.path.join(plotDir,'best.dat')
 fid = open(filename,'w')
-fid.write('%.5f %.5f\n'%(t0_best,model_best))
+fid.write('%.5f %.5f\n'%(T_best,F_best))
 fid.close()

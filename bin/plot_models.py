@@ -3,6 +3,8 @@ import os, sys
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
+from scipy.interpolate import InterpolatedUnivariateSpline
+from statsmodels.nonparametric.smoothers_lowess import lowess
 from astropy.time import Time
 
 import matplotlib
@@ -33,8 +35,8 @@ def parse_commandline():
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
-    parser.add_option("-n","--name",default="bluekilonova")
-    parser.add_option("-f","--outputName",default="G298048_bluekilonova")
+    parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1")
+    parser.add_option("-f","--outputName",default="G298048_all")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
@@ -46,13 +48,14 @@ def parse_commandline():
     #parser.add_option("-f","--outputName",default="kilonova_wind")    
 
     parser.add_option("--doEvent",  action="store_true", default=False)
-    parser.add_option("-e","--event",default="G298048_GROND")
+    parser.add_option("-e","--event",default="G298048_PS1_GROND_SOFI")
     #parser.add_option("-e","--event",default="G298048_20170822")
+    #parser.add_option("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
 
     parser.add_option("--doModels",  action="store_true", default=False)
-    parser.add_option("-m","--modelfile",default="gws/BNS/i_z_y_J_H_K/ejecta/G298048_GROND/1.00/best.dat")
+    #parser.add_option("-m","--modelfile",default="gws/BNS/i_z_y_J_H_K/ejecta/G298048_GROND/1.00/best.dat")
 
     #parser.add_option("-n","--name",default="H4Q3a0,H4Q3a25,H4Q3a50,H4Q3a75")
     #parser.add_option("-f","--outputName",default="spin")
@@ -166,7 +169,12 @@ if opts.doAB:
         t = mag_d["t"]
         plt.semilogx(t,mag_d["i"]+offset,'-',label=legend_names[ii],linewidth=2,c=colors[ii])
         plt.semilogx(t,mag_d["g"]+offset,'--',linewidth=2,c=colors[ii])
-    
+        #plt.semilogx(t,mag_d["K"]+offset,'.-',linewidth=2,c=colors[ii])   
+ 
+        #plt.plot(t,mag_d["i"]+offset,'-',label=legend_names[ii],linewidth=2,c=colors[ii])
+        #plt.plot(t,mag_d["g"]+offset,'--',linewidth=2,c=colors[ii])
+        #plt.plot(t,mag_d["K"]+offset,'.-',linewidth=2,c=colors[ii])
+
     if opts.doEvent:
     
         filt = "g"
@@ -182,7 +190,14 @@ if opts.doAB:
         idx = np.where(~np.isnan(y))[0]
         t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
         plt.errorbar(t,y,sigma_y,fmt='^',c="k",label='%s-band'%filt)  
-    
+   
+        filt = "K"
+        samples = data_out[filt]
+        t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+        idx = np.where(~np.isnan(y))[0]
+        t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+        #plt.errorbar(t,y,sigma_y,fmt='*',c="k",label='%s-band'%filt)
+ 
     if opts.doModels:
     
         tini, tmax, dt = np.min(t), 10.0, 0.1
@@ -200,7 +215,8 @@ if opts.doAB:
         maginterp = f(tt)
         plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
     
-    plt.xlim([10**-2,50])
+    plt.xlim([10**-1,14])
+    #plt.xlim([10**-2,50])
     #plt.ylim([-15,5])
     plt.ylim([-20,5])
     plt.xlabel('Time [days]',fontsize=24)
@@ -335,8 +351,12 @@ elif opts.doSpec:
     specs, names = lightcurve_utils.read_files_spec(filenames)
 
     if opts.doEvent:
-        filename = "%s/%s.dat"%(spectraDir,opts.event)
-        data_out = lightcurve_utils.loadEventSpec(filename)
+        events = opts.event.split(",")
+        eventdata = {}
+        for event in events:
+            filename = "%s/%s.dat"%(spectraDir,event)
+            data_out = lightcurve_utils.loadEventSpec(filename)
+            eventdata[event] = data_out
 
     maxhist = -1e10
     colors = ["g","r","c","y","m"]
@@ -348,14 +368,36 @@ elif opts.doSpec:
         linestyle = "%s-"%colors[ii]
         plt.loglog(spec_d["lambda"],np.abs(spec_d_mean),linestyle,label=legend_names[ii],linewidth=2)
         maxhist = np.max([maxhist,np.max(np.abs(spec_d_mean))])
+    if maxhist < 0: maxhist = 1
  
     if opts.doEvent:
-        plt.errorbar(data_out["lambda"],np.abs(data_out["data"])*maxhist/np.max(np.abs(data_out["data"])),fmt='--',c='k',label='event')
+        events = eventdata.keys()
+        colors=cm.rainbow(np.linspace(0,1,len(events)))
+        for ii,event in enumerate(events):
+            x = eventdata[event]["lambda"]
+            y = np.abs(eventdata[event]["data"])/np.max(np.abs(eventdata[event]["data"]))
+            #plt.loglog(x,y,'-',c=colors[ii],label=event)
+            idx = np.where( (x >= 4000))[0]
+            #s1 = InterpolatedUnivariateSpline(x[idx], y[idx], k=1.0) 
+            #plt.loglog(x,s1(x),'--',c=colors[ii])           
+            filtered = lowess(y[idx],x[idx], is_sorted=True, frac=0.10, it=0)
+            plt.loglog(filtered[:,0],filtered[:,1],'--',c=colors[ii])
+
+    from astropy.modeling.models import BlackBody1D
+    from astropy.modeling.blackbody import FLAM
+    from astropy import units as u
+    from astropy.visualization import quantity_support
+
+    bb = BlackBody1D(temperature=5000*u.K)
+    wav = np.arange(1000, 110000) * u.AA
+    flux = bb(wav).to(FLAM, u.spectral_density(wav))
+
+    plt.semilogx(wav, flux/np.max(flux)) 
 
     plt.xlim([3000,30000])
     #plt.ylim([10.0**39,10.0**43])
     plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
-    plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
+    plt.ylabel('Normalized Fluence [erg/s/cm2/A]',fontsize=24)
     plt.legend(loc="best")
     plt.grid()
     plt.savefig(plotName)
