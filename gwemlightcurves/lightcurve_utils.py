@@ -70,11 +70,25 @@ def loadEvent(filename):
 
 def loadEventSpec(filename):
 
+    name = filename.split("/")[-1].split(".")[0]
+    nameSplit = name.split("_")
+    event = nameSplit[0]
+    instrument = nameSplit[1]
+    specdata = nameSplit[2]    
+
     data_out = np.loadtxt(filename)
     spec = {}
 
     spec["lambda"] = data_out[:,0] # Angstroms
-    spec["data"] = data_out[:,1]*1e-17 # ergs/s/cm2./Angs 
+    if instrument == "XSH":
+        spec["data"] = np.abs(data_out[:,1])*1e-17 # ergs/s/cm2./Angs 
+    else:
+        spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs
+    spec["error"] = np.zeros(spec["data"].shape) # ergs/s/cm2./Angs
+    spec["error"][:-1] = np.abs(np.diff(spec["data"]))
+    spec["error"][-1] = spec["error"][-2]
+    idx = np.where(spec["error"] <= 0.5*spec["data"])[0]
+    spec["error"][idx] = 0.5*spec["data"][idx]
 
     return spec
 

@@ -25,10 +25,12 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../lightcurves")
-    parser.add_option("-n","--name",default="../plots/gws/Blue/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BNS/u_g_r_i_z_y/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BHNS/u_g_r_i_z_y/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
+    #parser.add_option("-n","--name",default="../plots/gws/Blue/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BNS/y_J_H_K/5_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
     parser.add_option("--outputName",default="G298048_PS1_GROND_SOFI")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
+
+    parser.add_option("-n","--name",default="../plots/gws/Blue_EOSFit/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BNS_EOSFit/y_J_H_K/5_14/masses/G298048_PS1_GROND_SOFI/1.00")
 
     #parser.add_option("-l","--labelType",default="errorbar")
     parser.add_option("-l","--labelType",default="name")
@@ -36,6 +38,30 @@ def parse_commandline():
     opts, args = parser.parse_args()
 
     return opts
+
+def q2eta(q):
+    return q/(1+q)**2
+
+def mc2ms(mc,eta):
+    """
+    Utility function for converting mchirp,eta to component masses. The
+    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
+    """
+    root = np.sqrt(0.25-eta)
+    fraction = (0.5+root) / (0.5-root)
+    invfraction = 1/fraction
+
+    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
+
+    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
+    return (m1,m2)
+
+def ms2mc(m1,m2):
+    eta = m1*m2/( (m1+m2)*(m1+m2) )
+    mchirp = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
+    q = m2/m1
+
+    return (mchirp,eta,q)
 
 def hist_results(samples,Nbins=16,bounds=None):
 
@@ -77,6 +103,13 @@ post = {}
 for plotDir in names:
     plotDirSplit = plotDir.split("/")
     name = plotDirSplit[-6]
+    nameSplit = name.split("_")
+    name = nameSplit[0] 
+    if len(nameSplit) == 2:
+        EOSFit = 1
+    else:
+        EOSFit = 0
+     
     errorbudget = float(plotDirSplit[-1])
     post[name] = {}
         
@@ -87,16 +120,38 @@ for plotDir in names:
     post[name][errorbudget] = {}
     if name == "BHNS":
         if opts.doMasses:
-            t0 = data[:,0]
-            q = data[:,1]
-            chi_eff = data[:,2]
-            mns = data[:,3]
-            mb = data[:,4]
-            c = data[:,5]
-            th = data[:,6]
-            ph = data[:,7]
-            zp = data[:,8]
-            loglikelihood = data[:,9]
+            if EOSFit:
+                t0 = data[:,0]
+                q = data[:,1]
+                chi_eff = data[:,2]
+                mns = data[:,3]
+                c = data[:,4]
+                th = data[:,5]
+                ph = data[:,6]
+                zp = data[:,7]
+                loglikelihood = data[:,8]
+
+                mchirp,eta,q = ms2mc(data[:,1]*data[:,3],data[:,3])
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = q
+            else:
+                t0 = data[:,0]
+                q = data[:,1]
+                chi_eff = data[:,2]
+                mns = data[:,3]
+                mb = data[:,4]
+                c = data[:,5]
+                th = data[:,6]
+                ph = data[:,7]
+                zp = data[:,8]
+                loglikelihood = data[:,9]
+
+                mchirp,eta,q = ms2mc(data[:,1]*data[:,3],data[:,3])
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = q
+
         elif opts.doEjecta:
             t0 = data[:,0]
             mej = 10**data[:,1]
@@ -109,18 +164,39 @@ for plotDir in names:
             post[name][errorbudget]["mej"] = mej
             post[name][errorbudget]["vej"] = vej
 
-    elif name == "BNS":
+    elif name == "BNS": 
         if opts.doMasses:
-            t0 = data[:,0]
-            m1 = data[:,1]
-            mb1 = data[:,2]
-            c1 = data[:,3]
-            m2 = data[:,4]
-            mb2 = data[:,5]
-            c2 = data[:,6]
-            th = data[:,7]
-            ph = data[:,8]
-            zp = data[:,9]
+            if EOSFit:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                c1 = data[:,2]
+                m2 = data[:,3]
+                c2 = data[:,4]
+                th = data[:,5]
+                ph = data[:,6]
+                zp = data[:,7]
+ 
+                mchirp,eta,q = ms2mc(m1,m2)
+ 
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+            else:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                mb1 = data[:,2]
+                c1 = data[:,3]
+                m2 = data[:,4]
+                mb2 = data[:,5]
+                c2 = data[:,6]
+                th = data[:,7]
+                ph = data[:,8]
+                zp = data[:,9]
+    
+                mchirp,eta,q = ms2mc(m1,m2)
+    
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+
         elif opts.doEjecta:
             t0 = data[:,0]
             mej = 10**data[:,1]
@@ -135,16 +211,37 @@ for plotDir in names:
 
     elif name == "Blue":
         if opts.doMasses:
-            t0 = data[:,0]
-            m1 = data[:,1]
-            mb1 = data[:,2]
-            c1 = data[:,3]
-            m2 = data[:,4]
-            mb2 = data[:,5]
-            c2 = data[:,6]
-            beta = data[:,7]
-            kappa_r = data[:,8]
-            zp = data[:,9]
+            if EOSFit:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                c1 = data[:,2]
+                m2 = data[:,3]
+                c2 = data[:,4]
+                beta = data[:,5]
+                kappa_r = data[:,6]
+                zp = data[:,7]
+ 
+                mchirp,eta,q = ms2mc(m1,m2)
+ 
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+            else:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                mb1 = data[:,2]
+                c1 = data[:,3]
+                m2 = data[:,4]
+                mb2 = data[:,5]
+                c2 = data[:,6]
+                beta = data[:,7]
+                kappa_r = data[:,8]
+                zp = data[:,9]
+    
+                mchirp,eta,q = ms2mc(m1,m2)
+    
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+
         elif opts.doEjecta:
             t0 = data[:,0]
             mej = 10**data[:,1]
@@ -181,112 +278,202 @@ if not os.path.isdir(plotDir):
 colors = ['b','g','r','m','c']
 linestyles = ['-', '-.', ':','--']
 
-plotName = "%s/mej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-maxhist = -1
-for ii,name in enumerate(sorted(post.keys())):
-    for jj,errorbudget in enumerate(sorted(post[name].keys())):
-        if opts.labelType == "errorbar":
-            label = r"$\Delta$m: %.2f"%float(errorbudget)
-        elif opts.labelType == "name":
-            label = get_labels(name)
-        else:
-            label = []
-        if opts.labelType == "errorbar":
-            color = colors[jj]
-            colortrue = 'k'
-            linestyle = '-'
-        elif opts.labelType == "name":
-            color = colors[ii]
-            colortrue = colors[ii]
-            linestyle = linestyles[jj]
-        else:
-            color = 'b'
-            colortrue = 'k'
-            linestyle = '-'
+if opts.doEjecta:
 
-        samples = np.log10(post[name][errorbudget]["mej"])
-        if (opts.labelType == "errorbar") and (float(errorbudget) < 1.0):
-            bounds=[-2.8,-1.8]
-        else:
-            bounds=[-3.5,0.0]
-        bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
+    bounds = [-3.0,0.0]
+    xlims = [-3.0,0.0]
+    ylims = [1e-1,10]
 
-        if opts.labelType == "name" and jj > 0:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
-        else:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
+    plotName = "%s/mej.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    maxhist = -1
+    for ii,name in enumerate(sorted(post.keys())):
+        for jj,errorbudget in enumerate(sorted(post[name].keys())):
+            if opts.labelType == "errorbar":
+                label = r"$\Delta$m: %.2f"%float(errorbudget)
+            elif opts.labelType == "name":
+                label = get_labels(name)
+            else:
+                label = []
+            if opts.labelType == "errorbar":
+                color = colors[jj]
+                colortrue = 'k'
+                linestyle = '-'
+            elif opts.labelType == "name":
+                color = colors[ii]
+                colortrue = colors[ii]
+                linestyle = linestyles[jj]
+            else:
+                color = 'b'
+                colortrue = 'k'
+                linestyle = '-'
+    
+            samples = np.log10(post[name][errorbudget]["mej"])
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
+    
+            if opts.labelType == "name" and jj > 0:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
+            else:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
+    
+            maxhist = np.max([maxhist,np.max(hist1)])
+    
+    plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlim(xlims)
+    plt.ylim(ylims)
+    plt.savefig(plotName)
+    plt.close()
 
-        maxhist = np.max([maxhist,np.max(hist1)])
+    bounds = [0.0,1.0]
+    xlims = [0.0,1.0]
+    ylims = [1e-1,20]
+    
+    plotName = "%s/vej.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    maxhist = -1
+    for ii,name in enumerate(sorted(post.keys())):
+        for jj,errorbudget in enumerate(sorted(post[name].keys())):
+            if opts.labelType == "errorbar":
+                label = r"$\Delta$m: %.2f"%float(errorbudget)
+            elif opts.labelType == "name":
+                label = get_labels(name)
+            else:
+                label = []
+            if opts.labelType == "errorbar":
+                color = colors[jj]
+                colortrue = 'k'
+                linestyle = '-'
+            elif opts.labelType == "name":
+                color = colors[ii]
+                colortrue = colors[ii]
+                linestyle = linestyles[jj]
+            else:
+                color = 'b'
+                colortrue = 'k'
+                linestyle = '-'
+    
+            samples = post[name][errorbudget]["vej"]
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+    
+            if opts.labelType == "name" and jj > 0:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
+            else:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
+    
+            maxhist = np.max([maxhist,np.max(hist1)])
+    
+    plt.xlabel(r"$v_{\rm ej}$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlim(xlims)
+    plt.ylim(ylims)
+    plt.savefig(plotName)
+    plt.close()
 
-plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-if opts.labelType == "errorbar":
-    plt.xlim([-3.5,0.0])
-elif opts.labelType == "name":
-    plt.xlim([-3.0,0.5])
+elif opts.doMasses:
 
-if opts.labelType == "errorbar":
-    plt.ylim([1e-1,20])
-elif opts.labelType == "name":
-    plt.ylim([1e-1,5])
-plt.savefig(plotName)
-plt.close()
+    bounds = [0.8,4.0]
+    xlims = [0.8,4.0]
+    ylims = [1e-1,10]
 
-plotName = "%s/vej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-maxhist = -1
-for ii,name in enumerate(sorted(post.keys())):
-    for jj,errorbudget in enumerate(sorted(post[name].keys())):
-        if opts.labelType == "errorbar":
-            label = r"$\Delta$m: %.2f"%float(errorbudget)
-        elif opts.labelType == "name":
-            label = get_labels(name)
-        else:
-            label = []
-        if opts.labelType == "errorbar":
-            color = colors[jj]
-            colortrue = 'k'
-            linestyle = '-'
-        elif opts.labelType == "name":
-            color = colors[ii]
-            colortrue = colors[ii]
-            linestyle = linestyles[jj]
-        else:
-            color = 'b'
-            colortrue = 'k'
-            linestyle = '-'
+    plotName = "%s/mchirp.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    maxhist = -1
 
-        samples = post[name][errorbudget]["vej"]
-        if (opts.labelType == "errorbar") and (float(errorbudget) < 1.0):
-            bounds=[0.0,1.0]
-        else:
-            bounds=[0.0,1.0]
-        bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+    for ii,name in enumerate(sorted(post.keys())):
+        for jj,errorbudget in enumerate(sorted(post[name].keys())):
 
-        if opts.labelType == "name" and jj > 0:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
-        else:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
+            if opts.labelType == "errorbar":
+                label = r"$\Delta$m: %.2f"%float(errorbudget)
+            elif opts.labelType == "name":
+                label = get_labels(name)
+            else:
+                label = []
+            if opts.labelType == "errorbar":
+                color = colors[jj]
+                colortrue = 'k'
+                linestyle = '-'
+            elif opts.labelType == "name":
+                color = colors[ii]
+                colortrue = colors[ii]
+                linestyle = linestyles[jj]
+            else:
+                color = 'b'
+                colortrue = 'k'
+                linestyle = '-'
 
-        maxhist = np.max([maxhist,np.max(hist1)])
+            samples = post[name][errorbudget]["mchirp"]
+            print samples
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
 
-plt.xlabel(r"$v_{\rm ej}$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-if opts.labelType == "errorbar":
-    plt.xlim([0.0,1.0])
-elif opts.labelType == "name":
-    plt.xlim([0.0,1.0])
+            if opts.labelType == "name" and jj > 0:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
+            else:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
 
-if opts.labelType == "errorbar":
-    plt.ylim([1e-1,20])
-elif opts.labelType == "name":
-    plt.ylim([1e-1,10])
-plt.savefig(plotName)
-plt.close()
+            maxhist = np.max([maxhist,np.max(hist1)])
+
+    plt.xlabel(r"${\rm M}_{\rm c}$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlim(xlims)
+    plt.ylim(ylims)
+    plt.savefig(plotName)
+    plt.close()
+
+    bounds = [0.0,2.0]
+    xlims = [0.9,2.0]
+    ylims = [1e-1,10]
+
+    plotName = "%s/q.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    maxhist = -1
+    for ii,name in enumerate(sorted(post.keys())):
+        for jj,errorbudget in enumerate(sorted(post[name].keys())):
+
+            if opts.labelType == "errorbar":
+                label = r"$\Delta$m: %.2f"%float(errorbudget)
+            elif opts.labelType == "name":
+                label = get_labels(name)
+            else:
+                label = []
+            if opts.labelType == "errorbar":
+                color = colors[jj]
+                colortrue = 'k'
+                linestyle = '-'
+            elif opts.labelType == "name":
+                color = colors[ii]
+                colortrue = colors[ii]
+                linestyle = linestyles[jj]
+            else:
+                color = 'b'
+                colortrue = 'k'
+                linestyle = '-'
+
+            samples = post[name][errorbudget]["q"]
+            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+
+            if opts.labelType == "name" and jj > 0:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
+            else:
+                plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
+
+            maxhist = np.max([maxhist,np.max(hist1)])
+
+    plt.xlabel(r"$q$",fontsize=24)
+    plt.ylabel('Probability Density Function',fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlim(xlims)
+    plt.ylim(ylims)
+    plt.savefig(plotName)
+    plt.close()

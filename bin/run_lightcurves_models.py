@@ -138,7 +138,7 @@ def blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r):
     tmax = 50.0
     dt = 0.1
 
-    t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+    t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
 
     return t, lbol, mag
 
@@ -1331,10 +1331,12 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
     idx = np.where(~np.isnan(y))[0]
     t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
 
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
-    tini, tmax, dt = np.min(t), 10.0, 0.1
+    #tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini, tmax, dt = 0.0, 14.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -1363,6 +1365,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
     idx = np.where(~np.isnan(y))[0]
     t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
   
     idx = np.where(np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,label='%s-band'%filt)
@@ -1370,8 +1373,8 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    tini, tmax, dt = np.min(t), 14.0, 0.1
-    tini = 0.0
+    #tini, tmax, dt = np.min(t), 14.0, 0.1
+    tini, tmax, dt = 0.0, 14.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -1413,11 +1416,12 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
     idx = np.where(~np.isnan(y))[0]
     t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
 
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
-    tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini = 0.0
+    #tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini, tmax, dt = 0.0, 14.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -1449,11 +1453,12 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
     idx = np.where(~np.isnan(y))[0]
     t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
 
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
-    tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini = 0.0
+    #tini, tmax, dt = np.min(t), 10.0, 0.1
+    tini, tmax, dt = 0.0, 14.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
