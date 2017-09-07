@@ -64,6 +64,13 @@ def blue_model(m1,mb1,c1,m2,mb2,c2):
 
     return mej, vej
 
+def arnett_model(m1,mb1,c1,m2,mb2,c2):
+
+    mej = ArnettKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
+    vej = ArnettKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+
+    return mej, vej
+
 def EOSfit(mns,c):
     mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
     return mb
@@ -190,6 +197,10 @@ for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out[
         mb1 = EOSfit(m1,c1)
         mb2 = EOSfit(m2,c2)
         mej[ii], vej[ii] = blue_model(m1,mb1,c1,m2,mb2,c2)
+    elif opts.model == "Arnett":
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+        mej[ii], vej[ii] = arnett_model(m1,mb1,c1,m2,mb2,c2)
     ii = ii + 1
 mej = np.log10(mej)
 
@@ -213,7 +224,11 @@ for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out[
     elif opts.model == "Blue":
         mb1 = EOSfit(m1,c1)
         mb2 = EOSfit(m2,c2)
-        t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+        t, lbol, mag, Tobs = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+    elif opts.model == "Arnett":
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+        t, lbol, mag, Tobs = ArnettKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
 
     if np.sum(lbol) == 0.0:
         print "No luminosity..."
@@ -340,3 +355,34 @@ plt.xlim(xlims)
 plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
+
+if opts.model == "BHNS":
+    bounds = [0.0,2.0]
+    xlims = [0.0,2.0]
+    ylims = [1e-1,10]
+elif opts.model == "BNS":
+    bounds = [0.0,2.0]
+    xlims = [0.0,2.0]
+    ylims = [1e-1,10]
+elif opts.model == "Blue":
+    bounds = [0.0,2.0]
+    xlims = [-3.0,-1.0]
+    ylims = [1e-1,10]
+
+plotName = "%s/masses.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+bins1, hist1 = hist_results(data_out["m1"],Nbins=25,bounds=bounds)
+bins2, hist2 = hist_results(data_out["m2"],Nbins=25,bounds=bounds)
+plt.semilogy(bins1,hist1,'b-',linewidth=3,label="m1")
+plt.semilogy(bins2,hist2,'r--',linewidth=3,label="m2")
+plt.xlabel(r"Masses",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
+

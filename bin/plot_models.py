@@ -16,7 +16,7 @@ from matplotlib.pyplot import cm
 
 from scipy.optimize import curve_fit
 
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -48,13 +48,15 @@ def parse_commandline():
     #parser.add_option("-f","--outputName",default="kilonova_wind")    
 
     parser.add_option("--doEvent",  action="store_true", default=False)
-    parser.add_option("-e","--event",default="G298048_PS1_GROND_SOFI")
+    #parser.add_option("-e","--event",default="G298048_PS1_GROND_SOFI")
+    parser.add_option("-e","--event",default="G298048_XSH_PESSTO")
     #parser.add_option("-e","--event",default="G298048_20170822")
     #parser.add_option("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
 
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("-m","--modelfile",default="gws/Blue/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00/best.dat")
     #parser.add_option("-m","--modelfile",default="gws/BNS/i_z_y_J_H_K/ejecta/G298048_GROND/1.00/best.dat")
 
     #parser.add_option("-n","--name",default="H4Q3a0,H4Q3a25,H4Q3a50,H4Q3a75")
@@ -62,6 +64,7 @@ def parse_commandline():
 
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
+    parser.add_option("--doLuminosity",  action="store_true", default=False)
 
     parser.add_option("--errorbudget",default=1.0,type=float)
     parser.add_option("--filters",default="g,r,i,z")
@@ -90,6 +93,16 @@ def bns_model_ejecta(mej,vej,th,ph):
 
     return t, lbol, mag
 
+def blue_model_ejecta(mej,vej,beta,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag, Tobs = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+
+    return t, lbol, mag, Tobs
+
 # Parse command line
 opts = parse_commandline()
 
@@ -106,7 +119,7 @@ plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
-models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","metzger_bluekilonova"]
+models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
 models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
 
 if opts.doAB:
@@ -133,14 +146,19 @@ if opts.doAB:
     
         errorbudget = float(modelfileSplit[-2])
         modelType = modelfileSplit[-4]
-        model = modelfileSplit[-6] 
-    
+        model = modelfileSplit[-7] 
+   
         if model == "BNS" and modelType == "ejecta":
             t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
      
             tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
             tmag = tmag + t0_best
-    
+        elif model == "Blue" and modelType == "ejecta":   
+            t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+
+            tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+            tmag = tmag + t0_best 
+
         else:
             print "Not implemented..."
             exit(0)
@@ -200,7 +218,7 @@ if opts.doAB:
  
     if opts.doModels:
     
-        tini, tmax, dt = np.min(t), 10.0, 0.1
+        tini, tmax, dt = np.min(t), 14.0, 0.1
         tt = np.arange(tini,tmax,dt)
     
         magidx = 2
@@ -282,7 +300,230 @@ if opts.doAB:
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
     plt.close()
+
+    filts = ["g","r","i","z","y","J","H","K"]
+    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    magidxs = [1,2,3,4,5,5,6,7]
+    if opts.doModels:
+        colors_names=cm.rainbow(np.linspace(0,1,len(names)+1))
+    else:
+        colors_names=cm.rainbow(np.linspace(0,1,len(names)))
+
+    plotName = "%s/models_panels.pdf"%(plotDir)
+    plt.figure(figsize=(20,18))
+
+    tini, tmax, dt = 0.0, 14.0, 0.1
+    tt = np.arange(tini,tmax,dt)
+
+    cnt = 0
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        cnt = cnt+1
+        vals = "%d%d%d"%(len(filts),1,cnt)
+        if cnt == 1:
+            ax1 = plt.subplot(eval(vals))
+        else:
+            ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+        if opts.doEvent:
+            if not filt in data_out: continue
+            samples = data_out[filt]
+            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+            idx = np.where(~np.isnan(y))[0]
+            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+            plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+
+        if opts.doModels:
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+       
+            if model == "BNS" and modelType == "ejecta":
+                legend_name = "Dietrich and Ujevic (2017)"
+            elif model == "Blue" and modelType == "ejecta":
+                legend_name = "Metzger (2017)"
+
+            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+
+        for ii,name in enumerate(names):
+            mag_d = mags[name]
+            if not filt in mag_d: continue
+            if not filt in filters: continue
+            #if not filt in ["g","r"]: continue
+            offset = 0.0
+            t = mag_d["t"]
+
+            idx = np.where(~np.isnan(mag_d[filt]))[0]
+            f = interp.interp1d(t[idx], mag_d[filt][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            zp_best_tmp = -7.0
+            zp_best_tmp = -1.0
+            zp_best_tmp = 0.0
+            plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],linewidth=2,label=legend_names[ii])
+            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
     
+        plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-18.0,-10.0])
+        plt.gca().invert_yaxis()
+        plt.grid()
+ 
+        if cnt == 1:
+            ax1.set_yticks([-18,-14,-10])
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
+        elif not cnt == len(filts):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+
+    ax1.set_zorder(1)
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.savefig(plotName)
+    plt.close()
+   
+    plotName = "%s/models_panels_optical.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+
+    tini, tmax, dt = 0.0, 14.0, 0.1
+    tt = np.arange(tini,tmax,dt)
+
+    cnt = 0
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        if not filt in ["u","g","r","i","z"]: continue
+        cnt = cnt+1
+        vals = "%d%d%d"%(4,1,cnt)
+        if cnt == 1:
+            ax1 = plt.subplot(eval(vals))
+        else:
+            ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+        if opts.doEvent:
+            if not filt in data_out: continue
+            samples = data_out[filt]
+            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+            idx = np.where(~np.isnan(y))[0]
+            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+            plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+ 
+        if opts.doModels:
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+
+            if model == "BNS" and modelType == "ejecta":
+                legend_name = "Dietrich and Ujevic (2017)"
+            elif model == "Blue" and modelType == "ejecta":
+                legend_name = "Metzger (2017)"
+
+            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+
+        for ii,name in enumerate(names):
+            mag_d = mags[name]
+            if not filt in mag_d: continue
+            if not filt in filters: continue
+            #if not filt in ["g","r"]: continue
+            offset = 0.0
+            t = mag_d["t"]
+
+            idx = np.where(~np.isnan(mag_d[filt]))[0]
+            f = interp.interp1d(t[idx], mag_d[filt][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            zp_best_tmp = -7.0
+            zp_best_tmp = -1.0
+            zp_best_tmp = 0.0
+            plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],linewidth=2,label=legend_names[ii])
+            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
+
+        plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-18.0,-10.0])
+        plt.gca().invert_yaxis()
+        plt.grid()
+
+        if cnt == 1:
+            ax1.set_yticks([-18,-14,-10])
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            #l = plt.legend(loc="upper right",prop={'size':16},numpoints=1,shadow=True, fancybox=True)
+        elif not cnt == len(filts):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+
+    ax1.set_zorder(1)
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.savefig(plotName)
+    plt.close()
+
+    plotName = "%s/models_panels_nir.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+
+    tini, tmax, dt = 0.0, 14.0, 0.1
+    tt = np.arange(tini,tmax,dt)
+
+    cnt = 0
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        if not filt in ["y","J","H","K"]: continue
+        cnt = cnt+1
+        vals = "%d%d%d"%(4,1,cnt)
+        if cnt == 1:
+            ax1 = plt.subplot(eval(vals))
+        else:
+            ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+        if opts.doEvent:
+            if not filt in data_out: continue
+            samples = data_out[filt]
+            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+            idx = np.where(~np.isnan(y))[0]
+            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+            plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+
+        if opts.doModels:
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+
+            if model == "BNS" and modelType == "ejecta":
+                legend_name = "Dietrich and Ujevic (2017)"
+            elif model == "Blue" and modelType == "ejecta":
+                legend_name = "Metzger (2017)"
+
+            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+
+        for ii,name in enumerate(names):
+            mag_d = mags[name]
+            if not filt in mag_d: continue
+            if not filt in filters: continue
+            #if not filt in ["g","r"]: continue
+            offset = 0.0
+            t = mag_d["t"]
+
+            idx = np.where(~np.isnan(mag_d[filt]))[0]
+            f = interp.interp1d(t[idx], mag_d[filt][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            zp_best_tmp = -7.0
+            zp_best_tmp = -1.0
+            zp_best_tmp = 0.0
+            plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],linewidth=2,label=legend_names[ii])
+            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
+
+        plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-18.0,-10.0])
+        plt.gca().invert_yaxis()
+        plt.grid()
+
+        if cnt == 1:
+            ax1.set_yticks([-18,-14,-10])
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            #l = plt.legend(loc="upper right",prop={'size':16},numpoints=1,shadow=True, fancybox=True)
+        elif not cnt == len(filts):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+
+    ax1.set_zorder(1)
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.savefig(plotName)
+    plt.close()
+
     plotName = "%s/models_iminusg.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     for ii,name in enumerate(names):
@@ -304,37 +545,6 @@ if opts.doAB:
     plt.savefig(plotName)
     plt.close()
     
-    filenames = []
-    legend_names = []
-    for name in names:
-        for ii,model in enumerate(models):
-            filename = '%s/%s/%s_Lbol.dat'%(outputDir,model,name)
-            if not os.path.isfile(filename):
-                continue
-            filenames.append(filename)
-            legend_names.append(models_ref[ii])
-            break
-    Lbols, names = lightcurve_utils.read_files_lbol(filenames)
-    
-    plotName = "%s/models_Lbol.pdf"%(plotDir)
-    plt.figure(figsize=(10,8))
-    for ii,name in enumerate(names):
-        Lbol_d = Lbols[name]
-        indexes = np.where(~np.isnan(Lbol_d["Lbol"]))[0]
-        index1 = indexes[0]
-        index2 = int(len(indexes)/2)
-        offset = 0.0
-        t = Lbol_d["t"]
-        plt.loglog(t,Lbol_d["Lbol"]+offset,'-',label=legend_names[ii],linewidth=2,color=colors[ii])
-    plt.xlim([10**-2,50])
-    plt.ylim([10.0**39,10.0**43])
-    plt.xlabel('Time [days]',fontsize=24)
-    plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=24)
-    plt.legend(loc="best")
-    plt.grid()
-    plt.savefig(plotName)
-    plt.close()
-
 elif opts.doSpec:
 
     names = opts.name.split(",")
@@ -403,3 +613,127 @@ elif opts.doSpec:
     plt.savefig(plotName)
     plt.close()
 
+elif opts.doLuminosity:
+
+    names = opts.name.split(",")
+    filenames = []
+    legend_names = []
+    for name in names:
+        for ii,model in enumerate(models):
+            filename = '%s/%s/%s_Lbol.dat'%(outputDir,model,name)
+            if not os.path.isfile(filename):
+                continue
+            filenames.append(filename)
+            legend_names.append(models_ref[ii])
+            break
+
+    Lbols, names = lightcurve_utils.read_files_lbol(filenames)
+
+    if opts.doModels:
+
+        modelfile = os.path.join(opts.plotDir,opts.modelfile)
+        modelfileSplit = modelfile.split("/")
+        model_out = np.loadtxt(modelfile)
+
+        errorbudget = float(modelfileSplit[-2])
+        modelType = modelfileSplit[-4]
+        model = modelfileSplit[-7]
+
+        if model == "BNS" and modelType == "ejecta":
+            t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+
+            tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
+            tmag = tmag + t0_best
+        elif model == "Blue" and modelType == "ejecta":
+            t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+
+            tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+            tmag = tmag + t0_best
+
+        else:
+            print "Not implemented..."
+            exit(0)
+
+    if opts.doEvent:
+        filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
+        data_out = lightcurve_utils.loadEventLbol(filename)
+        data_out["tt"] = data_out["tt"] - opts.T0
+
+    #colors = ["g","r","c","y","m"]
+    if opts.doModels:
+        colors_names=cm.rainbow(np.linspace(0,1,len(names)+1))
+    else:
+        colors_names=cm.rainbow(np.linspace(0,1,len(names)))
+
+    plotName = "%s/models_Lbol.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    for ii,name in enumerate(names):
+        Lbol_d = Lbols[name]
+        indexes = np.where(~np.isnan(Lbol_d["Lbol"]))[0]
+        index1 = indexes[0]
+        index2 = int(len(indexes)/2)
+        offset = 0.0
+        t = Lbol_d["t"]
+        plt.loglog(t,Lbol_d["Lbol"]+offset,'-',label=legend_names[ii],linewidth=2,color=colors_names[ii])
+        plt.fill_between(t,Lbol_d["Lbol"]/2.5,Lbol_d["Lbol"]*2.5,facecolor=colors_names[ii],alpha=0.2)
+
+    if opts.doModels:
+
+        tini, tmax, dt = 0.0, 14.0, 0.1
+        tt = np.arange(tini,tmax,dt)
+
+        idx = np.where(~np.isnan(lbol))[0]
+        f = interp.interp1d(tmag[idx], lbol[idx], fill_value='extrapolate')
+        lbolinterp = f(tt)
+
+        if model == "BNS" and modelType == "ejecta":
+            legend_name = "Dietrich and Ujevic (2017)"
+        elif model == "Blue" and modelType == "ejecta":
+            legend_name = "Metzger (2017)"
+
+        zp_factor = 10**(zp_best/-2.5)
+        plt.loglog(tt,zp_factor*lbolinterp,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+        plt.fill_between(tt,zp_factor*lbolinterp/2.5,zp_factor*lbolinterp*2.5,facecolor=colors_names[len(names)],alpha=0.2)
+
+    if opts.doEvent:
+        plt.errorbar(data_out["tt"],data_out["lbol"],data_out["lbol_err"],fmt='o',c="k")
+
+    plt.xlim([10**-2,50])
+    plt.ylim([10.0**39,10.0**45])
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=24)
+    plt.legend(loc="best")
+    plt.grid()
+    plt.savefig(plotName)
+    plt.close()
+
+    plotName = "%s/models_T.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+
+    if opts.doModels:
+
+        tini, tmax, dt = 0.0, 14.0, 0.1
+        tt = np.arange(tini,tmax,dt)
+
+        idx = np.where(~np.isnan(Tobs))[0]
+        f = interp.interp1d(tmag[idx], Tobs[idx], fill_value='extrapolate')
+        Tobsinterp = f(tt)
+
+        if model == "BNS" and modelType == "ejecta":
+            legend_name = "Dietrich and Ujevic (2017)"
+        elif model == "Blue" and modelType == "ejecta":
+            legend_name = "Metzger (2017)"
+
+        plt.loglog(tt,Tobsinterp,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+
+    if opts.doEvent:
+        plt.errorbar(data_out["tt"],data_out["T"],data_out["T_err"],fmt='o',c="k")
+
+    plt.xlim([10**-2,50])
+    plt.ylim([0.0,10000])
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.ylabel('Temperature [K]',fontsize=24)
+    plt.legend(loc="best")
+    plt.grid()
+    plt.savefig(plotName)
+    plt.close()

@@ -15,7 +15,7 @@ from matplotlib.pyplot import cm
 import corner
 
 import pymultinest
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2, BlueKilonovaLightcurve
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2, BlueKilonovaLightcurve, ArnettKilonovaLightcurve
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -138,7 +138,7 @@ def blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r):
     tmax = 50.0
     dt = 0.1
 
-    t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+    t, lbol, mag, Tobs = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
 
     return t, lbol, mag
 
@@ -148,7 +148,27 @@ def blue_model_ejecta(mej,vej,beta,kappa_r):
     tmax = 50.0
     dt = 0.1
 
-    t, lbol, mag = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+    t, lbol, mag, Tobs = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+
+    return t, lbol, mag
+
+def arnett_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag, Tobs = ArnettKilonovaLightcurve.lightcurve(tini,tmax,dt,slope_r,kappa_r,m1,mb1,c1,m2,mb2,c2)
+
+    return t, lbol, mag
+
+def arnett_model_ejecta(mej,vej,slope_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag, Tobs = ArnettKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r)
 
     return t, lbol, mag
 
@@ -208,8 +228,7 @@ def get_post_file(basedir):
     return filename
 
 def myprior_bhns(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*6.0 + 3.0
         cube[2] = cube[2]*0.75
         cube[3] = cube[3]*2.0 + 1.0
@@ -217,26 +236,25 @@ def myprior_bhns(cube, ndim, nparams):
         cube[5] = cube[5]*0.1 + 0.1
         cube[6] = cube[6]*np.pi/2
         cube[7] = cube[7]*2*np.pi
-        cube[8] = cube[8]*100.0 - 50.0
+        cube[8] = cube[8]*2*ZPRange - ZPRange
 
 def myprior_bhns_ejecta(cube, ndim, nparams):
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
-        cube[5] = cube[5]*100.0 - 50.0
+        cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def myprior_bhns_EOSFit(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*6.0 + 3.0
         cube[2] = cube[2]*0.75
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*0.1 + 0.1
         cube[5] = cube[5]*np.pi/2
         cube[6] = cube[6]*2*np.pi
-        cube[7] = cube[7]*100.0 - 50.0
+        cube[7] = cube[7]*2*ZPRange - ZPRange
 
 def prior_bns(m1,mb1,c1,m2,mb2,c2):
         if m1 < m2:
@@ -248,40 +266,67 @@ def prior_bhns(q,chi_eff,mns,mb,c):
         return 1.0
 
 def myprior_blue(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*2.0 + 1.0
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.16 + 0.08
         cube[4] = cube[4]*2.0 + 1.0
         cube[5] = cube[5]*2.0 + 1.0
         cube[6] = cube[6]*0.16 + 0.08
-        cube[7] = cube[7]*10.0
+        cube[7] = cube[7]*10.0 - 5.0
         cube[8] = cube[8]*50.0
-        cube[9] = cube[9]*100.0 - 50.0
+        cube[9] = cube[9]*2*ZPRange - ZPRange
+
+def myprior_arnett(cube, ndim, nparams):
+        cube[0] = cube[0]*2*T0Range - T0Range
+        cube[1] = cube[1]*2.0 + 1.0
+        cube[2] = cube[2]*2.0 + 1.0
+        cube[3] = cube[3]*0.16 + 0.08
+        cube[4] = cube[4]*2.0 + 1.0
+        cube[5] = cube[5]*2.0 + 1.0
+        cube[6] = cube[6]*0.16 + 0.08
+        cube[7] = cube[7]*10.0 - 5.0
+        cube[8] = cube[8]*50.0
+        cube[9] = cube[9]*2*ZPRange - ZPRange
 
 def myprior_blue_EOSFit(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*2.0 + 1.0
         cube[2] = cube[2]*0.16 + 0.08
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*0.16 + 0.08
         cube[5] = cube[5]*10.0
         cube[6] = cube[6]*50.0
-        cube[7] = cube[7]*100.0 - 50.0
+        cube[7] = cube[7]*2*ZPRange - ZPRange
+
+def myprior_arnett_EOSFit(cube, ndim, nparams):
+        cube[0] = cube[0]*2*T0Range - T0Range
+        cube[1] = cube[1]*2.0 + 1.0
+        cube[2] = cube[2]*0.16 + 0.08
+        cube[3] = cube[3]*2.0 + 1.0
+        cube[4] = cube[4]*0.16 + 0.08
+        cube[5] = cube[5]*10.0 - 5.0
+        cube[6] = cube[6]*50.0
+        cube[7] = cube[7]*2*ZPRange - ZPRange
 
 def myprior_blue_ejecta(cube, ndim, nparams):
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*10.0
         cube[4] = cube[4]*50.0
-        cube[5] = cube[5]*100.0 - 50.0
+        cube[5] = cube[5]*2*ZPRange - ZPRange
+
+def myprior_arnett_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*T0Range - T0Range
+        cube[1] = cube[1]*5.0 - 5.0
+        cube[2] = cube[2]*1.0
+        cube[3] = cube[3]*10.0 - 5.0
+        cube[4] = cube[4]*50.0
+        cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def myprior_bns(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*2.0 + 1.0
         cube[2] = cube[2]*2.0 + 1.0
         cube[3] = cube[3]*0.16 + 0.08
@@ -290,50 +335,33 @@ def myprior_bns(cube, ndim, nparams):
         cube[6] = cube[6]*0.16 + 0.08
         cube[7] = cube[7]*np.pi/2
         cube[8] = cube[8]*2*np.pi
-        cube[9] = cube[9]*100.0 - 50.0
+        cube[9] = cube[9]*2*ZPRange - ZPRange
 
 def myprior_bns_EOSFit(cube, ndim, nparams):
-
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*2.0 + 1.0
         cube[2] = cube[2]*0.16 + 0.08
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*0.16 + 0.08
         cube[5] = cube[5]*np.pi/2
         cube[6] = cube[6]*2*np.pi
-        cube[7] = cube[7]*100.0 - 50.0
-
-def myprior_bhns_ejecta_fixZPT0(cube, ndim, nparams):
-        cube[0] = 0.0
-        cube[1] = cube[1]*2.0 + 1
-        cube[2] = cube[2]*2.0 + 1
-        cube[3] = cube[3]*0.16 + 0.08
-        cube[4] = cube[4]*2.0 + 1.0
-        cube[5] = 0.0
+        cube[7] = cube[7]*2*ZPRange - ZPRange
 
 def myprior_bns_ejecta(cube, ndim, nparams):
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*np.pi/2
         cube[4] = cube[4]*2*np.pi
-        cube[5] = cube[5]*100.0 - 50.0
-
-def myprior_bns_ejecta_fixZPT0(cube, ndim, nparams):
-        cube[0] = 0.0
-        cube[1] = cube[1]*4.0 - 5.0
-        cube[2] = cube[2]*1.0
-        cube[3] = cube[3]*0.16 + 0.08
-        cube[4] = cube[4]*2.0 + 1.0
-        cube[5] = 0.0
+        cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def myprior_sn(cube, ndim, nparams):
-        cube[0] = cube[0]*10.0 - 5.0
+        cube[0] = cube[0]*2*T0Range - T0Range
         cube[1] = cube[1]*10.0
         cube[2] = cube[2]*10.0
         cube[3] = cube[3]*10.0
         cube[4] = cube[4]*10.0
-        cube[5] = cube[5]*100.0 - 50.0
+        cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def foft_model(t,c,b,tc,t0):
     flux = 10**c * ((t/t0)**b)/(1 + np.exp((t-t0)/tc))
@@ -386,6 +414,28 @@ def myloglike_blue(cube, ndim, nparams):
 
         return prob
 
+def myloglike_arnett(cube, ndim, nparams):
+
+        t0 = cube[0]
+        m1 = cube[1]
+        mb1 = cube[2]
+        c1 = cube[3]
+        m2 = cube[4]
+        mb2 = cube[5]
+        c2 = cube[6]
+        slope_r = cube[7]
+        kappa_r = cube[8]
+        zp = cube[9]
+
+        tmag, lbol, mag = arnett_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
 def myloglike_blue_ejecta(cube, ndim, nparams):
         t0 = cube[0]
         mej = 10**cube[1]
@@ -395,6 +445,20 @@ def myloglike_blue_ejecta(cube, ndim, nparams):
         zp = cube[5]
 
         tmag, lbol, mag = blue_model_ejecta(mej,vej,beta,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+        return prob
+
+def myloglike_arnett_ejecta(cube, ndim, nparams):
+        t0 = cube[0]
+        mej = 10**cube[1]
+        vej = cube[2]
+        slope_r = cube[3]
+        kappa_r = cube[4]
+        zp = cube[5]
+
+        tmag, lbol, mag = arnett_model_ejecta(mej,vej,slope_r,kappa_r)
 
         prob = calc_prob(tmag, lbol, mag, t0, zp)
 
@@ -423,6 +487,29 @@ def myloglike_blue_EOSFit(cube, ndim, nparams):
 
         return prob
     
+def myloglike_arnett_EOSFit(cube, ndim, nparams):
+
+        t0 = cube[0]
+        m1 = cube[1]
+        c1 = cube[2]
+        m2 = cube[3]
+        c2 = cube[4]
+        slope_r = cube[5]
+        kappa_r = cube[6]
+        zp = cube[7]
+
+        mb1 = EOSfit(m1,c1)
+        mb2 = EOSfit(m2,c2)
+
+        tmag, lbol, mag = arnett_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
 def myloglike_bns(cube, ndim, nparams):
 
         t0 = cube[0]
@@ -695,9 +782,16 @@ def EOSfit(mns,c):
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["BHNS", "BNS", "SN","Blue"]:
-   print "Model must be either: BHNS, BNS, SN, Blue"
+if not opts.model in ["BHNS", "BNS", "SN","Blue","Arnett"]:
+   print "Model must be either: BHNS, BNS, SN, Blue, Arnett"
    exit(0)
+
+if opts.doFixZPT0:
+    ZPRange = 0.1
+    T0Range = 0.1
+else:
+    ZPRange = 50.0
+    T0Range = 5.0
 
 filters = opts.filters.split(",")
 
@@ -712,12 +806,18 @@ else:
     basename = 'gws'
 plotDir = os.path.join(baseplotDir,basename)
 if opts.doEOSFit:
-    plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_EOSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
 else:
-    plotDir = os.path.join(plotDir,'%s'%opts.model)
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["BNS","BHNS","Blue"]:
+if opts.model in ["BNS","BHNS","Blue","Arnett"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -934,7 +1034,7 @@ else:
         fid.write('%.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan))
         fid.close()
 
-if opts.model in ["BHNS","BNS","Blue"]:
+if opts.model in ["BHNS","BNS","Blue","Arnett"]:
 
     if opts.doMasses:
         if opts.model == "BHNS":
@@ -970,6 +1070,17 @@ if opts.model in ["BHNS","BNS","Blue"]:
                 labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_blue, myprior_blue, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.model == "Arnett":
+            if opts.doEOSFit:
+                parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_arnett_EOSFit, myprior_arnett_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            else:
+                parameters = ["t0","m1","mb1","c1","m2","mb2","c2","beta","kappa_r","zp"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_arnett, myprior_arnett, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
         if opts.model == "BHNS":
             parameters = ["t0","mej","vej","th","ph","zp"]
@@ -986,6 +1097,11 @@ if opts.model in ["BHNS","BNS","Blue"]:
             labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_blue_ejecta, myprior_blue_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.model == "Arnett":
+            parameters = ["t0","mej","vej","beta","kappa_r","zp"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_arnett_ejecta, myprior_arnett_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
@@ -1267,6 +1383,94 @@ elif opts.model == "Blue":
 
         tmag, lbol, mag = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
 
+elif opts.model == "Arnett":
+
+    if opts.doMasses:
+        if opts.doEOSFit:
+
+            t0 = data[:,0]
+            m1 = data[:,1]
+            c1 = data[:,2]
+            m2 = data[:,3]
+            c2 = data[:,4]
+            slope_r = data[:,5]
+            kappa_r = data[:,6]
+            zp = data[:,7]
+            loglikelihood = data[:,8]
+            idx = np.argmax(loglikelihood)
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            c1_best = data[idx,2]
+            m2_best = data[idx,3]
+            c2_best = data[idx,4]
+            slope_r_best = data[idx,5]
+            kappa_r_best = data[idx,6]
+            zp_best = data[idx,7]
+            mb1_best = mb1[idx]
+            mb2_best = mb2[idx]
+
+            data_new = np.zeros(data.shape)
+            parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
+            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+            data_new[:,0] = data[:,0]
+            data_new[:,1] = 1/q
+            data_new[:,2] = mchirp
+            data_new[:,3] = data[:,2]
+            data_new[:,4] = data[:,4]
+            data_new[:,5] = data[:,5]
+            data_new[:,6] = data[:,6]
+            data_new[:,7] = data[:,7]
+            data = data_new
+
+        else:
+            t0 = data[:,0]
+            m1 = data[:,1]
+            mb1 = data[:,2]
+            c1 = data[:,3]
+            m2 = data[:,4]
+            mb2 = data[:,5]
+            c2 = data[:,6]
+            slope_r = data[:,7]
+            kappa_r = data[:,8]
+            zp = data[:,9]
+            loglikelihood = data[:,10]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            m1_best = data[idx,1]
+            mb1_best = data[idx,2]
+            c1_best = data[idx,3]
+            m2_best = data[idx,4]
+            mb2_best = data[idx,5]
+            c2_best = data[idx,6]
+            slope_r_best = data[idx,7]
+            kappa_r_best = data[idx,8]
+            zp_best = data[idx,9]
+
+        tmag, lbol, mag = arnett_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,beta_best,kappa_r_best)
+
+    elif opts.doEjecta:
+        t0 = data[:,0]
+        mej = 10**data[:,1]
+        vej = data[:,2]
+        slope_r = data[:,3]
+        kappa_r = data[:,4]
+        zp = data[:,5]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        mej_best = 10**data[idx,1]
+        vej_best = data[idx,2]
+        slope_r_best = data[idx,3]
+        kappa_r_best = data[idx,4]
+        zp_best = data[idx,5]
+
+        tmag, lbol, mag = arnett_model_ejecta(mej_best,vej_best,slope_r_best,kappa_r_best)
+
 elif opts.model == "SN":
 
     t0 = data[:,0]
@@ -1298,11 +1502,11 @@ else:
 
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
-    figure = corner.corner(data[:,1:5], labels=labels[1:5],
+    figure = corner.corner(data[:,1:-2], labels=labels[1:-1],
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=False, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
-                       truths=truths[1:5])
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
+                       truths=truths[1:-1])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
@@ -1387,6 +1591,9 @@ if opts.model == "SN":
     plt.xlim([0.0, 10.0])
 else:
     if opts.model == "Blue":
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-20.0,-5.0])
+    elif opts.model == "Arnett":
         plt.xlim([0.0, 14.0])
         plt.ylim([-20.0,-5.0])
     elif opts.model == "BNS":
@@ -1550,7 +1757,32 @@ elif opts.model == "Blue":
 
         filename = os.path.join(plotDir,'best.dat')
         fid = open(filename,'w')
-        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,slope_r_best,kappa_r_best,zp_best))
+        fid.close()
+
+elif opts.model == "Arnett":
+    if opts.doMasses:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l, m, n, o, p in zip(t0,m1,mb1,c1,m2,mb2,c2,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,zp_best))
+        fid.close()
+
+    elif opts.doEjecta:
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l, m, n in zip(t0,mej,vej,slope_r,kappa_r,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,slope_r_best,kappa_r_best,zp_best))
         fid.close()
 
 elif opts.model == "SN":

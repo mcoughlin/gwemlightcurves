@@ -33,8 +33,8 @@ def loadModelsSpec(outputDir,name):
 
 def loadModels(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)"]
 
     filenames = []
     legend_names = []
@@ -48,6 +48,24 @@ def loadModels(outputDir,name):
     mags, names = read_files(filenames)
 
     return mags
+
+def loadModelsLbol(outputDir,name):
+
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)"]
+
+    filenames = []
+    legend_names = []
+    for ii,model in enumerate(models):
+        filename = '%s/%s/%s_Lbol.dat'%(outputDir,model,name)
+        if not os.path.isfile(filename):
+            continue
+        filenames.append(filename)
+        legend_names.append(models_ref[ii])
+        break
+    Lbols, names = read_files_lbol(filenames)
+
+    return Lbols
 
 def loadEvent(filename):
     lines = [line.rstrip('\n') for line in open(filename)]
@@ -80,10 +98,11 @@ def loadEventSpec(filename):
     spec = {}
 
     spec["lambda"] = data_out[:,0] # Angstroms
-    if instrument == "XSH":
-        spec["data"] = np.abs(data_out[:,1])*1e-17 # ergs/s/cm2./Angs 
-    else:
-        spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs
+    spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs 
+    #if instrument == "XSH":
+    #    spec["data"] = np.abs(data_out[:,1])*1e-17 # ergs/s/cm2./Angs 
+    #else:
+    #    spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs
     spec["error"] = np.zeros(spec["data"].shape) # ergs/s/cm2./Angs
     spec["error"][:-1] = np.abs(np.diff(spec["data"]))
     spec["error"][-1] = spec["error"][-2]
@@ -91,6 +110,19 @@ def loadEventSpec(filename):
     spec["error"][idx] = 0.5*spec["data"][idx]
 
     return spec
+
+def loadEventLbol(filename):
+
+    data_out = np.loadtxt(filename)
+
+    data = {}
+    data["tt"] = data_out[:,0]
+    data["Lbol"] = 10**data_out[:,4]
+    data["Lbol_err"] = (10**(data_out[:,4]))*data_out[:,5]
+    data["T"] = data_out[:,6]
+    data["T_err"] = data_out[:,7]
+
+    return data
 
 def loadLightcurves(filename):
     lines = [line.rstrip('\n') for line in open(filename)]
@@ -182,32 +214,17 @@ def read_posterior_samples(filename_samples):
 
     return data_out
 
-def read_files_lbol(files,tmin=-100.0,tmax=100.0):
+def read_files_lbol(files):
 
     names = []
     Lbols = {}
     for filename in files:
-        name = filename.replace(".txt","").replace(".dat","").split("/")[-1]
+        name = filename.replace("_Lbol.txt","").replace("_Lbol.dat","").split("/")[-1]
         Lbol_d = np.loadtxt(filename)
-        #Lbol_d = Lbol_d[1:,:]
-
-        t = Lbol_d[:,0]
-        Lbol = Lbol_d[:,1]
-        try:
-            index = np.nanargmin(Lbol)
-            index = 0
-        except:
-            index = 0
-        t0 = t[index]
 
         Lbols[name] = {}
-        Lbols[name]["t"] = Lbol_d[:,0]
-        indexes1 = np.where(Lbols[name]["t"]>=tmin)[0]
-        indexes2 = np.where(Lbols[name]["t"]<=tmax)[0]
-        indexes = np.intersect1d(indexes1,indexes2)
-
-        Lbols[name]["t"] = Lbol_d[indexes,0]
-        Lbols[name]["Lbol"] = Lbol_d[indexes,1]
+        Lbols[name]["tt"] = Lbol_d[:,0]
+        Lbols[name]["Lbol"] = Lbol_d[:,1]
 
         names.append(name)
 
