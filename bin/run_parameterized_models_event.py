@@ -181,7 +181,7 @@ for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out[
         q = m1/m2
         mb = EOSfit(m2,c1)
         mns = m2
-        mej[ii], vej[ii] = bhns_model(q,chi,mns,mb,c)
+        mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb,c)
     elif opts.model == "BNS":
         mb1 = EOSfit(m1,c1)
         mb2 = EOSfit(m2,c2)
