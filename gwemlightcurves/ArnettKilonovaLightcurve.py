@@ -136,7 +136,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
 
     Nintegrate = 5000  # Number of time steps to run integrals over
 
-    tvec_days = np.arange(tini,tmax,dt)
+    tvec_days = np.arange(tini,tmax+dt,dt)
     Ntimes = len(tvec_days)
     Ltotm = np.zeros(tvec_days.shape)
     Rphoto = np.zeros(tvec_days.shape)
