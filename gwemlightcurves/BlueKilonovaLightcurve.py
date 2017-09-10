@@ -47,9 +47,6 @@ def calc_vz(m1,c1,m2,c2):
 def calc_vej(m1,c1,m2,c2):
     return np.sqrt(calc_vrho(m1,c1,m2,c2)**2.0+calc_vz(m1,c1,m2,c2)**2.0)
 
-def calc_vej(m1,c1,m2,c2):
-    return np.sqrt(calc_vrho(m1,c1,m2,c2)**2.0+calc_vz(m1,c1,m2,c2)**2.0)
-
 def calc_qej(m1,c1,m2,c2):
     vrho=calc_vrho(m1,c1,m2,c2)
     vz=calc_vz(m1,c1,m2,c2)
