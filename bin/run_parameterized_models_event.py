@@ -78,6 +78,7 @@ def EOSfit(mns,c):
 # Give the compactness-Love and Love-compactness relations
 # NKJ-M, 08.2017
 
+
 def CLove(lmbda):
     """
     Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
@@ -116,6 +117,9 @@ def LoveC(cc):
     ll = -(a1 + (a1*a1 - 4.*a2*(a0 - cc))**0.5)/(2.*a2)
 
     return np.exp(ll)
+
+# See Eqs. 5 and 6 from
+# https://journals.aps.org/prd/pdf/10.1103/PhysRevD.89.103012
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
     """
