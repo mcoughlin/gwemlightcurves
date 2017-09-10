@@ -10,7 +10,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
-from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, BlueKilonovaLightcurve,SALT2
+from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -23,7 +23,7 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="BHNS", help="BHNS, BNS, Blue, Arnett")
     parser.add_option("--name",default="G298048")
 
     opts, args = parser.parse_args()
@@ -137,6 +137,10 @@ def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
 
 # Parse command line
 opts = parse_commandline()
+
+if not opts.model in ["BHNS", "BNS", "Blue","Arnett"]:
+   print "Model must be either: BHNS, BNS, Blue, Arnett"
+   exit(0)
 
 data_out = lightcurve_utils.event(opts.dataDir,opts.name)
 lambda1, lambda2 = tidal_lambda_from_tilde(data_out["m1"], data_out["m2"], data_out["lambdat"], data_out["dlambdat"])
@@ -314,6 +318,10 @@ elif opts.model == "Blue":
     bounds = [-3.0,-1.0]
     xlims = [-3.0,-1.0]
     ylims = [1e-1,10]
+elif opts.model == "Arnett":
+    bounds = [-3.0,-1.0]
+    xlims = [-3.0,-1.0]
+    ylims = [1e-1,10]
 
 plotName = "%s/mej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
@@ -341,7 +349,10 @@ elif opts.model == "Blue":
     bounds = [0.0,1.0]
     xlims = [0.0,1.0]
     ylims = [1e-1,10]
-
+elif opts.model == "Arnett":
+    bounds = [0.0,1.0]
+    xlims = [0.0,1.0]
+    ylims = [1e-1,10]
 plotName = "%s/vej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 bins, hist1 = hist_results(vej,Nbins=25,bounds=bounds)
@@ -365,6 +376,10 @@ elif opts.model == "BNS":
     xlims = [0.0,2.0]
     ylims = [1e-1,10]
 elif opts.model == "Blue":
+    bounds = [0.0,2.0]
+    xlims = [-3.0,-1.0]
+    ylims = [1e-1,10]
+elif opts.model == "Arnett":
     bounds = [0.0,2.0]
     xlims = [-3.0,-1.0]
     ylims = [1e-1,10]
