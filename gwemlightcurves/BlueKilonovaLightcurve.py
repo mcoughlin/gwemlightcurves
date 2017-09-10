@@ -10,9 +10,9 @@ def lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2):
 
     mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
     vej = calc_vej(m1,c1,m2,c2)
-    t, lbol, mag = calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+    t, lbol, mag, Tobs = calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
 
-    return t, lbol, mag
+    return t, lbol, mag, Tobs
 
 def calc_meje(m1,mb1,c1,m2,mb2,c2):
 
@@ -319,14 +319,15 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     if not engine_switch:
         Ltot = Ltotm  
         Tobs = 1.0e10*(Ltot/(4.0*np.pi*(Rphoto)**(2.0)*sigSB))**(0.25)
-    
+ 
     nuobsarray = np.tile(nuobs,(tprec,1)).T    
     expo = np.exp(h*nuobsarray/(kb*Tobs))-1.0 
     F = (2.0*np.pi*(h*nuobsarray)*((nuobsarray/c)**(2.0))/expo)*(Rphoto/D)*(Rphoto/D)
+
     mAB = -2.5*np.log10(F) - 48.6
     
     # distance modulus
     muD = 5.0*np.log10(D/(3.08e18))-5.
 
-    return tdays, Ltotm*1e40, mAB
+    return tdays, Ltotm*1e40, mAB, Tobs
    

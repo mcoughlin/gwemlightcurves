@@ -309,6 +309,8 @@ if opts.doEjecta:
                 linestyle = '-'
     
             samples = np.log10(post[name][errorbudget]["mej"])
+            print samples
+          
             bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
     
             if opts.labelType == "name" and jj > 0:
