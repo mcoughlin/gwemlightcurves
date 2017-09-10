@@ -208,7 +208,6 @@ for model in models:
 
     mej, vej = np.zeros(data_out_all[model]["m1"].shape), np.zeros(data_out_all[model]["m1"].shape)
     for m1, m2, c1, c2, mb1, mb2 in zip(data_out_all[model]["m1"],data_out_all[model]["m2"],data_out_all[model]["c1"],data_out_all[model]["c2"],data_out_all[model]["mb1"],data_out_all[model]["mb2"]):
-        print m1, m2, c1, c2, mb1, mb2
         if model == "BHNS":
             q = m1/m2
             mns = m2
@@ -220,18 +219,18 @@ for model in models:
         elif model == "Arnett":
             mej[ii], vej[ii] = arnett_model(m1,mb1,c1,m2,mb2,c2)
         ii = ii + 1
-    mej = np.log10(mej)
-    idx = np.where(np.isfinite(mej))[0]
 
+    idx = np.where(mej>0)[0]
     data_out_all[model]["mej"] = mej
     data_out_all[model]["vej"] = vej
     data_out_all[model] = data_out_all[model][idx]
+    data_out_all[model]["mej"] = np.log10(data_out_all[model]["mej"])
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
-tini, tmax, dt = 0.1, 14.0, 0.1
+tini, tmax, dt = 0.1, 50.0, 0.1
 tt = np.arange(tini,tmax+dt,dt)
 
 mag_all = {}
@@ -381,6 +380,7 @@ for ii, model in enumerate(models):
     plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
 
+plt.xlim([0.0, 14.0])
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
@@ -408,6 +408,7 @@ for ii, model in enumerate(models):
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,lbolmin,lbolmax,facecolor=colors_names[ii],alpha=0.2)
 
+plt.xlim([0.0, 50.0])
 plt.legend(loc="best")
 plt.xlabel('Time [days]')
 plt.ylabel('Bolometric Luminosity [erg/s]')
