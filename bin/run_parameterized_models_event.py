@@ -10,7 +10,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
-from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, BlueKilonovaLightcurve,SALT2
+from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -23,7 +23,7 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="BHNS", help="BHNS, BNS, Blue, Arnett")
     parser.add_option("--name",default="G298048")
 
     opts, args = parser.parse_args()
@@ -78,6 +78,7 @@ def EOSfit(mns,c):
 # Give the compactness-Love and Love-compactness relations
 # NKJ-M, 08.2017
 
+
 def CLove(lmbda):
     """
     Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
@@ -117,6 +118,9 @@ def LoveC(cc):
 
     return np.exp(ll)
 
+# See Eqs. 5 and 6 from
+# https://journals.aps.org/prd/pdf/10.1103/PhysRevD.89.103012
+
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
     """
     Determine physical lambda parameters from effective parameters.
@@ -137,6 +141,10 @@ def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
 
 # Parse command line
 opts = parse_commandline()
+
+if not opts.model in ["BHNS", "BNS", "Blue","Arnett"]:
+   print "Model must be either: BHNS, BNS, Blue, Arnett"
+   exit(0)
 
 data_out = lightcurve_utils.event(opts.dataDir,opts.name)
 lambda1, lambda2 = tidal_lambda_from_tilde(data_out["m1"], data_out["m2"], data_out["lambdat"], data_out["dlambdat"])
@@ -314,6 +322,10 @@ elif opts.model == "Blue":
     bounds = [-3.0,-1.0]
     xlims = [-3.0,-1.0]
     ylims = [1e-1,10]
+elif opts.model == "Arnett":
+    bounds = [-3.0,-1.0]
+    xlims = [-3.0,-1.0]
+    ylims = [1e-1,10]
 
 plotName = "%s/mej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
@@ -341,7 +353,10 @@ elif opts.model == "Blue":
     bounds = [0.0,1.0]
     xlims = [0.0,1.0]
     ylims = [1e-1,10]
-
+elif opts.model == "Arnett":
+    bounds = [0.0,1.0]
+    xlims = [0.0,1.0]
+    ylims = [1e-1,10]
 plotName = "%s/vej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 bins, hist1 = hist_results(vej,Nbins=25,bounds=bounds)
@@ -365,6 +380,10 @@ elif opts.model == "BNS":
     xlims = [0.0,2.0]
     ylims = [1e-1,10]
 elif opts.model == "Blue":
+    bounds = [0.0,2.0]
+    xlims = [-3.0,-1.0]
+    ylims = [1e-1,10]
+elif opts.model == "Arnett":
     bounds = [0.0,2.0]
     xlims = [-3.0,-1.0]
     ylims = [1e-1,10]
