@@ -2,6 +2,8 @@
 import os, sys
 import numpy as np
 import optparse
+
+from scipy.interpolate import interpolate as interp
  
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -23,7 +25,7 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_option("-m","--model",default="BHNS", help="BHNS, BNS, Blue, Arnett")
+    parser.add_option("-m","--model",default="BHNS,BNS,Blue,Arnett", help="BHNS, BNS, Blue, Arnett")
     parser.add_option("--name",default="G298048")
 
     opts, args = parser.parse_args()
@@ -70,6 +72,9 @@ def arnett_model(m1,mb1,c1,m2,mb2,c2):
     vej = ArnettKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
 
     return mej, vej
+
+# Equation to relate EOS and neutron star mass to Baryonic mass
+# Eq 8: https://arxiv.org/pdf/1708.07714.pdf
 
 def EOSfit(mns,c):
     mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
@@ -142,17 +147,19 @@ def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["BHNS", "BNS", "Blue","Arnett"]:
-   print "Model must be either: BHNS, BNS, Blue, Arnett"
-   exit(0)
+models = opts.model.split(",")
+for model in models:
+    if not model in ["BHNS", "BNS", "Blue","Arnett"]:
+        print "Model must be either: BHNS, BNS, Blue, Arnett"
+        exit(0)
 
 data_out = lightcurve_utils.event(opts.dataDir,opts.name)
-lambda1, lambda2 = tidal_lambda_from_tilde(data_out["m1"], data_out["m2"], data_out["lambdat"], data_out["dlambdat"])
-c1 = CLove(lambda1)
-c2 = CLove(lambda2)
-data_out["lambda1"], data_out["lambda2"], data_out["c1"], data_out["c2"] = lambda1, lambda2, c1, c2
-idx = np.where((~np.isnan(c1)) & (~np.isnan(c2)))[0]
-data_out = data_out[idx]
+data_out["lambda1"], data_out["lambda2"] = tidal_lambda_from_tilde(data_out["m1"], data_out["m2"], data_out["lambdat"], data_out["dlambdat"])
+mask = (data_out["lambda1"] < 0) | (data_out["lambda2"] < 0)
+data_out = data_out[~mask]
+print "Removing %d/%d due to negative lambdas"%(np.sum(~mask),len(mask))
+data_out["c1"] = CLove(data_out["lambda1"])
+data_out["c2"] = CLove(data_out["lambda2"])
 #for key in data_out.keys():
 #    data_out[key] = data_out[key][idx]
 
@@ -216,9 +223,14 @@ filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
-plotName = "%s/mag.pdf"%(plotDir)
-plt.figure()
-cnt = 0
+tini, tmax, dt = 0.1, 14.0, 0.1
+tt = np.arange(tini,tmax+dt,dt)
+
+lbol_all = np.empty((0,len(tt)), float)
+mag_all = {}
+for filt, color, magidx in zip(filts,colors,magidxs):
+    mag_all[filt] = np.empty((0,len(tt)))
+
 for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
     if opts.model == "BHNS":
         q = m1/m2
@@ -242,16 +254,82 @@ for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out[
         print "No luminosity..."
         continue
 
+    lbol_all = np.append(lbol_all,[lbol],axis=0)
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        idx = np.where(~np.isnan(mag[magidx]))[0]
+        f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
+        maginterp = f(tt)
+        mag_all[filt] = np.append(mag_all[filt],[maginterp],axis=0)
+
+maglen, ttlen = lbol_all.shape
+plotName = "%s/mag.pdf"%(plotDir)
+plt.figure()
+cnt = 0
+for ii in xrange(maglen):
     for filt, color, magidx in zip(filts,colors,magidxs):
         if cnt == 0:
-            plt.plot(t,mag[magidx],alpha=0.2,c=color,label=filt)
+            plt.plot(tt,mag_all[filt][ii,:],alpha=0.2,c=color,label=filt)
         else:
-            plt.plot(t,mag[magidx],alpha=0.2,c=color)
+            plt.plot(tt,mag_all[filt][ii,:],alpha=0.2,c=color)
     cnt = cnt + 1
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+filts = ["u","g","r","i","z","y","J","H","K"]
+colors=cm.rainbow(np.linspace(0,1,len(filts)))
+magidxs = [0,1,2,3,4,5,6,7,8]
+
+plotName = "%s/mag_panels.pdf"%(plotDir)
+plt.figure(figsize=(20,18))
+
+cnt = 0
+for filt, color, magidx in zip(filts,colors,magidxs):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(filts),1,cnt)
+    if cnt == 1:
+        ax1 = plt.subplot(eval(vals))
+    else:
+        ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+    #if opts.doEvent:
+    #    if not filt in data_out: continue
+    #    samples = data_out[filt]
+    #    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    #    idx = np.where(~np.isnan(y))[0]
+    #    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    #    plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+
+    if opts.model == "BNS":
+        legend_name = "Dietrich and Ujevic (2017)"
+    elif opts.model == "Blue":
+        legend_name = "Metzger (2017)"
+
+    magmed = np.median(mag_all[filt],axis=0)
+    magmax = np.max(mag_all[filt],axis=0)
+    magmin = np.min(mag_all[filt],axis=0)
+
+    plt.plot(tt,magmed,'--',c=colors[int(cnt-1)],linewidth=2,label=legend_name)
+    plt.fill_between(tt,magmin,magmax,facecolor=colors[int(cnt-1)],alpha=0.2)
+
+    plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+    plt.xlim([0.0, 14.0])
+    plt.ylim([-18.0,-10.0])
+    plt.gca().invert_yaxis()
+    plt.grid()
+
+    if cnt == 1:
+        ax1.set_yticks([-18,-14,-10])
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
+    elif not cnt == len(filts):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+
+ax1.set_zorder(1)
+plt.xlabel('Time [days]',fontsize=24)
 plt.savefig(plotName)
 plt.close()
 
