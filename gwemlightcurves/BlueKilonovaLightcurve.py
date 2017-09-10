@@ -129,7 +129,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     #t = np.exp(t)
     #tdays = t/(3600.*24.)
     
-    tdays = np.arange(tini,tmax,dt)
+    tdays = np.arange(tini,tmax+dt,dt)
     t = tdays*(3600.*24.)
     tprec = len(t)
     

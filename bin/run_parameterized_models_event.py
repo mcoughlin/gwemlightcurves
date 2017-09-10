@@ -101,14 +101,14 @@ def CLove(lmbda):
     lmbda = np.atleast_1d(lmbda)
     ll = np.log(lmbda)
     cc = a0 + (a1 + a2*ll)*ll
+  
+    if (cc > 4./9.).any():
+        print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+        cc[cc > 4./9.] = 4./9.
+    if (cc < 0.).any(): 
+        print("Warning: Returned compactnesses < 0 ... setting = 0.")
+        cc[cc < 0.0] = 0.0
 
-    for kk in np.arange(len(cc)):
-        if cc[kk] > 4./9.:
-            print("Warning: Returned a compactness of 4/9 = 0.44... though the fit gives a compactness of %f for the input value of lambda = %f"%(cc[kk], lmbda[kk]))
-            cc[kk] = 4./9.
-        elif cc[kk] < 0.:
-            print("Warning: Returned a compactness of 0. though the fit gives a compactness of %f for the input value of lambda = %f"%(cc[kk], lmbda[kk]))
-            cc[kk] = 0.
     return cc
 
 def LoveC(cc):
@@ -186,38 +186,44 @@ flgbct = 1
 
 chi_eff = 0.0
 
-beta = 3.0
-kappa_r = 10.0
+beta = -1.20
+kappa_r = 0.1
 
 baseplotDir = opts.plotDir
-plotDir = os.path.join(baseplotDir,opts.model)
+plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.name)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
-mej, vej = np.zeros(data_out["m1"].shape), np.zeros(data_out["m1"].shape)
-ii = 0
-for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
-    if opts.model == "BHNS":
-        q = m1/m2
-        mb = EOSfit(m2,c1)
-        mns = m2
-        mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb,c)
-    elif opts.model == "BNS":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
-    elif opts.model == "Blue":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        mej[ii], vej[ii] = blue_model(m1,mb1,c1,m2,mb2,c2)
-    elif opts.model == "Arnett":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        mej[ii], vej[ii] = arnett_model(m1,mb1,c1,m2,mb2,c2)
-    ii = ii + 1
-mej = np.log10(mej)
+ejecta_all = {}
+for model in models:
+    ejecta_all[model] = {}
+    ii = 0
+    mej, vej = np.zeros(data_out["m1"].shape), np.zeros(data_out["m1"].shape)
+    for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
+        if opts.model == "BHNS":
+            q = m1/m2
+            mb = EOSfit(m2,c1)
+            mns = m2
+            mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb,c)
+        elif opts.model == "BNS":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+        elif opts.model == "Blue":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            mej[ii], vej[ii] = blue_model(m1,mb1,c1,m2,mb2,c2)
+        elif opts.model == "Arnett":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            mej[ii], vej[ii] = arnett_model(m1,mb1,c1,m2,mb2,c2)
+        ii = ii + 1
+    mej = np.log10(mej)
+
+    ejecta_all[model]["mej"] = mej
+    ejecta_all[model]["vej"] = vej
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
@@ -226,52 +232,62 @@ magidxs = [0,1,2,3,4,5,6,7,8]
 tini, tmax, dt = 0.1, 14.0, 0.1
 tt = np.arange(tini,tmax+dt,dt)
 
-lbol_all = np.empty((0,len(tt)), float)
 mag_all = {}
-for filt, color, magidx in zip(filts,colors,magidxs):
-    mag_all[filt] = np.empty((0,len(tt)))
+lbol_all = {}
 
-for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
-    if opts.model == "BHNS":
-        q = m1/m2
-        mb = EOSfit(m2,c1)
-        mns = m2
-        t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c,mb,mns)
-    elif opts.model == "BNS":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct)
-    elif opts.model == "Blue":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        t, lbol, mag, Tobs = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
-    elif opts.model == "Arnett":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        t, lbol, mag, Tobs = ArnettKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+for model in models:
+    mag_all[model] = {}
+    lbol_all[model] = {}
 
-    if np.sum(lbol) == 0.0:
-        print "No luminosity..."
-        continue
-
-    lbol_all = np.append(lbol_all,[lbol],axis=0)
+    lbol_all[model] = np.empty((0,len(tt)), float)
     for filt, color, magidx in zip(filts,colors,magidxs):
-        idx = np.where(~np.isnan(mag[magidx]))[0]
-        f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
-        maginterp = f(tt)
-        mag_all[filt] = np.append(mag_all[filt],[maginterp],axis=0)
+        mag_all[model][filt] = np.empty((0,len(tt)))
 
-maglen, ttlen = lbol_all.shape
+for model in models:
+    for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
+        if model == "BHNS":
+            q = m1/m2
+            mb = EOSfit(m2,c1)
+            mns = m2
+            t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c1,mb,mns)
+        elif model == "BNS":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct)
+        elif model == "Blue":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            t, lbol, mag, Tobs = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+        elif model == "Arnett":
+            mb1 = EOSfit(m1,c1)
+            mb2 = EOSfit(m2,c2)
+            t, lbol, mag, Tobs = ArnettKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+    
+        if np.sum(lbol) == 0.0:
+            #print "No luminosity..."
+            continue
+   
+        lbol_all[model] = np.append(lbol_all[model],[lbol],axis=0)
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            mag_all[model][filt] = np.append(mag_all[model][filt],[maginterp],axis=0)
+
+linestyles = ['-', '-.', ':','--']
+
 plotName = "%s/mag.pdf"%(plotDir)
 plt.figure()
 cnt = 0
-for ii in xrange(maglen):
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        if cnt == 0:
-            plt.plot(tt,mag_all[filt][ii,:],alpha=0.2,c=color,label=filt)
-        else:
-            plt.plot(tt,mag_all[filt][ii,:],alpha=0.2,c=color)
-    cnt = cnt + 1
+for ii, model in enumerate(models):
+    maglen, ttlen = lbol_all[model].shape
+    for jj in xrange(maglen):
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            if cnt == 0 and ii == 0:
+                plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,label=filt,linestyle=linestyles[ii])
+            else:
+                plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,linestyle=linestyles[ii])
+        cnt = cnt + 1
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
@@ -282,6 +298,7 @@ plt.close()
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
+colors_names=cm.rainbow(np.linspace(0,1,len(models)))
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
 plt.figure(figsize=(20,18))
@@ -303,17 +320,22 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     #    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
     #    plt.errorbar(t,y,sigma_y,fmt='o',c='k')
 
-    if opts.model == "BNS":
-        legend_name = "Dietrich and Ujevic (2017)"
-    elif opts.model == "Blue":
-        legend_name = "Metzger (2017)"
+    for ii, model in enumerate(models):
+        if model == "BNS":
+            legend_name = "Dietrich and Ujevic (2017)"
+        if model == "BHNS":
+            legend_name = "Kawaguchi et al. (2016)"
+        elif model == "Blue":
+            legend_name = "Metzger (2017)"
+        elif model == "Arnett":
+            legend_name = "Arnett (1982)"
 
-    magmed = np.median(mag_all[filt],axis=0)
-    magmax = np.max(mag_all[filt],axis=0)
-    magmin = np.min(mag_all[filt],axis=0)
+        magmed = np.median(mag_all[model][filt],axis=0)
+        magmax = np.max(mag_all[model][filt],axis=0)
+        magmin = np.min(mag_all[model][filt],axis=0)
 
-    plt.plot(tt,magmed,'--',c=colors[int(cnt-1)],linewidth=2,label=legend_name)
-    plt.fill_between(tt,magmin,magmax,facecolor=colors[int(cnt-1)],alpha=0.2)
+        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
+        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
     plt.xlim([0.0, 14.0])
@@ -335,25 +357,16 @@ plt.close()
 
 plotName = "%s/iminusg.pdf"%(plotDir)
 plt.figure()
-for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
-    if opts.model == "BHNS":
-        q = m1/m2
-        mb = EOSfit(m2,c1)
-        mns = m2
-        t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c1,mb,mns)
-    elif opts.model == "BNS":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct)
-    elif opts.model == "Blue":
-        mb1 = EOSfit(m1,c1)
-        mb2 = EOSfit(m2,c2)
-        t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
+for ii, model in enumerate(models):
+    maglen, ttlen = lbol_all[model].shape
+    for jj in xrange(maglen):
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            if cnt == 0 and ii == 0:
+                plt.plot(tt,mag_all[model][3][jj,:]-mag_all[model][1][jj,:],alpha=0.2,c=color,label=filt,linestyle=linestyles[ii])
+            else:
+                plt.plot(tt,mag_all[model][3][jj,:]-mag_all[model][1][jj,:],alpha=0.2,c=color,linestyle=linestyles[ii])
+        cnt = cnt + 1
 
-    if np.sum(lbol) == 0.0:
-        print "No luminosity..."
-        continue
-    plt.plot(t,mag[3]-mag[1],'k',alpha=0.2)
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
@@ -361,6 +374,7 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
+print stop
 plotName = "%s/Lbol.pdf"%(plotDir)
 plt.figure()
 plt.figure()
