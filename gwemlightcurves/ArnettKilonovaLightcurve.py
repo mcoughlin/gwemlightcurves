@@ -6,11 +6,19 @@
 import os, sys
 import numpy as np
 
-def lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2):
+def lightcurve(tini,tmax,dt,slope_r,kappa_r,m1,mb1,c1,m2,mb2,c2):
 
     mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
     vej = calc_vej(m1,c1,m2,c2)
-    t, lbol, mag, Tobs = calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+    t, lbol, mag, Tobs = calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r)
+
+    return t, lbol, mag, Tobs
+
+def lightcurve_break(tini,tmax,dt,slope_r,kappa_r,t_break,slope_break,m1,mb1,c1,m2,mb2,c2):
+
+    mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
+    vej = calc_vej(m1,c1,m2,c2)
+    t, lbol, mag, Tobs = calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break)
 
     return t, lbol, mag, Tobs
 
@@ -66,6 +74,14 @@ def calc_phej(m1,c1,m2,c2):
 
 def calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r):
 
+    t_break = 10.0
+    slope_break = 2*slope_r
+    t, lbol, mag, Tobs = calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break)
+ 
+    return t, lbol, mag, Tobs    
+
+def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
+
     # ** define constants **
     c = 3.0e10
     mp = 1.67e-24
@@ -118,7 +134,7 @@ def calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r):
     y = tau_m/(2*tau_ni)   # Arnett 1982 Eq 33 CHECKED
     yp = tau_m/(2*tau_co)    # Arnet 1982 Eq 33, modified to 56Co decay  CHECKED
 
-    Nintegrate = 1500  # Number of time steps to run integrals over
+    Nintegrate = 5000  # Number of time steps to run integrals over
 
     tvec_days = np.arange(tini,tmax,dt)
     Ntimes = len(tvec_days)
@@ -137,21 +153,26 @@ def calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r):
         tau_56co_gamma = kappa_gamma*rho*R  # CHECKED
         G = tau_56co_gamma/(tau_56co_gamma + 1.6)    # Arnett 1982 Eq 51 CHECKED
         D_gamma = G*(1 + 2*G*(1-G)*(1-0.75*G))    # Arnett 1982 eq 50  CHECKED
-        # 56Ni part: -------------------------------
-        integrand1= np.exp(-x**2)*2*z*np.exp((-2*z*y)+(z**2))*D_gamma    # Define function A(z) Arnett 1982 Eq 31  CHECKED
-        Lambda1 = np.sum(integrand1*(x/Nintegrate))                 # Numerically integrate A(z)  Results checked against table 1 in Arnett 1982 CHECKED
-        # 56Co part: --------------------------------
-        integrand2 = np.exp(-x**2)*2*z*(np.exp(-2*z*yp) - np.exp(-2*z*y))/(1 - tau_ni/tau_co)*np.exp(z**2)*(0.966*D_gamma + 0.034)   # Define function B(z) (extension of Eq 31 in Arnett 1982)  CHECKED
-    
-        Lambda2 = np.sum(integrand2*(x/Nintegrate))                 # Numerically integrate B(z)
 
+        power = np.zeros((z.shape))
+        ind = np.where((z*tau_m > 0.0001*24*3600) & (z*tau_m <= t_break*24*3600))[0]
+        slopeuse = slope
+        ts = 1.3
+        sigma = 0.11
+        eth = 0.36*(np.exp(-0.56*z*tau_m/(24*3600)) + (np.log(1 + 2*0.17*(z*tau_m/(24*3600))**0.74))/(2*0.17*(z*tau_m/(24*3600))**0.74))
+         
+        power[ind] = eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse);
+        ind = np.where(z*tau_m > t_break*24*3600)[0]
+        slopeuse = slope_break
+        power[ind] = 10**(slope-slopeuse)*eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
+    
         # Kilnova part
         taudiff = 1.05/(13.7*3e10)**0.5*kappa**0.5*(M_ej*2e33)**0.75*(E_51*1e51)**(-0.25)/(24*3600)
-        if (tvec_days[i] <= 10*taudiff):
-            integrand_kilonova = 1e10*(M_ej*2e33)*(z*tau_m/(t0*24*3600))**(slope)*np.exp(-x**2)*np.exp(z**2)*2*z
-            Lambda_kilonova = np.sum(integrand_kilonova*(x/Nintegrate))
+        if (tvec_days[i] <= 2.5*taudiff):
+            integrand_rprocess = power*np.exp(z**2-x**2)*2*z
+            Lambda_kilonova = np.sum(integrand_rprocess*(x/Nintegrate))
         else:
-            Lambda_kilonova = 1e10*(M_ej*2e33)*(t/(t0*24*3600))**(slope)
+            Lambda_kilonova = power[Nintegrate-1]
         Ltotm[i] = Lambda_kilonova   # Calculate luminosity
         Rphoto[i] = V_ej*tvec_days[i]*86400
  

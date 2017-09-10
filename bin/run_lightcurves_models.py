@@ -274,7 +274,7 @@ def myprior_blue(cube, ndim, nparams):
         cube[5] = cube[5]*2.0 + 1.0
         cube[6] = cube[6]*0.16 + 0.08
         cube[7] = cube[7]*10.0 - 5.0
-        cube[8] = cube[8]*50.0
+        cube[8] = cube[8]*4.0 - 2.0
         cube[9] = cube[9]*2*ZPRange - ZPRange
 
 def myprior_arnett(cube, ndim, nparams):
@@ -286,7 +286,7 @@ def myprior_arnett(cube, ndim, nparams):
         cube[5] = cube[5]*2.0 + 1.0
         cube[6] = cube[6]*0.16 + 0.08
         cube[7] = cube[7]*10.0 - 5.0
-        cube[8] = cube[8]*50.0
+        cube[8] = cube[8]*4.0 - 2.0
         cube[9] = cube[9]*2*ZPRange - ZPRange
 
 def myprior_blue_EOSFit(cube, ndim, nparams):
@@ -296,7 +296,7 @@ def myprior_blue_EOSFit(cube, ndim, nparams):
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*0.16 + 0.08
         cube[5] = cube[5]*10.0
-        cube[6] = cube[6]*50.0
+        cube[6] = cube[6]*4.0 - 2.0
         cube[7] = cube[7]*2*ZPRange - ZPRange
 
 def myprior_arnett_EOSFit(cube, ndim, nparams):
@@ -306,7 +306,7 @@ def myprior_arnett_EOSFit(cube, ndim, nparams):
         cube[3] = cube[3]*2.0 + 1.0
         cube[4] = cube[4]*0.16 + 0.08
         cube[5] = cube[5]*10.0 - 5.0
-        cube[6] = cube[6]*50.0
+        cube[6] = cube[6]*4.0 - 2.0
         cube[7] = cube[7]*2*ZPRange - ZPRange
 
 def myprior_blue_ejecta(cube, ndim, nparams):
@@ -314,7 +314,7 @@ def myprior_blue_ejecta(cube, ndim, nparams):
         cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*10.0
-        cube[4] = cube[4]*50.0
+        cube[4] = cube[4]*4.0 - 2.0
         cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def myprior_arnett_ejecta(cube, ndim, nparams):
@@ -322,7 +322,7 @@ def myprior_arnett_ejecta(cube, ndim, nparams):
         cube[1] = cube[1]*5.0 - 5.0
         cube[2] = cube[2]*1.0
         cube[3] = cube[3]*10.0 - 5.0
-        cube[4] = cube[4]*50.0
+        cube[4] = cube[4]*4.0 - 2.0
         cube[5] = cube[5]*2*ZPRange - ZPRange
 
 def myprior_bns(cube, ndim, nparams):
@@ -402,7 +402,7 @@ def myloglike_blue(cube, ndim, nparams):
         mb2 = cube[5]
         c2 = cube[6]
         beta = cube[7]
-        kappa_r = cube[8]
+        kappa_r = 10**cube[8]
         zp = cube[9]
 
         tmag, lbol, mag = blue_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
@@ -424,7 +424,7 @@ def myloglike_arnett(cube, ndim, nparams):
         mb2 = cube[5]
         c2 = cube[6]
         slope_r = cube[7]
-        kappa_r = cube[8]
+        kappa_r = 10**cube[8]
         zp = cube[9]
 
         tmag, lbol, mag = arnett_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r)
@@ -441,7 +441,7 @@ def myloglike_blue_ejecta(cube, ndim, nparams):
         mej = 10**cube[1]
         vej = cube[2]
         beta = cube[3]
-        kappa_r = cube[4]
+        kappa_r = 10**cube[4]
         zp = cube[5]
 
         tmag, lbol, mag = blue_model_ejecta(mej,vej,beta,kappa_r)
@@ -455,7 +455,7 @@ def myloglike_arnett_ejecta(cube, ndim, nparams):
         mej = 10**cube[1]
         vej = cube[2]
         slope_r = cube[3]
-        kappa_r = cube[4]
+        kappa_r = 10**cube[4]
         zp = cube[5]
 
         tmag, lbol, mag = arnett_model_ejecta(mej,vej,slope_r,kappa_r)
@@ -472,7 +472,7 @@ def myloglike_blue_EOSFit(cube, ndim, nparams):
         m2 = cube[3]
         c2 = cube[4]
         beta = cube[5]
-        kappa_r = cube[6]
+        kappa_r = 10**cube[6]
         zp = cube[7]
 
         mb1 = EOSfit(m1,c1)
@@ -495,7 +495,7 @@ def myloglike_arnett_EOSFit(cube, ndim, nparams):
         m2 = cube[3]
         c2 = cube[4]
         slope_r = cube[5]
-        kappa_r = cube[6]
+        kappa_r = 10**cube[6]
         zp = cube[7]
 
         mb1 = EOSfit(m1,c1)
@@ -739,7 +739,7 @@ def get_truths(name,model):
     for ii in xrange(n_params):
         truths.append(False)
 
-    if not model in ["BHNS", "BNS"]:
+    if not model in ["BHNS", "BNS", "Blue", "Arnett"]:
         return truths        
 
     if not opts.doEjecta:
@@ -846,6 +846,8 @@ maxt = opts.tmax
 dt = opts.dt
 n_live_points = 1000
 evidence_tolerance = 0.5
+
+#evidence_tolerance = 100.0
 
 if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
     if opts.doModels:
@@ -1062,23 +1064,23 @@ if opts.model in ["BHNS","BNS","Blue","Arnett"]:
         elif opts.model == "Blue":
             if opts.doEOSFit:
                 parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
-                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_blue_EOSFit, myprior_blue_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
                 parameters = ["t0","m1","mb1","c1","m2","mb2","c2","beta","kappa_r","zp"]
-                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_blue, myprior_blue, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "Arnett":
             if opts.doEOSFit:
                 parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
-                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_arnett_EOSFit, myprior_arnett_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
                 parameters = ["t0","m1","mb1","c1","m2","mb2","c2","beta","kappa_r","zp"]
-                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+                labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_arnett, myprior_arnett, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.doEjecta:
@@ -1094,12 +1096,12 @@ if opts.model in ["BHNS","BNS","Blue","Arnett"]:
             pymultinest.run(myloglike_bns_ejecta, myprior_bns_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "Blue":
             parameters = ["t0","mej","vej","beta","kappa_r","zp"]
-            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_blue_ejecta, myprior_blue_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "Arnett":
             parameters = ["t0","mej","vej","beta","kappa_r","zp"]
-            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
             n_params = len(parameters)
             pymultinest.run(myloglike_arnett_ejecta, myprior_arnett_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     else:
@@ -1305,7 +1307,7 @@ elif opts.model == "Blue":
             m2 = data[:,3]
             c2 = data[:,4]
             beta = data[:,5]
-            kappa_r = data[:,6]
+            kappa_r = 10**data[:,6]
             zp = data[:,7]
             loglikelihood = data[:,8]
             idx = np.argmax(loglikelihood)
@@ -1318,14 +1320,14 @@ elif opts.model == "Blue":
             m2_best = data[idx,3]
             c2_best = data[idx,4]
             beta_best = data[idx,5]
-            kappa_r_best = data[idx,6]
+            kappa_r_best = 10**data[idx,6]
             zp_best = data[idx,7]
             mb1_best = mb1[idx]
             mb2_best = mb2[idx]
 
             data_new = np.zeros(data.shape)
             parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
-            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
             mchirp,eta,q = ms2mc(data[:,1],data[:,3])
             data_new[:,0] = data[:,0]
             data_new[:,1] = 1/q
@@ -1346,7 +1348,7 @@ elif opts.model == "Blue":
             mb2 = data[:,5]
             c2 = data[:,6]
             beta = data[:,7]
-            kappa_r = data[:,8]
+            kappa_r = 10**data[:,8]
             zp = data[:,9]
             loglikelihood = data[:,10]
             idx = np.argmax(loglikelihood)
@@ -1359,7 +1361,7 @@ elif opts.model == "Blue":
             mb2_best = data[idx,5]
             c2_best = data[idx,6]
             beta_best = data[idx,7]
-            kappa_r_best = data[idx,8]
+            kappa_r_best = 10**data[idx,8]
             zp_best = data[idx,9]
 
         tmag, lbol, mag = blue_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,beta_best,kappa_r_best)
@@ -1369,7 +1371,7 @@ elif opts.model == "Blue":
         mej = 10**data[:,1]
         vej = data[:,2]
         beta = data[:,3]
-        kappa_r = data[:,4]
+        kappa_r = 10**data[:,4]
         zp = data[:,5]
         loglikelihood = data[:,6]
         idx = np.argmax(loglikelihood)
@@ -1378,7 +1380,7 @@ elif opts.model == "Blue":
         mej_best = 10**data[idx,1]
         vej_best = data[idx,2]
         beta_best = data[idx,3]
-        kappa_r_best = data[idx,4]
+        kappa_r_best = 10**data[idx,4]
         zp_best = data[idx,5]
 
         tmag, lbol, mag = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
@@ -1394,7 +1396,7 @@ elif opts.model == "Arnett":
             m2 = data[:,3]
             c2 = data[:,4]
             slope_r = data[:,5]
-            kappa_r = data[:,6]
+            kappa_r = 10**data[:,6]
             zp = data[:,7]
             loglikelihood = data[:,8]
             idx = np.argmax(loglikelihood)
@@ -1406,14 +1408,14 @@ elif opts.model == "Arnett":
             m2_best = data[idx,3]
             c2_best = data[idx,4]
             slope_r_best = data[idx,5]
-            kappa_r_best = data[idx,6]
+            kappa_r_best = 10**data[idx,6]
             zp_best = data[idx,7]
             mb1_best = mb1[idx]
             mb2_best = mb2[idx]
 
             data_new = np.zeros(data.shape)
             parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
-            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"$\kappa_{\rm r}$","ZP"]
+            labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
             mchirp,eta,q = ms2mc(data[:,1],data[:,3])
             data_new[:,0] = data[:,0]
             data_new[:,1] = 1/q
@@ -1434,7 +1436,7 @@ elif opts.model == "Arnett":
             mb2 = data[:,5]
             c2 = data[:,6]
             slope_r = data[:,7]
-            kappa_r = data[:,8]
+            kappa_r = 10**data[:,8]
             zp = data[:,9]
             loglikelihood = data[:,10]
             idx = np.argmax(loglikelihood)
@@ -1447,7 +1449,7 @@ elif opts.model == "Arnett":
             mb2_best = data[idx,5]
             c2_best = data[idx,6]
             slope_r_best = data[idx,7]
-            kappa_r_best = data[idx,8]
+            kappa_r_best = 10**data[idx,8]
             zp_best = data[idx,9]
 
         tmag, lbol, mag = arnett_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,beta_best,kappa_r_best)
@@ -1457,7 +1459,7 @@ elif opts.model == "Arnett":
         mej = 10**data[:,1]
         vej = data[:,2]
         slope_r = data[:,3]
-        kappa_r = data[:,4]
+        kappa_r = 10**data[:,4]
         zp = data[:,5]
         loglikelihood = data[:,6]
         idx = np.argmax(loglikelihood)
@@ -1466,7 +1468,7 @@ elif opts.model == "Arnett":
         mej_best = 10**data[idx,1]
         vej_best = data[idx,2]
         slope_r_best = data[idx,3]
-        kappa_r_best = data[idx,4]
+        kappa_r_best = 10**data[idx,4]
         zp_best = data[idx,5]
 
         tmag, lbol, mag = arnett_model_ejecta(mej_best,vej_best,slope_r_best,kappa_r_best)
@@ -1757,7 +1759,7 @@ elif opts.model == "Blue":
 
         filename = os.path.join(plotDir,'best.dat')
         fid = open(filename,'w')
-        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,slope_r_best,kappa_r_best,zp_best))
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
         fid.close()
 
 elif opts.model == "Arnett":

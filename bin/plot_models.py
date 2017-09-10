@@ -16,7 +16,7 @@ from matplotlib.pyplot import cm
 
 from scipy.optimize import curve_fit
 
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, SALT2
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -35,7 +35,8 @@ def parse_commandline():
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
-    parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
+    parser.add_option("-n","--name",default="rpft_m005_v2,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
     parser.add_option("-f","--outputName",default="G298048_all")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
@@ -48,16 +49,17 @@ def parse_commandline():
     #parser.add_option("-f","--outputName",default="kilonova_wind")    
 
     parser.add_option("--doEvent",  action="store_true", default=False)
-    #parser.add_option("-e","--event",default="G298048_PS1_GROND_SOFI")
-    parser.add_option("-e","--event",default="G298048_XSH_PESSTO")
+    parser.add_option("-e","--event",default="G298048_PS1_GROND_SOFI")
+    #parser.add_option("-e","--event",default="G298048_XSH_PESSTO")
     #parser.add_option("-e","--event",default="G298048_20170822")
     #parser.add_option("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
 
     parser.add_option("--doModels",  action="store_true", default=False)
-    parser.add_option("-m","--modelfile",default="gws/Blue/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00/best.dat")
-    #parser.add_option("-m","--modelfile",default="gws/BNS/i_z_y_J_H_K/ejecta/G298048_GROND/1.00/best.dat")
+    #parser.add_option("-m","--modelfile",default="gws_luminosity/Arnett_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat")
+    #parser.add_option("-m","--modelfile",default="gws_luminosity/Blue_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat,gws_luminosity/Arnett_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat")
+    parser.add_option("-m","--modelfile",default="gws/Blue_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00/best.dat")
 
     #parser.add_option("-n","--name",default="H4Q3a0,H4Q3a25,H4Q3a50,H4Q3a75")
     #parser.add_option("-f","--outputName",default="spin")
@@ -67,7 +69,7 @@ def parse_commandline():
     parser.add_option("--doLuminosity",  action="store_true", default=False)
 
     parser.add_option("--errorbudget",default=1.0,type=float)
-    parser.add_option("--filters",default="g,r,i,z")
+    parser.add_option("--filters",default="u,g,r,i,z,y,J,H,K")
 
     opts, args = parser.parse_args()
 
@@ -100,6 +102,16 @@ def blue_model_ejecta(mej,vej,beta,kappa_r):
     dt = 0.1
 
     t, lbol, mag, Tobs = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
+
+    return t, lbol, mag, Tobs
+
+def arnett_model_ejecta(mej,vej,slope_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag, Tobs = ArnettKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r)
 
     return t, lbol, mag, Tobs
 
@@ -139,30 +151,44 @@ if opts.doAB:
     mags, names = lightcurve_utils.read_files(filenames)
     
     if opts.doModels:
-    
-        modelfile = os.path.join(opts.plotDir,opts.modelfile)
-        modelfileSplit = modelfile.split("/")
-        model_out = np.loadtxt(modelfile)
-    
-        errorbudget = float(modelfileSplit[-2])
-        modelType = modelfileSplit[-4]
-        model = modelfileSplit[-7] 
+
+        model_data = {}
+        modelfiles = opts.modelfile.split(",")
+        for modelfile in modelfiles: 
+            modelfile = os.path.join(opts.plotDir,modelfile)
+            modelfileSplit = modelfile.split("/")
+            model_out = np.loadtxt(modelfile)
    
-        if model == "BNS" and modelType == "ejecta":
-            t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+            errorbudget = float(modelfileSplit[-2])
+            modelType = modelfileSplit[-4]
+            model = modelfileSplit[-7].split("_")[0]
+
+            if model == "BNS" and modelType == "ejecta":
+                t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
      
-            tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
-            tmag = tmag + t0_best
-        elif model == "Blue" and modelType == "ejecta":   
-            t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+                tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
+                tmag = tmag + t0_best
+            elif model == "Blue" and modelType == "ejecta":   
+                t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
 
-            tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
-            tmag = tmag + t0_best 
+                tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+                tmag = tmag + t0_best 
+            elif model == "Arnett" and modelType == "ejecta":   
+                t0_best, mej_best,vej_best,slope_r_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+                kappa_r_best = 10**kappa_r_best
 
-        else:
-            print "Not implemented..."
-            exit(0)
-    
+                tmag, lbol, mag, Tobs = arnett_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+                tmag = tmag + t0_best
+            else:
+                print "Not implemented..."
+                exit(0)
+
+            model_data[model] = {}    
+            model_data[model]["tmag"] = tmag
+            model_data[model]["lbol"] = lbol
+            model_data[model]["mag"] = mag
+            model_data[model]["Tobs"] = Tobs 
+
     if opts.doEvent:
         filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
         data_out = lightcurve_utils.loadEvent(filename)
@@ -217,21 +243,23 @@ if opts.doAB:
         #plt.errorbar(t,y,sigma_y,fmt='*',c="k",label='%s-band'%filt)
  
     if opts.doModels:
+   
+        for model in model_data:
+            tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"] 
+            tini, tmax, dt = np.min(t), 14.0, 0.1
+            tt = np.arange(tini,tmax,dt)
     
-        tini, tmax, dt = np.min(t), 14.0, 0.1
-        tt = np.arange(tini,tmax,dt)
+            magidx = 2
+            ii = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+            maginterp = f(tt)
+            plt.plot(tt,maginterp+zp_best,'k',linewidth=2)
     
-        magidx = 2
-        ii = np.where(~np.isnan(mag[magidx]))[0]
-        f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
-        maginterp = f(tt)
-        plt.plot(tt,maginterp+zp_best,'k',linewidth=2)
-    
-        magidx = 0
-        ii = np.where(~np.isnan(mag[magidx]))[0]
-        f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
-        maginterp = f(tt)
-        plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
+            magidx = 0
+            ii = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+            maginterp = f(tt)
+            plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
     
     plt.xlim([10**-1,14])
     #plt.xlim([10**-2,50])
@@ -266,7 +294,9 @@ if opts.doAB:
             plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
     
         if opts.doModels:
-            if not filt in ["g","r"]:
+            for model in model_data:
+                tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"] 
+
                 ii = np.where(~np.isnan(mag[magidx]))[0]
                 f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
                 maginterp = f(tt)
@@ -333,17 +363,20 @@ if opts.doAB:
             plt.errorbar(t,y,sigma_y,fmt='o',c='k')
 
         if opts.doModels:
-            idx = np.where(~np.isnan(mag[magidx]))[0]
-            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
-            maginterp = f(tt)
-       
-            if model == "BNS" and modelType == "ejecta":
-                legend_name = "Dietrich and Ujevic (2017)"
-            elif model == "Blue" and modelType == "ejecta":
-                legend_name = "Metzger (2017)"
+            for model in model_data:
+                tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"] 
 
-            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
-            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+                idx = np.where(~np.isnan(mag[magidx]))[0]
+                f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+                maginterp = f(tt)
+       
+                if model == "BNS" and modelType == "ejecta":
+                    legend_name = "Dietrich and Ujevic (2017)"
+                elif model == "Blue" and modelType == "ejecta":
+                    legend_name = "Metzger (2017)"
+
+                plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+                plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
 
         for ii,name in enumerate(names):
             mag_d = mags[name]
@@ -405,17 +438,20 @@ if opts.doAB:
             plt.errorbar(t,y,sigma_y,fmt='o',c='k')
  
         if opts.doModels:
-            idx = np.where(~np.isnan(mag[magidx]))[0]
-            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
-            maginterp = f(tt)
+            for model in model_data:
+                tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"] 
 
-            if model == "BNS" and modelType == "ejecta":
-                legend_name = "Dietrich and Ujevic (2017)"
-            elif model == "Blue" and modelType == "ejecta":
-                legend_name = "Metzger (2017)"
+                idx = np.where(~np.isnan(mag[magidx]))[0]
+                f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+                maginterp = f(tt)
 
-            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
-            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+                if model == "BNS" and modelType == "ejecta":
+                    legend_name = "Dietrich and Ujevic (2017)"
+                elif model == "Blue" and modelType == "ejecta":
+                    legend_name = "Metzger (2017)"
+
+                plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+                plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
 
         for ii,name in enumerate(names):
             mag_d = mags[name]
@@ -477,17 +513,20 @@ if opts.doAB:
             plt.errorbar(t,y,sigma_y,fmt='o',c='k')
 
         if opts.doModels:
-            idx = np.where(~np.isnan(mag[magidx]))[0]
-            f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
-            maginterp = f(tt)
+            for model in model_data:
+                tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"] 
 
-            if model == "BNS" and modelType == "ejecta":
-                legend_name = "Dietrich and Ujevic (2017)"
-            elif model == "Blue" and modelType == "ejecta":
-                legend_name = "Metzger (2017)"
+                idx = np.where(~np.isnan(mag[magidx]))[0]
+                f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
+                maginterp = f(tt)
 
-            plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
-            plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+                if model == "BNS" and modelType == "ejecta":
+                    legend_name = "Dietrich and Ujevic (2017)"
+                elif model == "Blue" and modelType == "ejecta":
+                    legend_name = "Metzger (2017)"
+
+                plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
+                plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
 
         for ii,name in enumerate(names):
             mag_d = mags[name]
@@ -631,28 +670,41 @@ elif opts.doLuminosity:
 
     if opts.doModels:
 
-        modelfile = os.path.join(opts.plotDir,opts.modelfile)
-        modelfileSplit = modelfile.split("/")
-        model_out = np.loadtxt(modelfile)
+        model_data = {}
+        modelfiles = opts.modelfile.split(",")
+        for modelfile in modelfiles:
+            modelfile = os.path.join(opts.plotDir,modelfile)
+            modelfileSplit = modelfile.split("/")
+            model_out = np.loadtxt(modelfile)
 
-        errorbudget = float(modelfileSplit[-2])
-        modelType = modelfileSplit[-4]
-        model = modelfileSplit[-7]
+            errorbudget = float(modelfileSplit[-2])
+            modelType = modelfileSplit[-4]
+            model = modelfileSplit[-6].split("_")[0]
 
-        if model == "BNS" and modelType == "ejecta":
-            t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+            if model == "BNS" and modelType == "ejecta":
+                t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
 
-            tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
-            tmag = tmag + t0_best
-        elif model == "Blue" and modelType == "ejecta":
-            t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+                tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
+                tmag = tmag + t0_best
+            elif model == "Blue" and modelType == "ejecta":
+                t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
 
-            tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
-            tmag = tmag + t0_best
+                tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+                tmag = tmag + t0_best
+            elif model == "Arnett" and modelType == "ejecta":
+                t0_best, mej_best,vej_best,slope_r_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
+                tmag, lbol, mag, Tobs = arnett_model_ejecta(mej_best,vej_best,slope_r_best,kappa_r_best)
+                tmag = tmag + t0_best
 
-        else:
-            print "Not implemented..."
-            exit(0)
+            else:
+                print "Not implemented..."
+                exit(0)
+
+            model_data[model] = {}
+            model_data[model]["tmag"] = tmag
+            model_data[model]["lbol"] = lbol
+            model_data[model]["mag"] = mag
+            model_data[model]["Tobs"] = Tobs
 
     if opts.doEvent:
         filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
@@ -661,7 +713,7 @@ elif opts.doLuminosity:
 
     #colors = ["g","r","c","y","m"]
     if opts.doModels:
-        colors_names=cm.rainbow(np.linspace(0,1,len(names)+1))
+        colors_names=cm.rainbow(np.linspace(0,1,len(names)+len(model_data.keys())))
     else:
         colors_names=cm.rainbow(np.linspace(0,1,len(names)))
 
@@ -673,36 +725,41 @@ elif opts.doLuminosity:
         index1 = indexes[0]
         index2 = int(len(indexes)/2)
         offset = 0.0
-        t = Lbol_d["t"]
+        t = Lbol_d["tt"]
         plt.loglog(t,Lbol_d["Lbol"]+offset,'-',label=legend_names[ii],linewidth=2,color=colors_names[ii])
         plt.fill_between(t,Lbol_d["Lbol"]/2.5,Lbol_d["Lbol"]*2.5,facecolor=colors_names[ii],alpha=0.2)
 
     if opts.doModels:
 
-        tini, tmax, dt = 0.0, 14.0, 0.1
-        tt = np.arange(tini,tmax,dt)
+        for ii, model in enumerate(model_data.keys()):
+            tmag, lbol, mag = model_data[model]["tmag"], model_data[model]["lbol"], model_data[model]["mag"]
 
-        idx = np.where(~np.isnan(lbol))[0]
-        f = interp.interp1d(tmag[idx], lbol[idx], fill_value='extrapolate')
-        lbolinterp = f(tt)
-
-        if model == "BNS" and modelType == "ejecta":
-            legend_name = "Dietrich and Ujevic (2017)"
-        elif model == "Blue" and modelType == "ejecta":
-            legend_name = "Metzger (2017)"
-
-        zp_factor = 10**(zp_best/-2.5)
-        plt.loglog(tt,zp_factor*lbolinterp,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
-        plt.fill_between(tt,zp_factor*lbolinterp/2.5,zp_factor*lbolinterp*2.5,facecolor=colors_names[len(names)],alpha=0.2)
+            tini, tmax, dt = 0.0, 14.0, 0.1
+            tt = np.arange(tini,tmax,dt)
+    
+            idx = np.where(~np.isnan(lbol))[0]
+            f = interp.interp1d(tmag[idx], lbol[idx], fill_value='extrapolate')
+            lbolinterp = f(tt)
+    
+            if model == "BNS" and modelType == "ejecta":
+                legend_name = "Dietrich and Ujevic (2017)"
+            elif model == "Blue" and modelType == "ejecta":
+                legend_name = "Metzger (2017)"
+            elif model == "Arnett" and modelType == "ejecta":
+                legend_name = "Anders (2017)"   
+ 
+            zp_factor = 10**(zp_best/-2.5)
+            plt.loglog(tt,zp_factor*lbolinterp,'--',c=colors_names[int(len(names)+ii)],linewidth=2,label=legend_name)
+            plt.fill_between(tt,zp_factor*lbolinterp/2.5,zp_factor*lbolinterp*2.5,facecolor=colors_names[int(len(names)+ii)],alpha=0.2)
 
     if opts.doEvent:
-        plt.errorbar(data_out["tt"],data_out["lbol"],data_out["lbol_err"],fmt='o',c="k")
+        plt.errorbar(data_out["tt"],data_out["Lbol"],data_out["Lbol_err"],fmt='o',c="k")
 
-    plt.xlim([10**-2,50])
-    plt.ylim([10.0**39,10.0**45])
+    plt.xlim([10**-1,20])
+    plt.ylim([10.0**39,10.0**46])
     plt.xlabel('Time [days]',fontsize=24)
     plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=24)
-    plt.legend(loc="best")
+    plt.legend(loc="upper right")
     plt.grid()
     plt.savefig(plotName)
     plt.close()

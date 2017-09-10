@@ -78,8 +78,6 @@ def EOSfit(mns,c):
 # Give the compactness-Love and Love-compactness relations
 # NKJ-M, 08.2017
 
-import numpy as np
-
 def CLove(lmbda):
     """
     Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
@@ -146,14 +144,16 @@ c1 = CLove(lambda1)
 c2 = CLove(lambda2)
 data_out["lambda1"], data_out["lambda2"], data_out["c1"], data_out["c2"] = lambda1, lambda2, c1, c2
 idx = np.where((~np.isnan(c1)) & (~np.isnan(c2)))[0]
-for key in data_out.keys():
-    data_out[key] = data_out[key][idx]
+data_out = data_out[idx]
+#for key in data_out.keys():
+#    data_out[key] = data_out[key][idx]
 
 Nsamples = 100
 idx = np.random.permutation(len(data_out["m1"]))
 idx = idx[:Nsamples]
-for key in data_out.keys():
-    data_out[key] = data_out[key][idx]
+data_out = data_out[idx]
+#for key in data_out.keys():
+#    data_out[key] = data_out[key][idx]
 
 tini = 0.1
 tmax = 14.0
