@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, copy
 import numpy as np
 import optparse
 
@@ -166,10 +166,10 @@ data_out["mb2"] = EOSfit(data_out["m2"],data_out["c2"])
 #for key in data_out.keys():
 #    data_out[key] = data_out[key][idx]
 
-Nsamples = 100
+Nsamples = 1000
 idx = np.random.permutation(len(data_out["m1"]))
 idx = idx[:Nsamples]
-data_out = data_out[idx]
+#data_out = data_out[idx]
 #for key in data_out.keys():
 #    data_out[key] = data_out[key][idx]
 
@@ -190,7 +190,7 @@ flgbct = 1
 chi_eff = 0.0
 
 beta = 3.0
-kappa_r = 0.1
+kappa_r = 10.0
 slope_r = -1.2
 
 baseplotDir = opts.plotDir
@@ -200,27 +200,32 @@ plotDir = os.path.join(plotDir,opts.name)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
-ejecta_all = {}
+data_out_all = {}
 for model in models:
-    ejecta_all[model] = {}
+    data_out_all[model] = copy.copy(data_out)
     ii = 0
-    mej, vej = np.zeros(data_out["m1"].shape), np.zeros(data_out["m1"].shape)
-    for m1, m2, c1, c2, mb1, mb2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"],data_out["mb1"],data_out["mb2"]):
-        if opts.model == "BHNS":
+    idxs = []
+
+    mej, vej = np.zeros(data_out_all[model]["m1"].shape), np.zeros(data_out_all[model]["m1"].shape)
+    for m1, m2, c1, c2, mb1, mb2 in zip(data_out_all[model]["m1"],data_out_all[model]["m2"],data_out_all[model]["c1"],data_out_all[model]["c2"],data_out_all[model]["mb1"],data_out_all[model]["mb2"]):
+        print m1, m2, c1, c2, mb1, mb2
+        if model == "BHNS":
             q = m1/m2
             mns = m2
-            mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb2,c)
-        elif opts.model == "BNS":
+            mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb2,c2)
+        elif model == "BNS":
             mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
-        elif opts.model == "Blue":
+        elif model == "Blue":
             mej[ii], vej[ii] = blue_model(m1,mb1,c1,m2,mb2,c2)
-        elif opts.model == "Arnett":
+        elif model == "Arnett":
             mej[ii], vej[ii] = arnett_model(m1,mb1,c1,m2,mb2,c2)
         ii = ii + 1
     mej = np.log10(mej)
+    idx = np.where(np.isfinite(mej))[0]
 
-    ejecta_all[model]["mej"] = mej
-    ejecta_all[model]["vej"] = vej
+    data_out_all[model]["mej"] = mej
+    data_out_all[model]["vej"] = vej
+    data_out_all[model] = data_out_all[model][idx]
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
@@ -241,7 +246,7 @@ for model in models:
         mag_all[model][filt] = np.empty((0,len(tt)))
 
 for model in models:
-    for m1, m2, c1, c2 in zip(data_out["m1"],data_out["m2"],data_out["c1"],data_out["c2"]):
+    for m1, m2, c1, c2, mb1, mb2 in zip(data_out_all[model]["m1"],data_out_all[model]["m2"],data_out_all[model]["c1"],data_out_all[model]["c2"],data_out_all[model]["mb1"],data_out_all[model]["mb2"]):
         if model == "BHNS":
             q = m1/m2
             mb = EOSfit(m2,c2)
@@ -409,8 +414,8 @@ plt.ylabel('Bolometric Luminosity [erg/s]')
 plt.savefig(plotName)
 plt.close()
 
-bounds = [-3.0,0.0]
-xlims = [-3.0,0.0]
+bounds = [-3.0,-1.0]
+xlims = [-3.0,-1.0]
 ylims = [1e-1,10]
 
 plotName = "%s/mej.pdf"%(plotDir)
@@ -424,7 +429,7 @@ for ii,model in enumerate(models):
         legend_name = "Metzger (2017)"
     elif model == "Arnett":
         legend_name = "Arnett (1982)"
-    bins, hist1 = hist_results(np.log10(ejecta_all[model]["mej"]),Nbins=25,bounds=bounds)
+    bins, hist1 = hist_results(data_out_all[model]["mej"],Nbins=25,bounds=bounds)
     plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
 plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -436,26 +441,24 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
-if opts.model == "BHNS":
-    bounds = [0.0,1.0]
-    xlims = [0.0,1.0]
-    ylims = [1e-1,20]
-elif opts.model == "BNS":
-    bounds = [0.0,1.0]
-    xlims = [0.0,1.0]
-    ylims = [1e-1,10]
-elif opts.model == "Blue":
-    bounds = [0.0,1.0]
-    xlims = [0.0,1.0]
-    ylims = [1e-1,10]
-elif opts.model == "Arnett":
-    bounds = [0.0,1.0]
-    xlims = [0.0,1.0]
-    ylims = [1e-1,10]
+bounds = [0.0,1.0]
+xlims = [0.0,1.0]
+ylims = [1e-1,20]
+
 plotName = "%s/vej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-bins, hist1 = hist_results(vej,Nbins=25,bounds=bounds)
-plt.semilogy(bins,hist1,'b-',linewidth=3)
+for ii,model in enumerate(models):
+    if model == "BNS":
+        legend_name = "Dietrich and Ujevic (2017)"
+    if model == "BHNS":
+        legend_name = "Kawaguchi et al. (2016)"
+    elif model == "Blue":
+        legend_name = "Metzger (2017)"
+    elif model == "Arnett":
+        legend_name = "Arnett (1982)"
+    bins, hist1 = hist_results(data_out_all[model]["vej"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+
 plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
 plt.legend(loc="best",prop={'size':24})
@@ -466,29 +469,25 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
-if opts.model == "BHNS":
-    bounds = [0.0,2.0]
-    xlims = [0.0,2.0]
-    ylims = [1e-1,10]
-elif opts.model == "BNS":
-    bounds = [0.0,2.0]
-    xlims = [0.0,2.0]
-    ylims = [1e-1,10]
-elif opts.model == "Blue":
-    bounds = [0.0,2.0]
-    xlims = [-3.0,-1.0]
-    ylims = [1e-1,10]
-elif opts.model == "Arnett":
-    bounds = [0.0,2.0]
-    xlims = [-3.0,-1.0]
-    ylims = [1e-1,10]
+bounds = [0.0,2.0]
+xlims = [0.0,2.0]
+ylims = [1e-1,10]
 
 plotName = "%s/masses.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-bins1, hist1 = hist_results(data_out["m1"],Nbins=25,bounds=bounds)
-bins2, hist2 = hist_results(data_out["m2"],Nbins=25,bounds=bounds)
-plt.semilogy(bins1,hist1,'b-',linewidth=3,label="m1")
-plt.semilogy(bins2,hist2,'r--',linewidth=3,label="m2")
+for ii,model in enumerate(models):
+    if model == "BNS":
+        legend_name = "Dietrich and Ujevic (2017)"
+    if model == "BHNS":
+        legend_name = "Kawaguchi et al. (2016)"
+    elif model == "Blue":
+        legend_name = "Metzger (2017)"
+    elif model == "Arnett":
+        legend_name = "Arnett (1982)"
+    bins1, hist1 = hist_results(data_out_all[model]["m1"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins1,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+    bins2, hist2 = hist_results(data_out_all[model]["m2"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins2,hist2,'--',color=colors_names[ii],linewidth=3)
 plt.xlabel(r"Masses",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
 plt.legend(loc="best",prop={'size':24})
