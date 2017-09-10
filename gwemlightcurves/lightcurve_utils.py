@@ -12,6 +12,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
 from astropy.time import Time
+from astropy.table import Table
 
 def loadModelsSpec(outputDir,name):
 
@@ -118,7 +119,7 @@ def loadEventLbol(filename):
     data = {}
     data["tt"] = data_out[:,0]
     data["Lbol"] = 10**data_out[:,4]
-    data["Lbol_err"] = (10**(data_out[:,4]))*data_out[:,5]
+    data["Lbol_err"] = np.log(10)*(10**(data_out[:,4]))*data_out[:,5]
     data["T"] = data_out[:,6]
     data["T_err"] = data_out[:,7]
 
@@ -198,7 +199,7 @@ def massgap(dataDir,name):
 
     return data_out, truths
 
-def read_posterior_samples(filename_samples):
+def read_posterior_samples_old(filename_samples):
 
     data_out = {}
     lines = [line.rstrip('\n') for line in open(filename_samples)]
@@ -212,6 +213,11 @@ def read_posterior_samples(filename_samples):
   
         data_out[param] = data[:,ii]
 
+    return data_out
+
+def read_posterior_samples(filename_samples):
+
+    data_out = Table.read(filename_samples, format='ascii')
     return data_out
 
 def read_files_lbol(files):
