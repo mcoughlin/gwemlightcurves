@@ -18,6 +18,7 @@ eggs/
 lib/
 lib64/
 parts/
+/gwemlightcurves/version.py
 sdist/
 var/
 *.egg-info/
@@ -61,7 +62,8 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+/docs/_build/
+/docs/api/
 
 # PyBuilder
 target/
