@@ -210,8 +210,7 @@ for model in models:
     for m1, m2, c1, c2, mb1, mb2 in zip(data_out_all[model]["m1"],data_out_all[model]["m2"],data_out_all[model]["c1"],data_out_all[model]["c2"],data_out_all[model]["mb1"],data_out_all[model]["mb2"]):
         if model == "BHNS":
             q = m1/m2
-            mns = m2
-            mej[ii], vej[ii] = bhns_model(q,chi_eff,mns,mb2,c2)
+            mej[ii], vej[ii] = bhns_model(q,chi_eff,m2,mb2,c2)
         elif model == "BNS":
             mej[ii], vej[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
         elif model == "Blue":
@@ -248,9 +247,7 @@ for model in models:
     for m1, m2, c1, c2, mb1, mb2 in zip(data_out_all[model]["m1"],data_out_all[model]["m2"],data_out_all[model]["c1"],data_out_all[model]["c2"],data_out_all[model]["mb1"],data_out_all[model]["mb2"]):
         if model == "BHNS":
             q = m1/m2
-            mb = EOSfit(m2,c2)
-            mns = m2
-            t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c1,mb,mns)
+            t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c1,mb2,m2)
         elif model == "BNS":
             t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct)
         elif model == "Blue":
