@@ -818,7 +818,7 @@ maxt = opts.tmax
 dt = opts.dt
 n_live_points = 1000
 evidence_tolerance = 0.5
-#evidence_tolerance = 1000.0
+evidence_tolerance = 10.0
 #n_live_points = 100
 #evidence_tolerance = 1.0
 

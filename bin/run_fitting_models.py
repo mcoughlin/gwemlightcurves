@@ -17,7 +17,7 @@ import scipy.stats as ss
 import plotutils.plotutils as pu
 
 import pymultinest
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
+from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -47,6 +47,8 @@ def parse_commandline():
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("--doLoveC",  action="store_true", default=False)
+    parser.add_option("--doLightcurves",  action="store_true", default=False)
+    parser.add_option("--doLuminosity",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
@@ -209,6 +211,20 @@ def bns_model(m1,mb1,c1,m2,mb2,c2):
 
     mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
     vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+
+    return mej, vej
+
+def blue_model(m1,mb1,c1,m2,mb2,c2):
+
+    mej = BlueKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
+    vej = BlueKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+
+    return mej, vej
+
+def arnett_model(m1,mb1,c1,m2,mb2,c2):
+
+    mej = ArnettKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
+    vej = ArnettKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
 
     return mej, vej
 
@@ -505,31 +521,51 @@ def EOSfit(mns,c):
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["BHNS", "BNS"]:
-   print "Model must be either: BHNS, BNS"
+if not opts.model in ["BHNS", "BNS", "Blue", "Arnett"]:
+   print "Model must be either: BHNS, BNS, Blue, Arnett"
    exit(0)
 
 filters = opts.filters.split(",")
 
 baseplotDir = opts.plotDir
-if opts.doModels:
-    basename = 'fitting_models'
-elif opts.doGoingTheDistance:
-    basename = 'fitting_going-the-distance'
-elif opts.doMassGap:
-    basename = 'fitting_massgap'
-elif opts.doEvent:
-    basename = 'fitting_gws'
-elif opts.doSimulation:
-    basename = 'fitting'
+if opts.doLightcurves:
+    if opts.doModels:
+        basename = 'fitting_models'
+    elif opts.doGoingTheDistance:
+        basename = 'fitting_going-the-distance'
+    elif opts.doMassGap:
+        basename = 'fitting_massgap'
+    elif opts.doEvent:
+        basename = 'fitting_gws'
+    elif opts.doSimulation:
+        basename = 'fitting'
+    else:
+        print "Need to enable --doModels, --doEvent, --doSimulation, --doMassGap, or --doGoingTheDistance"
+        exit(0)
+elif opts.doLuminosity:
+    if opts.doModels:
+        basename = 'fit_luminosity'
+    elif opts.doEvent:
+        basename = 'fit_gws_luminosity'
+    else:
+        print "Need to enable --doModels, --doEvent, --doSimulation, --doMassGap, or --doGoingTheDistance"
+        exit(0)
 else:
-    print "Need to enable --doModels, --doEvent, --doSimulation, --doMassGap, or --doGoingTheDistance"
+    print "Need to enable --doLightcurves or --doLuminosity"
     exit(0)
+
 plotDir = os.path.join(baseplotDir,basename)
 if opts.doEOSFit:
-    plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_EOSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
 else:
-    plotDir = os.path.join(plotDir,'%s'%opts.model)
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s'%opts.model) 
+
 if opts.doModels:
     plotDir = os.path.join(plotDir,"_".join(filters))
     plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
@@ -544,7 +580,8 @@ elif opts.doSimulation:
     plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
     plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
-    plotDir = os.path.join(plotDir,"_".join(filters))
+    if opts.doLightcurves:
+        plotDir = os.path.join(plotDir,"_".join(filters))
     plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
@@ -552,7 +589,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plotDir = os.path.join(plotDir,'ejecta')
     plotDir = os.path.join(plotDir,opts.name)
     #dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
-    dataDir = plotDir.replace("fitting_","")
+    dataDir = plotDir.replace("fitting_","").replace("fit_","")
     if opts.doEjecta:
         dataDir = dataDir.replace("_EOSFit","")
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
@@ -597,7 +634,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         data_out, truths = lightcurve_utils.massgap(opts.dataDir,opts.name)
         m1, m2 = data_out["m1"], data_out["m2"]
     elif opts.doEvent:
-        data_out = lightcurve_utils.event(opts.dataDir,"G298048")
+        data_out = lightcurve_utils.event(opts.dataDir,opts.name)
         m1, m2 = data_out["m1"], data_out["m2"]
 
     pts = np.vstack((m1,m2)).T
@@ -675,7 +712,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$m_{\rm b}$",r"$C$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns_gw, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    elif opts.model == "BNS":
+    elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
         if opts.doEOSFit:
             parameters = ["m1","c1","m2","c2"]
             labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
@@ -775,7 +812,7 @@ elif (opts.doModels or opts.doSimulation) and opts.model == "BNS" and opts.doEOS
         plt.close()
 
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
-    if opts.model == "BNS":
+    if opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
         if opts.doEOSFit:
             mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,2])
             mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
@@ -813,7 +850,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         q_gw = 1/q_gw
         mej_gw = np.log10(mej_gw)
 
-    combinedDir = os.path.join(plotDir,"combined")
+    combinedDir = os.path.join(plotDir,"com")
     if not os.path.isdir(combinedDir):
         os.makedirs(combinedDir)       
 
@@ -852,7 +889,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
         parameters = ["q","mchirp"]
         n_params = len(parameters)
-        if opts.model == "BNS":
+        if opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
             pymultinest.run(myloglike_combined, myprior_combined_masses_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.model == "BHNS":
             pymultinest.run(myloglike_combined, myprior_combined_masses_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
@@ -903,7 +940,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,0.0]
                 xlims = [-3.0,0.0]
                 ylims = [1e-1,10]
-            elif opts.model == "BNS":
+            elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.0]
                 ylims = [1e-1,10]
@@ -912,7 +949,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,0.0]
                 xlims = [-3.0,0.0]
                 ylims = [1e-1,10]
-            elif opts.model == "BNS":
+            elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
@@ -940,7 +977,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,1.0]
             xlims = [0.0,1.0]
             ylims = [1e-1,20]
-        elif opts.model == "BNS":
+        elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
             bounds = [0.0,1.0]
             xlims = [0.0,1.0]
             ylims = [1e-1,10]
@@ -981,7 +1018,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.8,4.0]
             xlims = [0.8,4.0]
             ylims = [1e-1,10]
-        elif opts.model == "BNS":
+        elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,10]
@@ -1009,7 +1046,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [2.9,9.1]
             xlims = [2.9,9.1]
             ylims = [1e-1,10]
-        elif opts.model == "BNS":
+        elif opts.model == "BNS" or opts.model == "Blue" or opts.model == "Arnett":
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]
