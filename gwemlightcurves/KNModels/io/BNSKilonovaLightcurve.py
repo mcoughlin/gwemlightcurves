@@ -5,6 +5,9 @@
 import numpy as np
 import scipy
 
+from .model import register_model
+from .. import KNTable
+
 def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb1,c1,m2,mb2,c2,flgbct):
 
     mej = calc_meje(m1,mb1,c1,m2,mb2,c2)

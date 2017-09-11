@@ -20,8 +20,7 @@
 """
 
 from . import (  # pylint: disable=unused-import
-    BNS,  # GWF FrEvents (e.g. MBTA)
-    gravityspy,  # Gravity Spy Triggers
+    BNSKilonovaLightcurve,  # BNS Model
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'
