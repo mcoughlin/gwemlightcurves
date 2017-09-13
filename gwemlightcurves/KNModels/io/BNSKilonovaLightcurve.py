@@ -14,13 +14,21 @@ def get_BNSKilonovaLightcurve_model(table, **kwargs):
     mask = (table['mej'] > 0)
     table = table[mask]
     # Log mass ejecta
-    table['mej'] = np.log10(table['mej'])
+    table['mej10'] = np.log10(table['mej'])
     # calc the velocity of ejecta for those non-zero ejecta mass samples
     table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
-    table['t'], table['lbol'], table['mag'] = calc_lc(table['tini'],table['tmax'],
-                                                      table['dt'],table['mej'],table['vej'],table['vmin'],
-                                                      table['th'],table['ph'],itable['kappa'],
-                                                      table['eps'],table['alp'],table['eth'],table['flgbct'])
+    # Initialize columns
+    timeseries = np.arange(table['tini'][0], table['tmax'][0], table['dt'][0])
+    table['t'] = [np.zeros(timeseries.size)]
+    table['lbol'] = [np.zeros(timeseries.size)]
+    table['mag'] =  [{}]
+    
+    # Loop over samples
+    for isample in range(len(table)):
+        table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample],table['tmax'][isample],
+                                                      table['dt'][isample],table['mej'][isample],table['vej'][isample],table['vmin'][isample],
+                                                      table['th'][isample],table['ph'][isample], table['kappa'][isample],
+                                                      table['eps'][isample],table['alp'][isample],table['eth'][isample],table['flgbct'][isample])
     return table
 
 def calc_meje(m1,mb1,c1,m2,mb2,c2):

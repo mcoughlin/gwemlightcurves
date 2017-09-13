@@ -15,13 +15,23 @@ def get_BlueKilonovaLightcurve_model(table, **kwargs):
     mask = (table['mej'] > 0)
     table = table[mask]
     # Log mass ejecta
-    table['mej'] = np.log10(table['mej'])
+    table['mej10'] = np.log10(table['mej'])
     # calc the velocity of ejecta for those non-zero ejecta mass samples
     table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
-    # Calc lightcurve
-    table['t'], table['lbol'], table['mag'], table['Tobs'] = calc_lc(table['tini'],table['tmax'],
-                                                                     table['dt'], table['mej'],
-                                                                     table['vej'],table['beta'], table['kappa_r'])
+
+    # Initialize lightcurve values in table
+    timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
+    table['t'] = [np.zeros(timeseries.size)]
+    table['lbol'] = [np.zeros(timeseries.size)]
+    table['mag'] =  [np.zeros([9, timeseries.size])]
+    table['Tobs'] = [np.zeros(timeseries.size)]
+
+    # calc lightcurve for each sample
+    for isample in range(len(table)):
+        # Calc lightcurve
+        table['t'][isample], table['lbol'][isample], table['mag'][isample], table['Tobs'][isample] = calc_lc(table['tini'][isample],table['tmax'][isample],
+                                                                     table['dt'][isample], table['mej'][isample],
+                                                                     table['vej'][isample],table['beta'][isample], table['kappa_r'][isample])
     return table
 
 def lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2):
