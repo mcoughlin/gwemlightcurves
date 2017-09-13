@@ -20,7 +20,9 @@
 """Gravitational-wave Electromagnetic Optimization
 """
 
-from gwemlightcurves import version
+from ._version import get_versions
 
+__version__ = get_versions()['version']
 __author__ = 'Michael Coughlin <michael.coughlin@ligo.org>'
-__version__ = version.__version__
+
+del get_versions

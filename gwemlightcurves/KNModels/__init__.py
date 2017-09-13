@@ -20,11 +20,6 @@
 """Gravitational-wave Electromagnetic Optimization
 """
 
-from gwemlightcurves import version
-
-__author__ = 'Michael Coughlin <michael.coughlin@ligo.org>'
-__version__ = version.__version__
-
 # load tables
 from astropy.table import (Column, Table)
 from .table import KNTable

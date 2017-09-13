@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
+# ---- Import standard modules to the python path.
 
 import os, sys, copy
 import numpy as np
-import optparse
+import argparse
 
 from scipy.interpolate import interpolate as interp
  
@@ -13,25 +16,25 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
 from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves import __version__
 
 
 def parse_commandline():
     """
     Parse the options given on the command-line.
     """
-    parser = optparse.OptionParser()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-V', '--version', action='version', version=__version__)
+    parser.add_argument("-o","--outputDir",default="../output")
+    parser.add_argument("-p","--plotDir",default="../plots")
+    parser.add_argument("-d","--dataDir",default="../data")
+    parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
+    parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
+    parser.add_argument("-m","--model",default="BHNSKilonovaLightcurve,BNSKilonovaLightcurve,BlueKilonovaLightcurve,ArnettKilonovaLightcurve", help="BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve")
 
-    parser.add_option("-o","--outputDir",default="../output")
-    parser.add_option("-p","--plotDir",default="../plots")
-    parser.add_option("-d","--dataDir",default="../data")
-    parser.add_option("--posterior_samples", default="../data/event_data/G298048.dat")
-    parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_option("-m","--model",default="BHNSKilonovaLightcurve,BNSKilonovaLightcurve,BlueKilonovaLightcurve,ArnettKilonovaLightcurve", help="BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve")
-    parser.add_option("--name",default="G298048")
-
-    opts, args = parser.parse_args()
+    args = parser.parse_args()
  
-    return opts
+    return args
 
 def hist_results(samples,Nbins=16,bounds=None):
 
