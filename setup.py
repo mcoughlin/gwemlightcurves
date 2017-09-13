@@ -1,70 +1,124 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (C) Michael Coughlin (2017)
+# Copyright (C) Duncan Macleod (2013)
 #
-# This file is part of gwemlightcurves
+# This file is part of the hveto python package.
 #
-# gwemlightcurves is free software: you can redistribute it and/or modify
+# hveto is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# gwemlightcurves is distributed in the hope that it will be useful,
+# hveto is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with gwemlightcurves.  If not, see <http://www.gnu.org/licenses/>
+# along with hveto.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Setup script for gwemlightcurves
+"""Setup the gwemlightcurves package
 """
+
+from __future__ import print_function
+
+import sys
+if sys.version < '2.6':
+    raise ImportError("Python versions older than 2.6 are not supported.")
 
 import glob
 import os.path
-from setuptools import (find_packages, setup)
 
-from utils import version
+from setuptools import (setup, find_packages)
 
+# set basic metadata
 PACKAGENAME = 'gwemlightcurves'
-
-VERSION_PY = os.path.join(PACKAGENAME, 'version.py')
-
-# set version information
-vcinfo = version.GitStatus()
-vcinfo(VERSION_PY)
-
-DESCRIPTION = 'GW-EM Followup Optimization scripts'
-LONG_DESCRIPTION = ''
-AUTHOR = 'Michael Coughlin'
-AUTHOR_EMAIL = 'michael.coughlin@ligo.org'
+DISTNAME = 'gwemlightcurves'
+AUTHOR = 'Scott Coughlin'
+AUTHOR_EMAIL = 'scott.coughlin@ligo.org'
 LICENSE = 'GPLv3'
 
-# VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-VERSION = vcinfo.version
+cmdclass = {}
 
-# Indicates if this version is a release version
-RELEASE = vcinfo.version != vcinfo.id and 'dev' not in VERSION
+# -- versioning ---------------------------------------------------------------
 
-# Use the find_packages tool to locate all packages and modules
-packagenames = find_packages(exclude=['utils'])
+import versioneer
+__version__ = versioneer.get_version()
+cmdclass.update(versioneer.get_cmdclass())
 
-# find all scripts
-scripts = glob.glob('bin/*') + glob.glob('input/*') 
+# -- documentation ------------------------------------------------------------
 
-setup(name=PACKAGENAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      scripts=scripts,
-      packages=packagenames,
-      ext_modules=[],
-      requires=['numpy', 'healpy'],
+# import sphinx commands
+try:
+    from sphinx.setup_command import BuildDoc
+except ImportError:
+    pass
+else:
+    cmdclass['build_sphinx'] = BuildDoc
+
+# -- dependencies -------------------------------------------------------------
+
+setup_requires = [
+    'setuptools',
+    'pytest-runner',
+]
+install_requires = [
+    'numpy',
+    'scipy',
+    'astropy',
+    'matplotlib',
+    'sncosmo',
+]
+tests_require = [
+    'pytest'
+]
+if sys.version_info < (2, 7):
+    tests_require.append('unittest2')
+extras_require = {
+    'doc': [
+        'sphinx',
+        'numpydoc',
+        'sphinx_rtd_theme',
+        'sphinxcontrib_programoutput',
+        'sphinxcontrib_epydoc',
+    ],
+}
+
+# -- run setup ----------------------------------------------------------------
+
+packagenames = find_packages()
+scripts = glob.glob(os.path.join('bin', '*'))
+
+setup(name=DISTNAME,
       provides=[PACKAGENAME],
+      version=__version__,
+      description=None,
+      long_description=None,
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
-      long_description=LONG_DESCRIPTION,
-      zip_safe=False,
-      use_2to3=True
-      )
+      packages=packagenames,
+      include_package_data=True,
+      cmdclass=cmdclass,
+      scripts=scripts,
+      setup_requires=setup_requires,
+      install_requires=install_requires,
+      tests_require=tests_require,
+      extras_require=extras_require,
+      use_2to3=True,
+      classifiers=[
+          'Programming Language :: Python',
+          'Development Status :: 3 - Alpha',
+          'Intended Audience :: Science/Research',
+          'Intended Audience :: End Users/Desktop',
+          'Intended Audience :: Science/Research',
+          'Natural Language :: English',
+          'Topic :: Scientific/Engineering',
+          'Topic :: Scientific/Engineering :: Astronomy',
+          'Topic :: Scientific/Engineering :: Physics',
+          'Operating System :: POSIX',
+          'Operating System :: Unix',
+          'Operating System :: MacOS',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+      ],
+)

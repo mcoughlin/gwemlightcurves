@@ -20,9 +20,9 @@
 """Gravitational-wave Electromagnetic Optimization
 """
 
-from ._version import get_versions
+# load tables
+from astropy.table import (Column, Table)
+from .table import KNTable
 
-__version__ = get_versions()['version']
-__author__ = 'Michael Coughlin <michael.coughlin@ligo.org>'
-
-del get_versions
+# attach unified I/O
+from . import io

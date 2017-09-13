@@ -6,13 +6,22 @@
 import os, sys
 import numpy as np
 
-def lightcurve(tini,tmax,dt,slope_r,kappa_r,m1,mb1,c1,m2,mb2,c2):
+from .model import register_model
+from .. import KNTable
 
-    mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
-    vej = calc_vej(m1,c1,m2,c2)
-    t, lbol, mag, Tobs = calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r)
-
-    return t, lbol, mag, Tobs
+def get_ArnettKilonovaLightcurve_model(table, **kwargs):
+    table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+    # Throw out smaples where the mass ejecta is less than zero.
+    mask = (table['mej'] > 0)
+    table = table[mask]
+    # Log mass ejecta
+    table['mej'] = np.log10(table['mej'])
+    # calc the velocity of ejecta for those non-zero ejecta mass samples
+    table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
+    table['t'], table['lbol'], table['mag'], table['Tobs'] = calc_lc(table['tini'], table['tmax'],
+                                                                     table['dt'], table['mej'],
+                                                                     table['vej'], table['slope_r'], table['kappa_r'])
+    return table
 
 def lightcurve_break(tini,tmax,dt,slope_r,kappa_r,t_break,slope_break,m1,mb1,c1,m2,mb2,c2):
 
@@ -30,11 +39,11 @@ def calc_meje(m1,mb1,c1,m2,mb2,c2):
     d=  16.1144
     n=  -2.5484
 
-    tmp1=a*((mb1*((m2/m1)**(1.0/3.0))*(1.0-2.0*c1)/c1)+(mb2*((m1/m2)**(1.0/3.0))*(1.0-2.0*c2)/c2))
-    tmp2=b*(mb1*((m2/m1)**n)+mb2*((m1/m2)**n))
-    tmp3=c*(mb1*(1.0-m1/mb1)+mb2*(1.0-m2/mb2))
+    tmp1=((mb1*((m2/m1)**(1.0/3.0))*(1.0-2.0*c1)/c1)+(mb2*((m1/m2)**(1.0/3.0))*(1.0-2.0*c2)/c2))*a
+    tmp2=(mb1*((m2/m1)**n)+mb2*((m1/m2)**n))*b
+    tmp3=(mb1*(1.0-m1/mb1)+mb2*(1.0-m2/mb2))*c
 
-    meje_fit=np.max([tmp1+tmp2+tmp3+d,0])/1000.0
+    meje_fit=np.maximum(tmp1+tmp2+tmp3+d,0)/1000.0
 
     return meje_fit
 
@@ -43,14 +52,14 @@ def calc_vrho(m1,c1,m2,c2):
     b=0.444836
     c=-2.67385
 
-    return a*((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))+b
+    return ((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))*a+b
 
 def calc_vz(m1,c1,m2,c2):
     a=-0.315585
     b=0.63808
     c=-1.00757
 
-    return a*((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))+b
+    return ((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))*a+b
 
 def calc_vej(m1,c1,m2,c2):
     return np.sqrt(calc_vrho(m1,c1,m2,c2)**2.0+calc_vz(m1,c1,m2,c2)**2.0)
@@ -196,4 +205,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     muD = 5.0*np.log10(D/(3.08e18))-5.
 
     return tvec_days, Ltotm*1e40, mAB, Tobs
-   
+
+
+register_model('ArnettKilonovaLightcurve', KNTable, get_ArnettKilonovaLightcurve_model,
+                 usage="table")
