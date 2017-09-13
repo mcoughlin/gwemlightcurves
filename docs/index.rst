@@ -17,10 +17,8 @@ The easiest method to install gwemlightcurves is using `pip <https://pip.pypa.io
    $ pip install git+https://github.com/mcoughlin/gwemlightcurves
 
 
-Working with data
------------------
-
-**Obtaining Gravity Spy data**
+Introduction
+------------
 
 .. toctree::
    :maxdepth: 2
@@ -36,14 +34,13 @@ To run an analysis:
 
 .. code-block:: bash
 
-   $ run_parameterized_models_event.py --dataDir ../data/
+   $ run_parameterized_models_event.py --posterior_samples something --name something
 
 For a full list of command-line argument and options, run
 
 .. code-block:: bash
 
    $ run_parameterized_models_event.py --help
-   $ run_parameterized_models.py --help
 
 For more details see :ref:`command-line`.
 

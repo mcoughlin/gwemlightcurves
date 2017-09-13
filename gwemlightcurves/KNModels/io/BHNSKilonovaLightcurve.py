@@ -5,13 +5,31 @@
 import numpy as np
 import scipy
 
-def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c,mb,mns):
+from .model import register_model
+from .. import KNTable
 
-    meje = calc_meje(q,chi_eff,c,mb,mns)
-    vave = calc_vave(q)
-    t, lbol, mag = calc_lc(tini,tmax,dt,meje,vave,vmin,th,ph,kappa,eps,alp,eth)
- 
-    return t, lbol, mag
+def get_BHNSKilonovaLightcurve_model(table, **kwargs):
+    table['mej'] = calc_meje(table['q'], table['chi_eff'], table['c2'], table['mb2'], table['m2'])
+    # Throw out smaples where the mass ejecta is less than zero.
+    mask = (table['mej'] > 0)
+    table = table[mask]
+    # Log mass ejecta
+    table['mej10'] = np.log10(table['mej'])
+    # calc the velocity of ejecta for those non-zero ejecta mass samples
+    table['vej'] = calc_vave(table['q'])
+    # Initialize columns
+    timeseries = np.arange(table['tini'][0], table['tmax'][0], table['dt'][0])
+    table['t'] = [np.zeros(timeseries.size)]
+    table['lbol'] = [np.zeros(timeseries.size)]
+    table['mag'] =  [{}]
+    
+    # Loop over samples
+    for isample in range(len(table)):
+        table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample], table['tmax'][isample], table['dt'][isample],
+                                               table['mej'][isample], table['vej'][isample], table['vmin'][isample],
+                                               table['th'][isample], table['ph'][isample], table['kappa'][isample],
+                                               table['eps'][isample], table['alp'][isample], table['eth'][isample]) 
+    return table
 
 def calc_meje(q,chi_eff,c,mb,mns):
 
@@ -22,11 +40,11 @@ def calc_meje(q,chi_eff,c,mb,mns):
     n1=1.352
     n2=0.2497
 
-    tmp1=a1*r_isco(chi_eff)*(q**n1);
-    tmp2=a2*(q**n2)*(1-2*c)/c
-    tmp3=a3*(1-mns/mb)+a4
+    tmp1=r_isco(chi_eff)*(q**n1)*a1;
+    tmp2=(q**n2)*(1-2*c)*a2/c
+    tmp3=(1-mns/mb)*a3+a4
 
-    meje_fit=mb*np.max([tmp1+tmp2+tmp3,0]);
+    meje_fit=mb*np.maximum(tmp1+tmp2+tmp3,0);
 
     return meje_fit
 
@@ -46,7 +64,7 @@ def r_isco(chi):
   return 3+z2-np.sign(chi)*((3-z1)*(3+z1+2*z2))**(1/2.0)
 
 def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
-  
+
   td, bc = setbc_APR4Q3a75()
 
   t_d=[]
@@ -1097,3 +1115,6 @@ def setbc_APR4Q3a75():
   bc[7][99] =  2.4374761035363530
 
   return td, bc
+
+register_model('BHNSKilonovaLightcurve', KNTable, get_BHNSKilonovaLightcurve_model,
+                 usage="table")

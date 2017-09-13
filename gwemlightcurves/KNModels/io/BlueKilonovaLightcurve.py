@@ -6,6 +6,34 @@
 import os, sys
 import numpy as np
 
+from .model import register_model
+from .. import KNTable
+
+def get_BlueKilonovaLightcurve_model(table, **kwargs):
+    table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+    # Throw out smaples where the mass ejecta is less than zero.
+    mask = (table['mej'] > 0)
+    table = table[mask]
+    # Log mass ejecta
+    table['mej10'] = np.log10(table['mej'])
+    # calc the velocity of ejecta for those non-zero ejecta mass samples
+    table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
+
+    # Initialize lightcurve values in table
+    timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
+    table['t'] = [np.zeros(timeseries.size)]
+    table['lbol'] = [np.zeros(timeseries.size)]
+    table['mag'] =  [np.zeros([9, timeseries.size])]
+    table['Tobs'] = [np.zeros(timeseries.size)]
+
+    # calc lightcurve for each sample
+    for isample in range(len(table)):
+        # Calc lightcurve
+        table['t'][isample], table['lbol'][isample], table['mag'][isample], table['Tobs'][isample] = calc_lc(table['tini'][isample],table['tmax'][isample],
+                                                                     table['dt'][isample], table['mej'][isample],
+                                                                     table['vej'][isample],table['beta'][isample], table['kappa_r'][isample])
+    return table
+
 def lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2):
 
     mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
@@ -22,11 +50,11 @@ def calc_meje(m1,mb1,c1,m2,mb2,c2):
     d=  16.1144
     n=  -2.5484
 
-    tmp1=a*((mb1*((m2/m1)**(1.0/3.0))*(1.0-2.0*c1)/c1)+(mb2*((m1/m2)**(1.0/3.0))*(1.0-2.0*c2)/c2))
-    tmp2=b*(mb1*((m2/m1)**n)+mb2*((m1/m2)**n))
-    tmp3=c*(mb1*(1.0-m1/mb1)+mb2*(1.0-m2/mb2))
+    tmp1=((mb1*((m2/m1)**(1.0/3.0))*(1.0-2.0*c1)/c1)+(mb2*((m1/m2)**(1.0/3.0))*(1.0-2.0*c2)/c2))*a
+    tmp2=(mb1*((m2/m1)**n)+mb2*((m1/m2)**n))*b
+    tmp3=(mb1*(1.0-m1/mb1)+mb2*(1.0-m2/mb2))*c
 
-    meje_fit=np.max([tmp1+tmp2+tmp3+d,0])/1000.0
+    meje_fit=np.maximum(tmp1+tmp2+tmp3+d,0)/1000.0
 
     return meje_fit
 
@@ -35,14 +63,14 @@ def calc_vrho(m1,c1,m2,c2):
     b=0.444836
     c=-2.67385
 
-    return a*((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))+b
+    return ((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))*a+b
 
 def calc_vz(m1,c1,m2,c2):
     a=-0.315585
     b=0.63808
     c=-1.00757
 
-    return a*((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))+b
+    return ((m1/m2)*(1.0+c*c1)+(m2/m1)*(1.0+c*c2))*a+b
 
 def calc_vej(m1,c1,m2,c2):
     return np.sqrt(calc_vrho(m1,c1,m2,c2)**2.0+calc_vz(m1,c1,m2,c2)**2.0)
@@ -328,3 +356,6 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
 
     return tdays, Ltotm*1e40, mAB, Tobs
    
+
+register_model('BlueKilonovaLightcurve', KNTable, get_BlueKilonovaLightcurve_model,
+                 usage="table")
