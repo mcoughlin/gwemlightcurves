@@ -77,7 +77,7 @@ kappa_r = 10.0
 slope_r = -1.2
 
 # read in samples
-samples = KNTable.read_samples('data/event_data/G298048.dat')
+samples = KNTable.read_samples(opts.posterior_samples)
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
