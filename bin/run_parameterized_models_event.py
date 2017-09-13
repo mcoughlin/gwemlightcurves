@@ -31,6 +31,7 @@ def parse_commandline():
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_argument("-m","--model",default="BHNSKilonovaLightcurve,BNSKilonovaLightcurve,BlueKilonovaLightcurve,ArnettKilonovaLightcurve", help="BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve")
+    parser.add_argument("--name",default="G298048")
 
     args = parser.parse_args()
  
@@ -48,6 +49,19 @@ def hist_results(samples,Nbins=16,bounds=None):
     bins = (bins[1:] + bins[:-1])/2.0
 
     return bins, hist1
+
+def get_legend(model):
+
+    if model == "BNSKilonovaLightcurve":
+        legend_name = "Dietrich and Ujevic (2017)"
+    if model == "BHNSKilonovaLightcurve":
+        legend_name = "Kawaguchi et al. (2016)"
+    elif model == "BlueKilonovaLightcurve":
+        legend_name = "Metzger (2017)"
+    elif model == "ArnettKilonovaLightcurve":
+        legend_name = "Arnett (1982)"
+
+    return legend_name
 
 # Parse command line
 opts = parse_commandline()
@@ -131,3 +145,204 @@ for model in models:
     lbol_all[model] = np.empty((0,len(tt)), float)
     for filt, color, magidx in zip(filts,colors,magidxs):
         mag_all[model][filt] = np.empty((0,len(tt)))
+
+for model in models:
+    for row in model_tables[model]:
+        t, lbol, mag = row["t"], row["lbol"], row["mag"]
+
+        if np.sum(lbol) == 0.0:
+            #print "No luminosity..."
+            continue
+
+        allfilts = True
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            if len(idx) == 0:
+                allfilts = False
+                break
+        if not allfilts: continue
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            mag_all[model][filt] = np.append(mag_all[model][filt],[maginterp],axis=0)
+        idx = np.where((~np.isnan(np.log10(lbol))) & ~(lbol==0))[0]
+        f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
+        lbolinterp = 10**f(tt)
+        lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)
+
+linestyles = ['-', '-.', ':','--']
+
+plotName = "%s/mag.pdf"%(plotDir)
+plt.figure()
+cnt = 0
+for ii, model in enumerate(models):
+    maglen, ttlen = lbol_all[model].shape
+    for jj in xrange(maglen):
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            if cnt == 0 and ii == 0:
+                plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,label=filt,linestyle=linestyles[ii])
+            else:
+                plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,linestyle=linestyles[ii])
+        cnt = cnt + 1
+plt.xlabel('Time [days]')
+plt.ylabel('Absolute AB Magnitude')
+plt.legend(loc="best")
+plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+filts = ["u","g","r","i","z","y","J","H","K"]
+colors=cm.rainbow(np.linspace(0,1,len(filts)))
+magidxs = [0,1,2,3,4,5,6,7,8]
+colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+
+plotName = "%s/mag_panels.pdf"%(plotDir)
+plt.figure(figsize=(20,18))
+
+cnt = 0
+for filt, color, magidx in zip(filts,colors,magidxs):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(filts),1,cnt)
+    if cnt == 1:
+        ax1 = plt.subplot(eval(vals))
+    else:
+        ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+    #if opts.doEvent:
+    #    if not filt in data_out: continue
+    #    samples = data_out[filt]
+    #    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    #    idx = np.where(~np.isnan(y))[0]
+    #    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    #    plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+
+    for ii, model in enumerate(models):
+        legend_name = get_legend(model)
+
+        magmed = np.median(mag_all[model][filt],axis=0)
+        magmax = np.max(mag_all[model][filt],axis=0)
+        magmin = np.min(mag_all[model][filt],axis=0)
+
+        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
+        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
+    plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+    plt.xlim([0.0, 14.0])
+    plt.ylim([-18.0,-10.0])
+    plt.gca().invert_yaxis()
+    plt.grid()
+
+    if cnt == 1:
+        ax1.set_yticks([-18,-14,-10])
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
+    elif not cnt == len(filts):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+
+ax1.set_zorder(1)
+plt.xlabel('Time [days]',fontsize=24)
+plt.savefig(plotName)
+plt.close()
+
+plotName = "%s/iminusg.pdf"%(plotDir)
+plt.figure()
+cnt = 0
+for ii, model in enumerate(models):
+    legend_name = get_legend(model)
+
+    magmed = np.median(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
+    magmax = np.max(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
+    magmin = np.min(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
+
+    plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
+    plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
+
+plt.xlim([0.0, 14.0])
+plt.xlabel('Time [days]')
+plt.ylabel('Absolute AB Magnitude')
+plt.legend(loc="best")
+plt.gca().invert_yaxis()
+plt.savefig(plotName)
+plt.close()
+
+plotName = "%s/Lbol.pdf"%(plotDir)
+plt.figure()
+cnt = 0
+for ii, model in enumerate(models):
+    legend_name = get_legend(model)
+
+    lbolmed = np.median(lbol_all[model],axis=0)
+    lbolmax = np.max(lbol_all[model],axis=0)
+    lbolmin = np.min(lbol_all[model],axis=0)
+    plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
+    plt.fill_between(tt,lbolmin,lbolmax,facecolor=colors_names[ii],alpha=0.2)
+
+plt.xlim([0.0, 50.0])
+plt.legend(loc="best")
+plt.xlabel('Time [days]')
+plt.ylabel('Bolometric Luminosity [erg/s]')
+plt.savefig(plotName)
+plt.close()
+
+bounds = [-3.0,-1.0]
+xlims = [-3.0,-1.0]
+ylims = [1e-1,10]
+
+plotName = "%s/mej.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = hist_results(np.log10(model_tables[model]["mej"]),Nbins=25,bounds=bounds)
+    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
+bounds = [0.0,1.0]
+xlims = [0.0,1.0]
+ylims = [1e-1,20]
+
+plotName = "%s/vej.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = hist_results(model_tables[model]["vej"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+
+plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
+bounds = [0.0,2.0]
+xlims = [0.0,2.0]
+ylims = [1e-1,10]
+
+plotName = "%s/masses.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins1, hist1 = hist_results(model_tables[model]["m1"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins1,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+    bins2, hist2 = hist_results(model_tables[model]["m2"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins2,hist2,'--',color=colors_names[ii],linewidth=3)
+plt.xlabel(r"Masses",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()        
