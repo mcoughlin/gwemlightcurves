@@ -5,15 +5,38 @@
 import numpy as np
 import scipy
 
-def lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi,i,c,mb,mns):
+from .model import register_model
+from .. import KNTable
 
-    meje = calc_meje(q,chi,i,c,mb,mns)
-    vave = calc_vave(q)
-    t, lbol, mag = calc_lc(tini,tmax,dt,meje,vave,vmin,th,ph,kappa,eps,alp,eth)
- 
-    return t, lbol, mag
+def get_KaKy2016_model(table, **kwargs):
+    if not 'mej' in table.colnames:
+        # calc the mass of ejecta
+        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+        # calc the velocity of ejecta
+        table['vej'] = calc_vave(table['q'])
 
-def calc_meje(q,chi,i,c,mb,mns):
+    # Throw out smaples where the mass ejecta is less than zero.
+    mask = (table['mej'] > 0)
+    table = table[mask]
+    # Log mass ejecta
+    table['mej10'] = np.log10(table['mej'])
+    # calc the velocity of ejecta for those non-zero ejecta mass samples
+    table['vej'] = calc_vave(table['q'])
+    # Initialize columns
+    timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
+    table['t'] = [np.zeros(timeseries.size)]
+    table['lbol'] = [np.zeros(timeseries.size)]
+    table['mag'] =  [{}]
+    
+    # Loop over samples
+    for isample in range(len(table)):
+        table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample], table['tmax'][isample], table['dt'][isample],
+                                               table['mej'][isample], table['vej'][isample], table['vmin'][isample],
+                                               table['th'][isample], table['ph'][isample], table['kappa'][isample],
+                                               table['eps'][isample], table['alp'][isample], table['eth'][isample]) 
+    return table
+
+def calc_meje(q,chi_eff,c,mb,mns):
 
     a1=-2.269e-3
     a2=4.464e-2 
@@ -22,16 +45,12 @@ def calc_meje(q,chi,i,c,mb,mns):
     n1=1.352
     n2=0.2497
 
-    ru = np.pi/180.0
+    tmp1=r_isco(chi_eff)*(q**n1)*a1;
+    tmp2=(q**n2)*(1-2*c)*a2/c
+    tmp3=(1-mns/mb)*a3+a4
 
-    chi_eff=chi*np.cos(i*ru);
+    meje_fit=mb*np.maximum(tmp1+tmp2+tmp3,0);
 
-    tmp1=a1*r_isco(chi_eff)*(q**n1);
-    tmp2=a2*(q**n2)*(1-2*c)/c
-    tmp3=a3*(1-mns/mb)+a4
-
-    meje_fit=mb*np.max([tmp1+tmp2+tmp3,0]);
-  
     return meje_fit
 
 def calc_vave(q):
@@ -50,16 +69,13 @@ def r_isco(chi):
   return 3+z2-np.sign(chi)*((3-z1)*(3+z1+2*z2))**(1/2.0)
 
 def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
-  
+
   td, bc = setbc_APR4Q3a75()
 
-  t_d=[]
   lbol_d=[]
   bc_tmp=[]
   
-  #t=np.max([tini,td[0]*(mej**(1/3.2))])
-  t = tini  
-  t_d = np.arange(tini,tmax+dt,dt)
+  t_d = np.arange(tini,tmax+dt,dt)  
 
   mag_d = {}
   for ii in xrange(9):
@@ -81,27 +97,44 @@ def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
         fbm    = fb(mej,vave)
         fdm    = fd(mej,vave)
 
-        eth = 0.36*(np.exp(-fam*t_d)+ np.log(1+2*fbm*t_d**fdm)/(2*fbm*t_d**fdm))
+  for t in t_d:
 
-  lbol_d=kn_lbol(t_d,mej,vave,vmin,th,ph,kappa,eps,alp,eth)
-  mbol_d=mag_bol(lbol_d,10)
-  tt_d=t_d/(mej**(1/3.2))
+    if epsBarnes:
+          eth = 0.36*(np.exp(-fam*t)+ np.log(1+2*fbm*t**fdm)/(2*fbm*t**fdm))[0]
 
-  #while t < tmax:
-  for jj in xrange(len(t_d)):
-    t = t_d[jj]  
-
-    bc_tmp=getBC(td,bc,tt_d[jj])
-
+    lbol=kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth)
+    lbol_d.append(lbol)
+    mbol=mag_bol(lbol,10)
+    tt=t/(mej**(1/3.2))
+    bc_tmp=getBC(td,bc,tt)
+   
     for ii in xrange(9):
         if t > 2.*(mej*100)**(1.0/3.2):
-          mag_d[ii] = np.append(mag_d[ii],mbol_d[jj]-bc_tmp[ii])
+          mag_d[ii] = np.append(mag_d[ii],mbol-bc_tmp[ii])
         else:
           mag_d[ii] = np.append(mag_d[ii],np.nan)
 
   lbol_d = np.array(lbol_d)
 
-  return t_d, lbol_d, mag_d
+  wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
+  wavelength_interp = 9603.1
+
+  mag_y = np.zeros(t_d.shape)
+  for ii in xrange(len(t_d)):
+      mags = [mag_d[jj][ii] for jj in xrange(8)]
+      mag_y[ii] = np.interp(wavelength_interp,wavelengths,mags)
+  mag_new = {}
+  mag_new[0] = mag_d[0]
+  mag_new[1] = mag_d[1]
+  mag_new[2] = mag_d[2]
+  mag_new[3] = mag_d[3]
+  mag_new[4] = mag_d[4]
+  mag_new[5] = mag_y
+  mag_new[6] = mag_d[5]
+  mag_new[7] = mag_d[6]
+  mag_new[8] = mag_d[7]
+
+  return t_d, lbol_d, mag_new
 
 def mag_bol(lbol,d):
   f0=2.52e-5
@@ -112,19 +145,19 @@ def mag_bol(lbol,d):
 
 def getBC(td,bc,tt):
 
-  td_tmp = np.zeros((len(td)-1,2))
-  td_tmp[:,0] = td[:-1]
-  td_tmp[:,1] = td[1:]
-
   if (tt<td[0]) or (tt>td[99]):
       return np.array([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
   else:
-      ii = np.intersect1d(np.where(td_tmp[:,0]<=tt)[0],np.where(td_tmp[:,1]>=tt)[0])
+      for ii in xrange(100):
+          if (td[ii]<=tt) and (tt<=td[ii+1]):
+              break
       bc_tmp=np.zeros((9,))
       fac=(tt-td[ii])/(td[ii+1]-td[ii])
-      bc_tmp=(1-fac)*bc[:,ii]+fac*bc[:,ii+1]
-      bc_tmp[~np.isfinite(bc_tmp)] = np.nan
-
+      for jj in xrange(9):
+          bc_tmp[jj]=(1-fac)*bc[jj][ii]+fac*bc[jj][ii+1]
+          if not np.isfinite(bc_tmp[jj]):
+              bc_tmp[jj] = np.nan  
+  
       return bc_tmp
 
 def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
@@ -136,19 +169,28 @@ def kn_lbol(t,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
   lumu0=eneu0/day
   kappa0=kappa/lu0/lu0*msun
   eps0=eth*eps/eneu0*day*msun
+
+  vdiff = vmax(vave,vmin)-vmin
+  if vdiff < 0:
+      tobs = 0.0
+  else:
+      tobs=(th*mej*kappa0/(2*ph*vdiff))**(1/2.0)
   
-  tobs=(th*mej*kappa0/(2*ph*(vmax(vave,vmin)-vmin)))**(1/2.0)
-  
-  fac = t/tobs
-  idx = np.where(t>=tobs)[0]
-  fac[idx] = 1.0
+  if (t<tobs):
+      fac=t/tobs
+  else:
+      fac=1 
   
   lbol=(1+th)*mej*fac*eps0*(t**(-alp))*lumu0
   
   return lbol
 
 def vmax(vave,vmin):
-  return 0.5*((12*vave*vave-3*vmin*vmin)**(1/2.0) -vmin) 
+  vdiff = 12*vave*vave-3*vmin*vmin
+  if vdiff < 0:
+      return 0
+  else:
+      return 0.5*(vdiff**(1/2.0) -vmin) 
 
 def setbc_APR4Q3a75():
   td= np.zeros((100,))
@@ -1073,3 +1115,6 @@ def setbc_APR4Q3a75():
   bc[7][99] =  2.4374761035363530
 
   return td, bc
+
+register_model('KaKy2016', KNTable, get_KaKy2016_model,
+                 usage="table")

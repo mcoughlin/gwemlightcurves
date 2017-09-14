@@ -36,7 +36,7 @@ def parse_commandline():
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
-    parser.add_option("-n","--name",default="rpft_m005_v2,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
+    parser.add_option("-n","--name",default="rpft_m05_v2,t300A3p15,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2,Blue_H4M050V20")
     parser.add_option("-f","--outputName",default="G298048_all")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
@@ -132,7 +132,7 @@ if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
 models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
-models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
+models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2015)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
 
 if opts.doAB:
 
@@ -342,7 +342,7 @@ if opts.doAB:
     plotName = "%s/models_panels.pdf"%(plotDir)
     plt.figure(figsize=(20,18))
 
-    tini, tmax, dt = 0.0, 14.0, 0.1
+    tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     cnt = 0
@@ -360,7 +360,10 @@ if opts.doAB:
             t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
             idx = np.where(~np.isnan(y))[0]
             t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-            plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+            idx = np.where(np.isfinite(sigma_y))[0]
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+            idx = np.where(~np.isfinite(sigma_y))[0]
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
 
         if opts.doModels:
             for model in model_data:
@@ -396,13 +399,13 @@ if opts.doAB:
             plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
     
         plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
-        plt.xlim([0.0, 14.0])
+        plt.xlim([0.0, 18.0])
         plt.ylim([-18.0,-10.0])
         plt.gca().invert_yaxis()
         plt.grid()
  
         if cnt == 1:
-            ax1.set_yticks([-18,-14,-10])
+            ax1.set_yticks([-18,-16,-14,-12,-10])
             plt.setp(ax1.get_xticklabels(), visible=False)
             l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
         elif not cnt == len(filts):

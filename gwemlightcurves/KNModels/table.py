@@ -107,7 +107,6 @@ class KNTable(Table):
         data_out = Table.read(filename_samples, format='ascii') 
         return KNTable(data_out)
 
-
     def calc_tidal_lambda(self, remove_negative_lambda=False):
         """
         Takes posterior samples and calculates lambda1 and lambda2 from

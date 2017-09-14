@@ -9,15 +9,18 @@ import numpy as np
 from .model import register_model
 from .. import KNTable
 
-def get_BlueKilonovaLightcurve_model(table, **kwargs):
-    table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+def get_Me2017_model(table, **kwargs):
+    if not 'mej' in table.colnames:
+        # calc the mass of ejecta
+        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+        # calc the velocity of ejecta
+        table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
+
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
-    # calc the velocity of ejecta for those non-zero ejecta mass samples
-    table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
 
     # Initialize lightcurve values in table
     timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
@@ -357,5 +360,5 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     return tdays, Ltotm*1e40, mAB, Tobs
    
 
-register_model('BlueKilonovaLightcurve', KNTable, get_BlueKilonovaLightcurve_model,
+register_model('Me2017', KNTable, get_Me2017_model,
                  usage="table")
