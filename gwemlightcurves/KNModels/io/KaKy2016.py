@@ -11,7 +11,7 @@ from .. import KNTable
 def get_KaKy2016_model(table, **kwargs):
     if not 'mej' in table.colnames:
         # calc the mass of ejecta
-        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+        table['mej'] = calc_meje(table['q'], table['chi_eff'], table['c'], table['mb'], table['mns'])
         # calc the velocity of ejecta
         table['vej'] = calc_vave(table['q'])
 
@@ -20,8 +20,6 @@ def get_KaKy2016_model(table, **kwargs):
     table = table[mask]
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
-    # calc the velocity of ejecta for those non-zero ejecta mass samples
-    table['vej'] = calc_vave(table['q'])
     # Initialize columns
     timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
     table['t'] = [np.zeros(timeseries.size)]

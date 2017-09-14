@@ -43,7 +43,7 @@ def parse_commandline():
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
     parser.add_option("--doEOSFit",  action="store_true", default=False)
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
@@ -881,7 +881,7 @@ def get_truths(name,model):
 
     if name == "DiUj2017_H4M005V20":
         truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
-    elif name == "BHNS_H4M005V20":
+    elif name == "KaKy2016_H4M005V20":
         truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
     elif name == "rpft_m005_v2":
         truths = [0,np.log10(0.005),0.2,False,False,False]
@@ -948,7 +948,7 @@ else:
     else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","BHNS","Me2017","SmCh2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -1016,8 +1016,8 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         ph = 3.14
 
         if m1 > 3:
-            mej = BHNSKilonovaLightcurve.calc_meje(q,chi_eff,c2,mb2,m2)
-            vej = BHNSKilonovaLightcurve.calc_vave(q)
+            mej = KaKy2016KilonovaLightcurve.calc_meje(q,chi_eff,c2,mb2,m2)
+            vej = KaKy2016KilonovaLightcurve.calc_vave(q)
         else:
             mej = DiUj2017KilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
             vej = DiUj2017KilonovaLightcurve.calc_vej(m1,c1,m2,c2)
@@ -1085,7 +1085,7 @@ else:
     fid.write('%.5f %.5f\n'%(np.nan,np.nan))
     fid.close()
 
-    if opts.model == "BHNS":
+    if opts.model == "KaKy2016":
         filename = os.path.join(plotDir,'truth.dat')
         fid = open(filename,'w+')
         fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan,np.nan))
@@ -1096,10 +1096,10 @@ else:
         fid.write('%.5f %.5f %.5f %.5f\n'%(np.nan,np.nan,np.nan,np.nan))
         fid.close()
 
-if opts.model in ["BHNS","DiUj2017","Me2017","SmCh2017"]:
+if opts.model in ["KaKy2016","DiUj2017","Me2017","SmCh2017"]:
 
     if opts.doMasses:
-        if opts.model == "BHNS":
+        if opts.model == "KaKy2016":
             if opts.doEOSFit:
                 parameters = ["t0","q","chi_eff","mns","c","th","ph","zp"]
                 labels = [r"$T_0$",r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm ns}$",r"$C$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
@@ -1144,7 +1144,7 @@ if opts.model in ["BHNS","DiUj2017","Me2017","SmCh2017"]:
                 n_params = len(parameters)
                 pymultinest.run(myloglike_SmCh2017, myprior_SmCh2017, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
     elif opts.doEjecta:
-        if opts.model == "BHNS":
+        if opts.model == "KaKy2016":
             parameters = ["t0","mej","vej","th","ph","zp"]
             labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
             n_params = len(parameters)
@@ -1199,7 +1199,7 @@ data = np.loadtxt(multifile)
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
 
-if opts.model == "BHNS":
+if opts.model == "KaKy2016":
     if opts.doMasses:
         if opts.doEOSFit:
             t0 = data[:,0]
@@ -1625,7 +1625,7 @@ plt.grid()
 plt.savefig(plotName)
 plt.close()
 
-if opts.model == "BHNS":
+if opts.model == "KaKy2016":
     if opts.doMasses:
         filename = os.path.join(plotDir,'samples.dat')
         fid = open(filename,'w+')
