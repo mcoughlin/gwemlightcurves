@@ -7,8 +7,8 @@ Welcome to gwemlightcurves's documentation!
 ===========================================
 
 
-Installing GravitySpy
----------------------
+Installing gwemlightcurves
+--------------------------
 
 The easiest method to install gwemlightcurves is using `pip <https://pip.pypa.io/en/stable/>`_ directly from the `GitHub repository <https://github.com/mcoughlin/gwemlightcurves>`_:
 
