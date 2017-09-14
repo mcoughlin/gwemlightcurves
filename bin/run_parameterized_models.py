@@ -2,6 +2,8 @@
 import os, sys
 import numpy as np
 import optparse
+
+from astropy.table import Table, Column
  
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -9,8 +11,8 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
-from gwemlightcurves import BNSKilonovaLightcurve, BHNSKilonovaLightcurve, SALT2, BOXFit, BlueKilonovaLightcurve, ArnettKilonovaLightcurve
-from gwemlightcurves import BHNSKilonovaLightcurveOpt
+from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves import __version__
 
 def parse_commandline():
     """
@@ -21,7 +23,7 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots") 
     parser.add_option("-b","--boxfitDir",default="../boxfit")
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=3.0,type=float)
     parser.add_option("-a","--chi_eff",default=0.1,type=float) 
@@ -100,44 +102,83 @@ epsilon_B = 1e-2
 epsilon_E = 1e-1
 ksi_N = 1
 
-if opts.model == "BHNS":
+#add default values from above to table
+samples = {}
+samples['tini'] = tini
+samples['tmax'] = tmax
+samples['dt'] = dt
+samples['vmin'] = vmin
+samples['th'] = th
+samples['ph'] = ph
+samples['kappa'] = kappa
+samples['eps'] = eps
+samples['alp'] = alp
+samples['eth'] = eth
+samples['flgbct'] = flgbct
+samples['beta'] = beta
+samples['kappa_r'] = kappa_r
+samples['slope_r'] = slope_r
+
+samples['m1'] = opts.m1
+samples['m2'] = opts.m2
+samples['q'] = opts.massratio
+samples['chi_eff'] = opts.chi_eff
+samples['mej'] = opts.mej
+samples['vej'] = opts.vej
+samples['theta_0'] = opts.theta_0
+samples['E'] = opts.E
+samples['n'] = opts.n
+samples['theta_obs'] = opts.theta_obs
+samples['beta'] = opts.beta
+samples['kappa_r'] = opts.kappa_r
+samples['slope_r'] = opts.slope_r
+samples['c1'] = c
+samples['c2'] = c
+samples['mb1'] = mb
+samples['mb2'] = mb
+t = Table()
+for key, val in samples.iteritems():
+    t.add_column(Column(data=[val],name=key))
+samples = t
+model_table = KNTable.model(opts.model, samples)
+t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0] 
+
+if opts.model == "KaKy2016":
     if opts.doEjecta:
-        t, lbol, mag = BHNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
-        #t1, lbol1, mag1 = BHNSKilonovaLightcurveOpt.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
-        #print np.nansum(mag1[0]-mag[0])
-        name = "BHNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+        name = "KaKy2016_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
-        t, lbol, mag = BHNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,q,chi_eff,c,mb,mns)
         name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi_eff*100)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
-elif opts.model == "BNS":
+elif opts.model == "DiUj2017":
     if opts.doEjecta:
-        t, lbol, mag = BNSKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct)
-        name = "BNS_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+        name = "DiUj2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
-        t, lbol, mag = BNSKilonovaLightcurve.lightcurve(tini,tmax,dt,vmin,th,ph,kappa,eps,alp,eth,m1,mb,c,m2,mb,c,flgbct)
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
-elif opts.model == "Blue":
+elif opts.model == "Me2017":
     if opts.doEjecta:
-        t, lbol, mag = BlueKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r)
-        name = "Blue_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+        name = "Me2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
-        t, lbol, mag = BlueKilonovaLightcurve.lightcurve(tini,tmax,dt,beta,kappa_r,m1,mb1,c1,m2,mb2,c2)
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
-elif opts.model == "Arnett":
+elif opts.model == "SmCh2017":
     if opts.doEjecta:
-        t, lbol, mag, Tobs = ArnettKilonovaLightcurve.calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r)
-        name = "Arnett_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+        name = "SmCh2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
-        t, lbol, mag, Tobs = ArnettKilonovaLightcurve.lightcurve(tini,tmax,dt,slope_r,kappa_r,m1,mb1,c1,m2,mb2,c2)
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
+elif opts.model == "WoKo2017":
+    if opts.doEjecta:
+        name = "WoKo2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+    elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
     else:
         print "Enable --doEjecta or --doMasses"

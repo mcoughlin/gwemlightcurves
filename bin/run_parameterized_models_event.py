@@ -30,7 +30,7 @@ def parse_commandline():
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_argument("-m","--model",default="BHNSKilonovaLightcurve,BNSKilonovaLightcurve,BlueKilonovaLightcurve,ArnettKilonovaLightcurve", help="BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve")
+    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017")
     parser.add_argument("--name",default="G298048")
 
     args = parser.parse_args()
@@ -52,14 +52,14 @@ def hist_results(samples,Nbins=16,bounds=None):
 
 def get_legend(model):
 
-    if model == "BNSKilonovaLightcurve":
+    if model == "DiUj2017":
         legend_name = "Dietrich and Ujevic (2017)"
-    if model == "BHNSKilonovaLightcurve":
+    if model == "KaKy2016":
         legend_name = "Kawaguchi et al. (2016)"
-    elif model == "BlueKilonovaLightcurve":
+    elif model == "Me2017":
         legend_name = "Metzger (2017)"
-    elif model == "ArnettKilonovaLightcurve":
-        legend_name = "Arnett (1982)"
+    elif model == "SmCh2017":
+        legend_name = "Smartt et al. (2017)"
 
     return legend_name
 
@@ -68,8 +68,8 @@ opts = parse_commandline()
 
 models = opts.model.split(",")
 for model in models:
-    if not model in ["BHNSKilonovaLightcurve", "BNSKilonovaLightcurve", "BlueKilonovaLightcurve", "ArnettKilonovaLightcurve"]:
-        print "Model must be either: BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve"
+    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017"]:
+        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017"
         exit(0)
 
 # These are the default values supplied with respect to generating lightcurves

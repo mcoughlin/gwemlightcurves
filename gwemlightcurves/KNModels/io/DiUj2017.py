@@ -8,17 +8,20 @@ import scipy
 from .model import register_model
 from .. import KNTable
 
-def get_BNSKilonovaLightcurve_model(table, **kwargs):
-    table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+def get_DiUj2017_model(table, **kwargs):
+    if not 'mej' in table.colnames:
+        # calc the mass of ejecta
+        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+        # calc the velocity of ejecta
+        table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
+
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
-    # calc the velocity of ejecta for those non-zero ejecta mass samples
-    table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
     # Initialize columns
-    timeseries = np.arange(table['tini'][0], table['tmax'][0], table['dt'][0])
+    timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
     table['t'] = [np.zeros(timeseries.size)]
     table['lbol'] = [np.zeros(timeseries.size)]
     table['mag'] =  [{}]
@@ -83,13 +86,11 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     td, bct = setbc_tabular()
     bc = setbc()
 
-    t_d=[]
     lbol_d=[]
     bc_tmp=[]
     dc=0    
 
-    t=np.max([tini,2.*(mej*100)**(1.0/3.2)])
-    t = tini
+    t_d = np.arange(tini,tmax+dt,dt)
 
     mag_d = {}
     for ii in xrange(8):
@@ -111,9 +112,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
         fbm    = fb(mej,vej)
         fdm    = fd(mej,vej)
 
-    while t < tmax:
-      t_d.append(t)
-
+    for t in t_d:
       if epsBarnes:
           eth = 0.36*(np.exp(-fam*t)+ np.log(1+2*fbm*t**fdm)/(2*fbm*t**fdm))[0] 
 
@@ -129,8 +128,6 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
         else:
           mag_d[ii] = np.append(mag_d[ii],np.nan)
 
-      t=t+dt
-    t_d = np.array(t_d)
     lbol_d = np.array(lbol_d)
 
     wavelengths = [3543, 4775.6, 6129.5, 7484.6, 8657.8, 12350, 16620, 21590]
@@ -1476,5 +1473,5 @@ def setbc_tabular():
     
     return td, bct
 
-register_model('BNSKilonovaLightcurve', KNTable, get_BNSKilonovaLightcurve_model,
+register_model('DiUj2017', KNTable, get_DiUj2017_model,
                  usage="table")

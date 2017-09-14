@@ -20,10 +20,11 @@
 """
 
 from . import (  # pylint: disable=unused-import
-    BNSKilonovaLightcurve,  # BNS Model
-    ArnettKilonovaLightcurve, # Arnett Model
-    BlueKilonovaLightcurve, # Blue Model
-    BHNSKilonovaLightcurve, # BHNS Model
+    DiUj2017,  # Dietrich and Ujevic (2017) Model
+    SmCh2017, # Smartt et al. (2017) Model
+    Me2017, # Metzger (2017) Model
+    KaKy2016, # Kawaguchi et al. (2016) Model
+    WoKo2017, # Wollaeger et al. (2017) Model
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'
