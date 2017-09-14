@@ -20,9 +20,7 @@
 """Gravitational-wave Electromagnetic Optimization
 """
 
-# load tables
-from astropy.table import (Column, Table)
-from .table import KNTable
+from .model import *
+from .loglike import *
+from .prior import *
 
-# attach unified I/O
-from . import io

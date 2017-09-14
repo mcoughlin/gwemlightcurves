@@ -8,14 +8,17 @@ from .model import register_model
 from .. import KNTable
 
 def get_WoKo2017_model(table, **kwargs):
-    table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
+    if not 'mej' in table.colnames:
+        # calc the mass of ejecta
+        table['mej'] = calc_meje(table['q'], table['chi_eff'], table['c'], table['mb'], table['mns'])
+        # calc the velocity of ejecta
+        table['vej'] = calc_vave(table['q'])
+
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
-    # calc the velocity of ejecta for those non-zero ejecta mass samples
-    table['vej'] = calc_vej(table['m1'],table['c1'],table['m2'],table['c2'])
     # Initialize lightcurve values in table
     timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
     table['t'] = [np.zeros(timeseries.size)]
@@ -26,7 +29,7 @@ def get_WoKo2017_model(table, **kwargs):
     for isample in range(len(table)):
         table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample], table['tmax'][isample],
                                                                      table['dt'][isample], table['mej'][isample],
-                                                                     table['vej'][isample], table['theta_0'][isample], table['kappa_r'][isample])
+                                                                     table['vej'][isample], table['theta_r'][isample], table['kappa_r'][isample])
     return table
 
 def calc_meje(m1,mb1,c1,m2,mb2,c2):
@@ -127,7 +130,12 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
         if ii == 0:
             lbol = 10**fam
         else:
-            mAB[:,int(ii-1)] = np.squeeze(fam + mejconst[int(ii-1)]*np.log10(mej/mej0) + vejconst[int(ii-1)]*np.log10(vej/vej0) + kappaconst[int(ii-1)]*np.log10(kappa_r/kappa0))
+            mAB[:,int(ii-1)] = np.squeeze(fam + mejconst[int(ii-1)]*np.log10(mej/mej0) + vejconst[int(ii-1)]*np.log10(vej/vej0)) #+ kappaconst[int(ii-1)]*np.log10(kappa_r/kappa0))
+
+    tmax = (kappa_r/10)**0.35 * (mej/10**-2)**0.318 * (vej/0.1)**-0.60
+    Lmax = 2.8*10**40 * (kappa_r/10)**-0.60 * (mej/10**-2)**0.426 * (vej/0.1)**0.776
+    t = t*tmax/t[np.argmax(lbol)]
+    lbol = lbol*Lmax/np.max(lbol)
 
     wavelengths = [4775.6, 6129.5, 7484.6, 8657.8, 9603.1, 12350, 16620, 21590]
     wavelength_interp = 3543

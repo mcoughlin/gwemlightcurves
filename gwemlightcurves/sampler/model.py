@@ -1,0 +1,294 @@
+
+from gwemlightcurves.KNModels import KNTable
+from astropy.table import Table, Column
+
+def generate_lightcurve(model,samples):
+
+    t = Table()
+    for key, val in samples.iteritems():
+        t.add_column(Column(data=[val],name=key))
+    samples = t
+    model_table = KNTable.model(model, samples)
+    t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0]
+
+    return t, lbol, mag
+
+def KaKy2016_model(q,chi_eff,mns,mb,c,th,ph):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vmin = 0.00
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['q'] = q
+    samples['chi_eff'] = chi_eff
+    samples['mns'] = mns
+    samples['mb'] = mb
+    samples['c'] = c
+    samples['th'] = th
+    samples['ph'] = ph
+    samples['vmin'] = vmin
+    samples['kappa'] = kappa
+    samples['eps'] = eps
+    samples['alp'] = alp
+    samples['eth'] = eth
+
+    model = "KaKy2016"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def KaKy2016_model_ejecta(mej,vej,th,ph):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vmin = 0.00
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['th'] = th
+    samples['ph'] = ph
+    samples['vmin'] = vmin
+    samples['kappa'] = kappa
+    samples['eps'] = eps
+    samples['alp'] = alp
+    samples['eth'] = eth
+
+    model = "KaKy2016"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Me2017_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+    samples['beta'] = beta
+    samples['kappa_r'] = kappa_r
+
+    model = "Me2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Me2017_model_ejecta(mej,vej,beta,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['beta'] = beta
+    samples['kappa_r'] = kappa_r
+
+    model = "Me2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def WoKo2017_model(m1,mb1,c1,m2,mb2,c2,theta_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+    samples['theta_r'] = theta_r
+    samples['kappa_r'] = kappa_r
+
+    model = "WoKo2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def WoKo2017_model_ejecta(mej,vej,theta_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['theta_r'] = theta_r
+    samples['kappa_r'] = kappa_r
+
+    model = "WoKo2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def SmCh2017_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+    samples['slope_r'] = slope_r
+    samples['kappa_r'] = kappa_r
+
+    model = "SmCh2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def SmCh2017_model_ejecta(mej,vej,slope_r,kappa_r):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['slope_r'] = slope_r
+    samples['kappa_r'] = kappa_r
+
+    model = "SmCh2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def DiUj2017_model(m1,mb1,c1,m2,mb2,c2,th,ph):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vmin = 0.00
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    flgbct = 1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+    samples['th'] = th
+    samples['ph'] = ph
+    samples['vmin'] = vmin
+    samples['kappa'] = kappa
+    samples['eps'] = eps
+    samples['alp'] = alp
+    samples['eth'] = eth
+    samples['flgbct'] = flgbct
+
+    model = "DiUj2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def DiUj2017_model_ejecta(mej,vej,th,ph):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    vave = 0.267
+    vmin = 0.00
+    kappa = 10.0
+    eps = 1.58*(10**10)
+    alp = 1.2
+    eth = 0.5
+
+    flgbct = 1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['th'] = th
+    samples['ph'] = ph
+    samples['vmin'] = vmin
+    samples['kappa'] = kappa
+    samples['eps'] = eps
+    samples['alp'] = alp
+    samples['eth'] = eth
+    samples['flgbct'] = flgbct
+
+    model = "DiUj2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def sn_model(z,t0,x0,x1,c):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,z,t0,x0,x1,c)
+
+    return t, lbol, mag

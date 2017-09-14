@@ -1,0 +1,153 @@
+! boxfitsettings.txt
+!
+! Created July 1, 2011 by HJvE
+! Last modified July 28, 2016 by HJvE
+! 
+! This file contains the parameters for BOXfit v 2.0
+!
+!-------------------------------------------------------------------------------
+!
+! Select what the boxfit code should do. There are various options:
+!
+! -1 self test code in program
+!  0 calculate chi^2 once for current boxfitsettings and dataset.
+!  1 create light curve between t_0 and t_1, using observer frequency nu_0.
+!  2 create spectrum between nu_0 and nu_1, using observer time t_0.
+!  3 perform iterative fit on dataset starting from boxfitsettings fit values.
+!  4 determine errors on fit parameters via Monte Carlo procedure, assuming 
+!    boxfitsettings represent the best fit values. Use full method of 
+!    recalculating light curves.
+!  5 determine partial derivatives and exit 
+!  6 determine errors on fit parameters via Monte Carlo procedure, assuming 
+!    boxfitsettings represent the best fit values. Use partial derivatives
+!    method with best fit light curve as starting point.
+
+  what_to_do = 1
+
+!-------------------------------------------------------------------------------
+! file I/O settings
+
+  ! set path to BOX files and first part of BOX file name.
+
+  !box_filename_base = "../boxfit/boxISM/boxISM_"
+  box_filename_base = "../boxfit/boxboostISM/boxboostISM_"
+  !box_filename_base = "../boxfit/boxwindmedboost/boxwindmedboost_"
+  !box_filename_base = "../boxfit/boxwindboost/boxwindboost_"
+
+  box0 = 0  ! First included BOX number
+  box1 = 22 ! Last Included BOX number
+
+  data_filename = "../data/grb990510.txt"        ! filename broadband data file
+
+  save_intermediate = 1               ! save intermediate outcome after each
+                                      ! drop in annealing temperature; 
+                                      ! yes (1) or no (0)
+  start_from_simplex = 0              ! Start fit from existing simplex
+  simplex_filename = "newsimplex.txt" ! filename for the simplex file
+
+  save_emission_profile = 0 ! save dF / dt_e when computing light curve or
+                            ! a spectrum. 
+
+!-------------------------------------------------------------------------------
+! light curve and spectrum settings
+
+  nu_0 = 2.42915e+14 ! Lowest frequency for spectrum, frequency for light curve (Hz)
+  nu_1 = 1e40 ! Highest frequency for spectrum (Hz)
+  t_0 = 1e0  ! Earliest time for light curve, time for spectrum (s)
+  t_1 =  1e6  ! Latest time for light curve (s)
+
+  no_points = 100 ! how many data points in the light curve / spectrum
+  
+!-------------------------------------------------------------------------------
+! non-fit parameter settings
+
+  d_L = 3.09e19    ! observer luminosity distance (cm)
+  z = 0.0       ! cosmic redshift  
+
+!-------------------------------------------------------------------------------
+! radiation mechanism related
+
+  self_absorption = 1   ! use synchrotron self-absorption
+  electron_cooling = 1  ! use electron cooling
+  include_box = 1       ! include box fluid states
+  include_BM = 1        ! include early time Blandford-McKee fluid states
+
+!-------------------------------------------------------------------------------
+! resolution related
+
+  eds_r_res = 1000 ! number of rays in EDS r direction
+  eds_phi_res = 1  ! number of rays in EDS phi direction
+  fluid_res = 1000 ! How many time 'snapshots' are used. Sum total for both
+                   ! BOX based snapshots and BM based snapshots (if any)
+  jet = both       ! Which jets to compute, use forward, both or receding
+
+  BM_start = 300.0 ! Starting fluid Lorentz factor for BM solution
+  BM_stop = -1     ! Stopping fluid Lorentz factor for BM. If < 0, use box value
+  
+  eds_ur_max = -1. ! spatial extent of EDS rays (cm). Set < 0 for automatic
+  t_e_0 = -1.      ! Earliest emission time (s). Set < 0 for automatic
+  t_e_1 = -1.      ! Latest emission time (s). Set < 0 for automatic
+
+  MC_runs = 10000    ! How many Monte Carlo values should be calculated
+  temp =  1e5        ! Starting temperature for simulated annealing
+  iter = 100         ! How many iterations at a given temperature
+  temp_factor = 0.99 ! fractional drop in temperature after each cycle
+  temp_lowest = 1e-2 ! from this temperature, drop to temperature zero
+
+!-------------------------------------------------------------------------------
+! initial values for the fit parameters
+
+  theta_0 = 0.10000    ! jet half opening angle (radians)
+  E = 1e53         ! explosion energy (erg)
+  n = 1.0          ! circumburst number density at distance 1e17 cm (cm^-3)
+  theta_obs = 0.0  ! observer angle (radians)
+  p = 2.5          ! synchrotron electron power law negative slope
+  epsilon_B = 1e-2 ! magnetic field energy fraction
+  epsilon_E = 1e-1 ! accelerated particle energy density fraction
+  ksi_N = 1        ! accelerated particle number density fraction
+
+!-------------------------------------------------------------------------------
+! which fit parameters are frozen (1 frozen, 0 thawed)
+
+  theta_0_frozen = 0
+  E_frozen = 0
+  n_frozen = 0
+  theta_obs_frozen = 1
+  p_frozen = 1
+  epsilon_B_frozen = 0
+  epsilon_E_frozen = 0
+  ksi_N_frozen = 1
+
+!-------------------------------------------------------------------------------
+! fit parameter ranges
+
+  theta_0_min = 0.045
+  E_min = 1e47
+  n_min = 1e-5
+  theta_obs_min = 0.0
+  p_min = 2.0
+  epsilon_B_min = 1e-5
+  epsilon_E_min = 1e-5
+  ksi_N_min = 1e-5
+
+  theta_0_max = 0.5
+  E_max = 1e56
+  n_max = 1e5
+  theta_obs_max = 1.57
+  p_max = 3.0
+  epsilon_B_max = 1.0
+  epsilon_E_max = 1.0
+  ksi_N_max = 1.0
+
+!-------------------------------------------------------------------------------
+! initial simplex parameter ranges
+
+  theta_0_simplex_max = 0.5
+  E_simplex_max = 1e56
+  n_simplex_max = 1e5
+  theta_obs_simplex_max = 1.57
+  p_simplex_max = 3.0
+  epsilon_B_simplex_max = 1.0
+  epsilon_E_simplex_max = 1.0
+  ksi_N_simplex_max = 1.0
+  
