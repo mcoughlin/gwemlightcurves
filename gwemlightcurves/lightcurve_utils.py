@@ -403,7 +403,7 @@ def EOSfit(mns,c):
     mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
     return mb
 
-def get_truths(name,model):
+def get_truths(name,model,n_params,doEjecta):
     truths = []
     for ii in xrange(n_params):
         #truths.append(False)
@@ -412,7 +412,7 @@ def get_truths(name,model):
     if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
         return truths
 
-    if not opts.doEjecta:
+    if not doEjecta:
         return truths
 
     if name == "DiUj2017_H4M005V20":

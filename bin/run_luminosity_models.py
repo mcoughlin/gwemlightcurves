@@ -3,6 +3,7 @@ import os, sys, glob
 import optparse
 import numpy as np
 
+from scipy.interpolate import interpolate as interp
 from astropy.table import Table, Column
 
 import matplotlib
@@ -236,8 +237,8 @@ Global.ZPRange = ZPRange
 Global.T0Range = T0Range
 Global.doLuminosity = 1
 
-data, tmag, lbol, mag, t0_best, zp_best = run.multinest(opts,plotDir)
-truths = lightcurve_utils.get_truths(opts.name,opts.model)
+data, tmag, lbol, mag, t0_best, zp_best, n_params, labels = run.multinest(opts,plotDir)
+truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
 if n_params >= 8:
     title_fontsize = 26

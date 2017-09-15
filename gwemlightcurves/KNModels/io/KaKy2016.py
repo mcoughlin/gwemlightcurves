@@ -8,6 +8,8 @@ import scipy
 from .model import register_model
 from .. import KNTable
 
+from gwemlightcurves.EjectaFits.KaKy2016 import calc_meje, calc_vave
+
 def get_KaKy2016_model(table, **kwargs):
     if not 'mej' in table.colnames:
         # calc the mass of ejecta
@@ -33,26 +35,6 @@ def get_KaKy2016_model(table, **kwargs):
                                                table['th'][isample], table['ph'][isample], table['kappa'][isample],
                                                table['eps'][isample], table['alp'][isample], table['eth'][isample]) 
     return table
-
-def calc_meje(q,chi_eff,c,mb,mns):
-
-    a1=-2.269e-3
-    a2=4.464e-2 
-    a3=2.431    
-    a4=-0.4159   
-    n1=1.352
-    n2=0.2497
-
-    tmp1=r_isco(chi_eff)*(q**n1)*a1;
-    tmp2=(q**n2)*(1-2*c)*a2/c
-    tmp3=(1-mns/mb)*a3+a4
-
-    meje_fit=mb*np.maximum(tmp1+tmp2+tmp3,0);
-
-    return meje_fit
-
-def calc_vave(q):
-    return 1.5333330951369120e-2*q+0.19066667068621043
 
 def slope(x,a):
     if (x>a):

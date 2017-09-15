@@ -1,8 +1,9 @@
 
+import os, sys
 import numpy as np
 import pymultinest
 from gwemlightcurves.sampler import *
-from gwemlightcurves import Global
+from gwemlightcurves import lightcurve_utils, Global
 
 def multinest(opts,plotDir):
    
@@ -708,5 +709,5 @@ def multinest(opts,plotDir):
         fid.close()
 
 
-    return data, tmag, lbol, mag, t0_best, zp_best    
+    return data, tmag, lbol, mag, t0_best, zp_best, n_params, labels    
     
