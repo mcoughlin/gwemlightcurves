@@ -9,9 +9,11 @@ def generate_lightcurve(model,samples):
         t.add_column(Column(data=[val],name=key))
     samples = t
     model_table = KNTable.model(model, samples)
-    t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0]
-
-    return t, lbol, mag
+    if len(model_table) == 0:
+        return [], [], []
+    else:
+        t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0]
+        return t, lbol, mag
 
 def KaKy2016_model(q,chi_eff,mns,mb,c,th,ph):
 

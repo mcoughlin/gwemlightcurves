@@ -39,43 +39,6 @@ def parse_commandline():
 
     return opts
 
-def q2eta(q):
-    return q/(1+q)**2
-
-def mc2ms(mc,eta):
-    """
-    Utility function for converting mchirp,eta to component masses. The
-    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
-    """
-    root = np.sqrt(0.25-eta)
-    fraction = (0.5+root) / (0.5-root)
-    invfraction = 1/fraction
-
-    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
-
-    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
-    return (m1,m2)
-
-def ms2mc(m1,m2):
-    eta = m1*m2/( (m1+m2)*(m1+m2) )
-    mchirp = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
-    q = m2/m1
-
-    return (mchirp,eta,q)
-
-def hist_results(samples,Nbins=16,bounds=None):
-
-    if not bounds==None:
-        bins = np.linspace(bounds[0],bounds[1],Nbins)
-    else:
-        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
-    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
-    hist1[hist1==0.0] = 1e-3
-    #hist1 = hist1 / float(np.sum(hist1))
-    bins = (bins[1:] + bins[:-1])/2.0
-
-    return bins, hist1
-
 def get_post_file(basedir):
     filenames = glob.glob(os.path.join(basedir,'2-post*'))
     if len(filenames)>0:

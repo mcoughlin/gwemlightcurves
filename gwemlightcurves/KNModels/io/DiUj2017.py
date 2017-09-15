@@ -20,6 +20,8 @@ def get_DiUj2017_model(table, **kwargs):
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
+    if len(table) == 0: return table
+
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
     # Initialize columns

@@ -368,7 +368,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
     #tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini, tmax, dt = 0.0, 14.0, 0.1
+    tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -379,7 +379,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
 else:
-    plt.xlim([1.0, 8.0])
+    plt.xlim([1.0, 18.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -406,7 +406,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
     #tini, tmax, dt = np.min(t), 14.0, 0.1
-    tini, tmax, dt = 0.0, 14.0, 0.1
+    tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]
@@ -419,24 +419,27 @@ if opts.model == "SN":
     plt.xlim([0.0, 10.0])
 else:
     if opts.model == "Me2017":
-        plt.xlim([0.0, 14.0])
+        plt.xlim([0.0, 18.0])
         plt.ylim([-20.0,-5.0])
     elif opts.model == "SmCh2017":
-        plt.xlim([0.0, 14.0])
+        plt.xlim([0.0, 18.0])
         plt.ylim([-20.0,-5.0])
     elif opts.model == "DiUj2017":
-        plt.xlim([0.0, 14.0])
+        plt.xlim([0.0, 18.0])
         plt.ylim([-20.0,-5.0])
     elif opts.model == "KaKy2016":
-        plt.xlim([0.0, 14.0])
+        plt.xlim([0.0, 18.0])
+        plt.ylim([-20.0,-5.0])
+    elif opts.model == "WoKo2016":
+        plt.xlim([0.0, 18.0])
         plt.ylim([-20.0,-5.0])
     else:
-        plt.xlim([1.0, 7.0])
+        plt.xlim([1.0, 18.0])
         plt.ylim([-16.0,-10.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
-plt.legend(loc="best",prop={'size':16},numpoints=1)
+#plt.legend(loc="best",prop={'size':16},numpoints=1)
 plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
@@ -456,7 +459,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
     #tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini, tmax, dt = 0.0, 14.0, 0.1
+    tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
 
     ii = np.where(~np.isnan(mag[magidx]))[0]

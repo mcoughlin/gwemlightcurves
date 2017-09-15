@@ -12,16 +12,19 @@ from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 def get_WoKo2017_model(table, **kwargs):
     if not 'mej' in table.colnames:
         # calc the mass of ejecta
-        table['mej'] = calc_meje(table['q'], table['chi_eff'], table['c'], table['mb'], table['mns'])
+        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
         # calc the velocity of ejecta
-        table['vej'] = calc_vej(table['q'])
+        table['vej'] = calc_vej(table['m1'], table['c1'], table['m2'], table['c2'])
 
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
+    if len(table) == 0: return table
+
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
     # Initialize lightcurve values in table
+
     timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
     table['t'] = [np.zeros(timeseries.size)]
     table['lbol'] = [np.zeros(timeseries.size)]

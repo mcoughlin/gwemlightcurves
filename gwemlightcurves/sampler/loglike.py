@@ -2,7 +2,7 @@
 import numpy as np
 import scipy.stats
 from scipy.interpolate import interpolate as interp
-from gwemlightcurves import Global
+from gwemlightcurves import lightcurve_utils, Global
 from .model import *
 
 def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
@@ -155,8 +155,8 @@ def myloglike_Me2017_EOSFit(cube, ndim, nparams):
     kappa_r = 10**cube[6]
     zp = cube[7]
 
-    mb1 = EOSfit(m1,c1)
-    mb2 = EOSfit(m2,c2)
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
 
     tmag, lbol, mag = Me2017_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
 
@@ -178,10 +178,10 @@ def myloglike_WoKo2017_EOSFit(cube, ndim, nparams):
     kappa_r = 10**cube[6]
     zp = cube[7]
 
-    mb1 = EOSfit(m1,c1)
-    mb2 = EOSfit(m2,c2)
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
 
-    tmag, lbol, mag = WoKo2017_model(m1,mb1,c1,m2,mb2,theta_r,kappa_r)
+    tmag, lbol, mag = WoKo2017_model(m1,mb1,c1,m2,mb2,c2,theta_r,kappa_r)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
     prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
@@ -201,8 +201,8 @@ def myloglike_SmCh2017_EOSFit(cube, ndim, nparams):
     kappa_r = 10**cube[6]
     zp = cube[7]
 
-    mb1 = EOSfit(m1,c1)
-    mb2 = EOSfit(m2,c2)
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
 
     tmag, lbol, mag = SmCh2017_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r)
 
@@ -260,8 +260,8 @@ def myloglike_DiUj2017_EOSFit(cube, ndim, nparams):
     ph = cube[6]
     zp = cube[7]
 
-    mb1 = EOSfit(m1,c1)
-    mb2 = EOSfit(m2,c2)
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
 
     tmag, lbol, mag = DiUj2017_model(m1,mb1,c1,m2,mb2,c2,th,ph)
 
@@ -316,7 +316,7 @@ def myloglike_KaKy2016_EOSFit(cube, ndim, nparams):
     ph = cube[6]
     zp = cube[7]
 
-    mb = EOSfit(mns,c)
+    mb = lightcurve_utils.EOSfit(mns,c)
 
     tmag, lbol, mag = KaKy2016_model(q, chi_eff, mns, mb, c, th, ph)
 
@@ -452,7 +452,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             chisquarevals = ((y-maginterp)/sigma)**2
             idx = np.where(~np.isfinite(sigma))[0]
             if len(idx) > 0:
-                gaussprobvals = scipy.stats.norm.cdf(y[idx], maginterp[idx], Global.errorbudget)
+                gaussprobvals = 1-scipy.stats.norm.cdf(y[idx], maginterp[idx], Global.errorbudget)
                 gaussprobsum = np.sum(np.log(gaussprobvals))
             else:
                 gaussprobsum = 0.0

@@ -20,6 +20,8 @@ def get_KaKy2016_model(table, **kwargs):
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
+    if len(table) == 0: return table
+
     # Log mass ejecta
     table['mej10'] = np.log10(table['mej'])
     # Initialize columns
@@ -42,11 +44,6 @@ def slope(x,a):
     else:
         s=a*Math.exp((x-a)/a)
     return s
-
-def r_isco(chi):
-  z1=1+((1-chi*chi)**(1/3.0))*(((1+chi)**(1/3.0))+(1-chi)**(1/3.0))
-  z2=(3*chi*chi+z1*z1)**(1/2.0)
-  return 3+z2-np.sign(chi)*((3-z1)*(3+z1+2*z2))**(1/2.0)
 
 def calc_lc(tini,tmax,dt,mej,vave,vmin,th,ph,kappa,eps,alp,eth):
 

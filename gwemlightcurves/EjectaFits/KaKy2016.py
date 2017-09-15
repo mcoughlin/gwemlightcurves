@@ -25,3 +25,7 @@ def calc_meje(q,chi_eff,c,mb,mns):
 def calc_vave(q):
     return 1.5333330951369120e-2*q+0.19066667068621043
 
+def r_isco(chi):
+  z1=1+((1-chi*chi)**(1/3.0))*(((1+chi)**(1/3.0))+(1-chi)**(1/3.0))
+  z2=(3*chi*chi+z1*z1)**(1/2.0)
+  return 3+z2-np.sign(chi)*((3-z1)*(3+z1+2*z2))**(1/2.0)
