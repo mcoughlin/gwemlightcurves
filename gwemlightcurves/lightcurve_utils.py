@@ -343,3 +343,105 @@ def xcorr_mags(mags1,mags2):
             chisquarevals[ii,jj] = np.min(np.abs(chisquares))
 
     return xcorrvals, chisquarevals
+
+def norm_sym_ratio(eta):
+    # Assume floating point precision issues
+    #if np.any(np.isclose(eta, 0.25)):
+    #eta[np.isclose(eta, 0.25)] = 0.25
+
+    # Assert phyisicality
+    assert np.all(eta <= 0.25)
+
+    return np.sqrt(1 - 4. * eta)
+
+def q2eta(q):
+    return q/(1+q)**2
+
+def mc2ms(mc,eta):
+    """
+    Utility function for converting mchirp,eta to component masses. The
+    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
+    """
+    root = np.sqrt(0.25-eta)
+    fraction = (0.5+root) / (0.5-root)
+    invfraction = 1/fraction
+
+    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
+
+    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
+    return (m1,m2)
+
+def ms2mc(m1,m2):
+    eta = m1*m2/( (m1+m2)*(m1+m2) )
+    mchirp = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
+    q = m2/m1
+
+    return (mchirp,eta,q)
+
+def hist_results(samples,Nbins=16,bounds=None):
+
+    if not bounds==None:
+        bins = np.linspace(bounds[0],bounds[1],Nbins)
+    else:
+        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
+    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
+    hist1[hist1==0.0] = 1e-3
+    #hist1 = hist1 / float(np.sum(hist1))
+    bins = (bins[1:] + bins[:-1])/2.0
+
+    return bins, hist1
+
+def get_post_file(basedir):
+    filenames = glob.glob(os.path.join(basedir,'2-post*'))
+    if len(filenames)>0:
+        filename = filenames[0]
+    else:
+        filename = []
+    return filename
+
+def EOSfit(mns,c):
+    mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
+    return mb
+
+def get_truths(name,model,n_params,doEjecta):
+    truths = []
+    for ii in xrange(n_params):
+        #truths.append(False)
+        truths.append(np.nan)
+
+    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
+        return truths
+
+    if not doEjecta:
+        return truths
+
+    if name == "DiUj2017_H4M005V20":
+        truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
+    elif name == "KaKy2016_H4M005V20":
+        truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
+    elif name == "rpft_m005_v2":
+        truths = [0,np.log10(0.005),0.2,False,False,False]
+    elif name == "APR4-1215_k1":
+        truths = [0,np.log10(0.009),0.24,False,False,0.0]
+    elif name == "APR4-1314_k1":
+        truths = [0,np.log10(0.008),0.22,False,False,0.0]
+    elif name == "H4-1215_k1":
+        truths = [0,np.log10(0.004),0.21,False,False,0.0]
+    elif name == "H4-1314_k1":
+        truths = [0,np.log10(0.0007),0.17,False,False,0.0]
+    elif name == "Sly-135_k1":
+        truths = [0,np.log10(0.02),False,False,False,0.0]
+    elif name == "APR4Q3a75_k1":
+        truths = [0,np.log10(0.01),0.24,False,False,0.0]
+    elif name == "H4Q3a75_k1":
+        truths = [0,np.log10(0.05),0.21,False,False,0.0]
+    elif name == "MS1Q3a75_k1":
+        truths = [0,np.log10(0.07),0.25,False,False,0.0]
+    elif name == "MS1Q7a75_k1":
+        truths = [0,np.log10(0.06),0.25,False,False,0.0]
+    elif name == "SED_nsbh1":
+        truths = [0,np.log10(0.04),0.2,False,False,0.0]
+    elif name == "SED_ns12ns12_kappa10":
+        truths = [0,np.log10(0.0079), 0.12,False,False,False]
+    return truths
+

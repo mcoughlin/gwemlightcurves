@@ -15,6 +15,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
+from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves import __version__
 
@@ -30,8 +31,16 @@ def parse_commandline():
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017")
+    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017")
     parser.add_argument("--name",default="G298048")
+
+    parser.add_argument("--doEvent",  action="store_true", default=False)
+    parser.add_argument("-e","--event",default="G298048_PS1_GROND_SOFI")
+    #parser.add_argument("-e","--event",default="G298048_XSH_PESSTO")
+    #parser.add_argument("-e","--event",default="G298048_20170822")
+    #parser.add_argument("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
+    parser.add_argument("--distance",default=40.0,type=float)
+    parser.add_argument("--T0",default=57982.5285236896,type=float)
 
     args = parser.parse_args()
  
@@ -60,6 +69,8 @@ def get_legend(model):
         legend_name = "Metzger (2017)"
     elif model == "SmCh2017":
         legend_name = "Smartt et al. (2017)"
+    elif model == "WoKo2017":
+        legend_name = "Wollaeger et al. (2017)"
 
     return legend_name
 
@@ -68,9 +79,11 @@ opts = parse_commandline()
 
 models = opts.model.split(",")
 for model in models:
-    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017"]:
-        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017"
+    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
+        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017"
         exit(0)
+
+lightcurvesDir = opts.lightcurvesDir
 
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
@@ -89,9 +102,14 @@ flgbct = 1
 beta = 3.0
 kappa_r = 10.0
 slope_r = -1.2
+theta_r = 0.0
 
 # read in samples
 samples = KNTable.read_samples(opts.posterior_samples)
+
+print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
+print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
+
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
@@ -115,6 +133,7 @@ samples['flgbct'] = flgbct
 samples['beta'] = beta
 samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
+samples['theta_r'] = theta_r
 
 # Create dict of tables for the various models, calculating mass ejecta velocity of ejecta and the lightcurve from the model
 model_tables = {}
@@ -171,7 +190,17 @@ for model in models:
         lbolinterp = 10**f(tt)
         lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)
 
-linestyles = ['-', '-.', ':','--']
+if opts.doEvent:
+    filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
+    data_out = lightcurve_utils.loadEvent(filename)
+    for ii,key in enumerate(data_out.iterkeys()):
+        if key == "t":
+            continue
+        else:
+            data_out[key][:,0] = data_out[key][:,0] - opts.T0
+            data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+
+linestyles = ['-', '-.', ':','--','-']
 
 plotName = "%s/mag.pdf"%(plotDir)
 plt.figure()
@@ -192,9 +221,11 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
-filts = ["u","g","r","i","z","y","J","H","K"]
+filts = ["g","r","i","z","y","J","H","K"]
+#filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
+magidxs = [1,2,3,4,5,6,7,8]
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
@@ -209,13 +240,17 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     else:
         ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
 
-    #if opts.doEvent:
-    #    if not filt in data_out: continue
-    #    samples = data_out[filt]
-    #    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
-    #    idx = np.where(~np.isnan(y))[0]
-    #    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-    #    plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+    if opts.doEvent:
+        if not filt in data_out: continue
+        samples = data_out[filt]
+        t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+        idx = np.where(~np.isnan(y))[0]
+        t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+
+        idx = np.where(np.isfinite(sigma_y))[0]
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+        idx = np.where(~np.isfinite(sigma_y))[0]
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)

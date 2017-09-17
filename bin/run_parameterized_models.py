@@ -119,23 +119,27 @@ samples['beta'] = beta
 samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 
-samples['m1'] = opts.m1
-samples['m2'] = opts.m2
-samples['q'] = opts.massratio
-samples['chi_eff'] = opts.chi_eff
-samples['mej'] = opts.mej
-samples['vej'] = opts.vej
-samples['theta_0'] = opts.theta_0
-samples['E'] = opts.E
-samples['n'] = opts.n
-samples['theta_obs'] = opts.theta_obs
-samples['beta'] = opts.beta
-samples['kappa_r'] = opts.kappa_r
-samples['slope_r'] = opts.slope_r
-samples['c1'] = c
-samples['c2'] = c
-samples['mb1'] = mb
-samples['mb2'] = mb
+samples['theta_0'] = theta_0
+samples['E'] = E
+samples['n'] = n
+samples['theta_obs'] = theta_obs
+samples['beta'] = beta
+samples['kappa_r'] = kappa_r
+samples['slope_r'] = slope_r
+
+if opts.doEjecta:
+    samples['mej'] = opts.mej
+    samples['vej'] = opts.vej
+elif opts.doMasses:
+    samples['m1'] = opts.m1
+    samples['m2'] = opts.m2
+    samples['q'] = opts.massratio
+    samples['chi_eff'] = opts.chi_eff
+    samples['c1'] = c
+    samples['c2'] = c
+    samples['mb1'] = mb
+    samples['mb2'] = mb
+
 t = Table()
 for key, val in samples.iteritems():
     t.add_column(Column(data=[val],name=key))
