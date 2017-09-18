@@ -104,7 +104,7 @@ class KNTable(Table):
         if not os.path.isfile(filename_samples):
             raise ValueError("Sample file supplied does not exist")
 
-        data_out = Table.read(filename_samples, format='ascii') 
+        data_out = Table.read(filename_samples, format='ascii')
         return KNTable(data_out)
 
     def calc_tidal_lambda(self, remove_negative_lambda=False):

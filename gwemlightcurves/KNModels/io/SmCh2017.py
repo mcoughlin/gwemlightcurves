@@ -52,8 +52,8 @@ def calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r):
     t_break = 10.0
     slope_break = 2*slope_r
     t, lbol, mag, Tobs = calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break)
- 
-    return t, lbol, mag, Tobs    
+
+    return t, lbol, mag, Tobs
 
 def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
 
@@ -66,25 +66,25 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     h = 6.63e-27
     arad = 7.56e-15
     Mpc = 3.08e24
-    
+
     # ** define parameters **
-    
+
     # fiducial redshift/distance
     #z = 0.01
     #D = 39.5*Mpc
     z = 0.00
     D = 1e-5*Mpc
-   
+
     # engine (0 = off, 1 = on)
     engine_switch = 0
- 
-    # define desired observer band wavelengths (nm) 
+
+    # define desired observer band wavelengths (nm)
     # u (0), b (1), v (2), r (3), i (4), z (5), y(6), j (7), k (8), l (9)
     #lambdaobs = np.array([365., 445., 551., 658., 806., 900., 1020., 1220., 2190., 3450.])
-    
+
     # u (0) g (1) r (2) i (3) z (4) y (5) J (6) H (7) K (8)
     lambdaobs = np.array([354.3, 477.56, 612.95, 748.46, 865.78, 960.31, 1235.0, 1662.0, 2159.0])
-    
+
     nuobs = c/(1.0e-7*lambdaobs)
     nuobs = nuobs/(1.0 + z)
 
@@ -104,7 +104,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     tau_ni = 6.077*24*60*60/np.log(2)    # Decay time (half life / ln2) for Ni56 (s) 6.077  CHECKED
     tau_co = 77.27*24*60*60/np.log(2)    # Decay time (half life / ln2) for Co56 (s) 77.27d  CHECKED
     kappa_gamma = 0.03  # CHECKED
-   
+
     tau_m = 1.05*((kappa/(13.7*c))**0.5) * (((((M_ej*m_sol)**3))/(E_51*1e51))**0.25)    # Diffusion time (Arnett 1982) Eq 18, 19, 22, 23 CHECKED
     y = tau_m/(2*tau_ni)   # Arnett 1982 Eq 33 CHECKED
     yp = tau_m/(2*tau_co)    # Arnet 1982 Eq 33, modified to 56Co decay  CHECKED
@@ -116,12 +116,12 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     Ltotm = np.zeros(tvec_days.shape)
     Rphoto = np.zeros(tvec_days.shape)
 
-    for i in xrange(Ntimes):  
+    for i in xrange(Ntimes):
 
         t = tvec_days[i]*24*3600         # Time in seconds
         x = t/tau_m     # Arnett 1982 Eq 32 CHECKED
         z = np.linspace(0.000001,x,Nintegrate)        # Define limits of intergration for A(z)  CHECKED
-    
+
         # Compute gamma ray deposition
         R = V_ej*z*tau_m     # Radius vector...z*tau_m = time  CHECKED
         rho = M_ej*2e33/(4*np.pi/3*R**3) # CHECKED
@@ -135,12 +135,12 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         ts = 1.3
         sigma = 0.11
         eth = 0.36*(np.exp(-0.56*z*tau_m/(24*3600)) + (np.log(1 + 2*0.17*(z*tau_m/(24*3600))**0.74))/(2*0.17*(z*tau_m/(24*3600))**0.74))
-         
+
         power[ind] = eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse);
         ind = np.where(z*tau_m > t_break*24*3600)[0]
         slopeuse = slope_break
         power[ind] = 10**(slope-slopeuse)*eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
-    
+
         # Kilnova part
         taudiff = 1.05/(13.7*3e10)**0.5*kappa**0.5*(M_ej*2e33)**0.75*(E_51*1e51)**(-0.25)/(24*3600)
         if (tvec_days[i] <= 2.5*taudiff):
@@ -150,10 +150,10 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
             Lambda_kilonova = power[Nintegrate-1]
         Ltotm[i] = Lambda_kilonova   # Calculate luminosity
         Rphoto[i] = V_ej*tvec_days[i]*86400
- 
+
     Ltotm = Ltotm/1.0e20
     Ltotm = Ltotm/1.0e20
-    
+
     if engine_switch:
         Ltot = Lrad
         Tobs = 1.0e10*(Ltot/(4.0*np.pi*(R)**(2.0)*sigSB))**(0.25)
@@ -161,15 +161,15 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
             tlife = (Lsd/1.0e5)**(0.5)*(v/(0.3*c))**(0.5)*(t/(3600.*24.))**(-0.5)
             Ltot = Ltot/(1.0+tlife)
     if not engine_switch:
-        Ltot = Ltotm  
+        Ltot = Ltotm
         Tobs = 1.0e10*(Ltot/(4.0*np.pi*(Rphoto)**(2.0)*sigSB))**(0.25)
-    
-    nuobsarray = np.tile(nuobs,(Ntimes,1)).T    
-    expo = np.exp(h*nuobsarray/(kb*Tobs))-1.0 
+
+    nuobsarray = np.tile(nuobs,(Ntimes,1)).T
+    expo = np.exp(h*nuobsarray/(kb*Tobs))-1.0
     F = (2.0*np.pi*(h*nuobsarray)*((nuobsarray/c)**(2.0))/expo)*(Rphoto/D)*(Rphoto/D)
 
     mAB = -2.5*np.log10(F) - 48.6
-    
+
     # distance modulus
     muD = 5.0*np.log10(D/(3.08e18))-5.
 

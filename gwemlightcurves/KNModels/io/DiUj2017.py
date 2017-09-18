@@ -1,6 +1,6 @@
 
 # Modified from: http://www2.yukawa.kyoto-u.ac.jp/~kyohei.kawaguchi/kn_calc_bns1/main.html
-# Reference: Dietrich et al. http://adsabs.harvard.edu/cgi-bin/bib_query?arXiv:1612.03665 
+# Reference: Dietrich et al. http://adsabs.harvard.edu/cgi-bin/bib_query?arXiv:1612.03665
 
 import numpy as np
 import scipy
@@ -29,7 +29,7 @@ def get_DiUj2017_model(table, **kwargs):
     table['t'] = [np.zeros(timeseries.size)]
     table['lbol'] = [np.zeros(timeseries.size)]
     table['mag'] =  [{}]
-    
+
     # Loop over samples
     for isample in range(len(table)):
         table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample],table['tmax'][isample],
@@ -45,7 +45,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
 
     lbol_d=[]
     bc_tmp=[]
-    dc=0    
+    dc=0
 
     t_d = np.arange(tini,tmax+dt,dt)
 
@@ -59,7 +59,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
         vejtab = (0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3)
         a      = (2.01,4.52,8.16,0.81,1.90,3.20,0.56,1.31,2.19,0.27,0.55,0.95)
         b      = (0.28,0.62,1.19,0.19,0.28,0.45,0.17,0.21,0.31,0.10,0.13,0.15)
-        d      = (1.12,1.39,1.52,0.86,1.21,1.39,0.74,1.13,1.32,0.60,0.90,1.13) 
+        d      = (1.12,1.39,1.52,0.86,1.21,1.39,0.74,1.13,1.32,0.60,0.90,1.13)
 
         fa     = scipy.interpolate.interp2d(mejtab,vejtab,a, kind='linear')
         fb     = scipy.interpolate.interp2d(mejtab,vejtab,b, kind='linear')
@@ -71,7 +71,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
 
     for t in t_d:
       if epsBarnes:
-          eth = 0.36*(np.exp(-fam*t)+ np.log(1+2*fbm*t**fdm)/(2*fbm*t**fdm))[0] 
+          eth = 0.36*(np.exp(-fam*t)+ np.log(1+2*fbm*t**fdm)/(2*fbm*t**fdm))[0]
 
       lbol=kn_lbol(t,mej,vej,vmin,th,ph,kappa,eps,alp,eth)
       lbol_d.append(lbol)
@@ -104,7 +104,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     mag_new[6] = mag_d[5]
     mag_new[7] = mag_d[6]
     mag_new[8] = mag_d[7]
-  
+
     return t_d, lbol_d, mag_new
 
 def mag_bol(lbol,d):
@@ -135,7 +135,7 @@ def getBC(td,bc,bct,tt,flgbct):
     else:
       bc_tmp=np.zeros((8,))
       for jj in xrange(8):
-          if (jj == 0) and (tt>5): 
+          if (jj == 0) and (tt>5):
             bc_tmp[jj]=np.nan
           elif (jj == 1) and (tt>8.5):
             bc_tmp[jj]=np.nan
@@ -172,60 +172,60 @@ def kn_lbol(t,mej,vej,vmin,th,ph,kappa,eps,alp,eth):
   return lbol
 
 def vmax(vej,vmin):
-    return 2.0*vej-vmin 
+    return 2.0*vej-vmin
 
 def setbc():
     bc = np.zeros((8,5))
-    
+
     # bc u-band
     bc[0][0]= 40.01
     bc[0][1]=-56.79
     bc[0][2]= 25.73
     bc[0][3]=-5.207
     bc[0][4]=0.3813
-    
+
     # bc g-band
     bc[1][0]=-6.195
     bc[1][1]=4.054
     bc[1][2]=-1.754
     bc[1][3]=0.2246
     bc[1][4]=-0.009813
-    
+
     # bc r-band
     bc[2][0]=-2.308
     bc[2][1]=1.445
     bc[2][2]=-0.5740
     bc[2][3]=0.0531
     bc[2][4]=-0.00152
-    
+
     # bc i-band
     bc[3][0]=0.6441
     bc[3][1]=0.0796
     bc[3][2]=-0.122
     bc[3][3]=0.00793
     bc[3][4]=-0.000122
-    
+
     # bc z-band
     bc[4][0]=1.072
     bc[4][1]=0.3646
     bc[4][2]=-0.1032
     bc[4][3]=0.00368
     bc[4][4]=0.0000126
-    
+
     # bc J-band
     bc[5][0]=-1.038
     bc[5][1]=1.348
     bc[5][2]=-0.2364
     bc[5][3]=0.0137
     bc[5][4]=-0.000261
-    
+
     # bc H-band
     bc[6][0]=-2.763
     bc[6][1]=1.502
     bc[6][2]=-0.2133
     bc[6][3]=0.0128
     bc[6][4]=-0.000288
- 
+
     # bc K-band
     bc[7][0]=-7.876
     bc[7][1]=3.245
@@ -371,7 +371,7 @@ def setbc_tabular():
     td[128]=14.8
     td[129]=14.9
     td[130]=15.
-    
+
     bct[0][0]=-6.395022155360145
     bct[0][1]=-6.654952354994068
     bct[0][2]=-6.888948589861781
@@ -503,7 +503,7 @@ def setbc_tabular():
     bct[0][128]=-np.inf
     bct[0][129]=-np.inf
     bct[0][130]=-np.inf
-    
+
     bct[1][0]=-3.3222333743148966
     bct[1][1]=-3.4381699552906664
     bct[1][2]=-3.5555353140699872
@@ -635,7 +635,7 @@ def setbc_tabular():
     bct[1][128]=-np.inf
     bct[1][129]=-np.inf
     bct[1][130]=-np.inf
-    
+
     bct[2][0]=-1.1944937003628249
     bct[2][1]=-1.2587681978190854
     bct[2][2]=-1.3227920738605798
@@ -767,7 +767,7 @@ def setbc_tabular():
     bct[2][128]=-7.060101238120772
     bct[2][129]=-7.062043802277472
     bct[2][130]=-7.063986366434171
-    
+
     bct[3][0]=0.38609523271530216
     bct[3][1]=0.3490210969018331
     bct[3][2]=0.31057498662270305
@@ -899,7 +899,7 @@ def setbc_tabular():
     bct[3][128]=-5.087445968772583
     bct[3][129]=-5.081501904627501
     bct[3][130]=-5.0755578404824195
-    
+
     bct[4][0]=1.5261441422016604
     bct[4][1]=1.508165936913107
     bct[4][2]=1.4889063172270438
@@ -1031,7 +1031,7 @@ def setbc_tabular():
     bct[4][128]=-3.5844218104817376
     bct[4][129]=-3.5993431885791027
     bct[4][130]=-3.614264566676469
-    
+
     bct[5][0]=0.8625687785530236
     bct[5][1]=0.8998257468116381
     bct[5][2]=0.9369449781061147
@@ -1163,7 +1163,7 @@ def setbc_tabular():
     bct[5][128]=-0.8657746974965055
     bct[5][129]=-0.8703211351110316
     bct[5][130]=-0.8748675727255582
-    
+
     bct[6][0]=-0.8031771907732801
     bct[6][1]=-0.6616432769806067
     bct[6][2]=-0.5229297334326294
@@ -1295,7 +1295,7 @@ def setbc_tabular():
     bct[6][128]=0.4683729659347304
     bct[6][129]=0.46280912465533164
     bct[6][130]=0.4572452833759328
-    
+
     bct[7][0]=-2.7570319209201695
     bct[7][1]=-2.5745104153822767
     bct[7][2]=-2.394426115465908
@@ -1427,7 +1427,7 @@ def setbc_tabular():
     bct[7][128]=2.4758280652483786
     bct[7][129]=2.4771696331935056
     bct[7][130]=2.4785112011386325
-    
+
     return td, bct
 
 register_model('DiUj2017', KNTable, get_DiUj2017_model,

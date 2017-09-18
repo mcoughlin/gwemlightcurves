@@ -58,7 +58,7 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
         vej0 = 0.132+0.08
         kappa0 = 1.0
         modelfile = "../data/macronova_models_wollaeger2017/gamB2_mags_2017-03-20.dat"
- 
+
     data_out = np.loadtxt(modelfile)
     ndata, nslices = data_out.shape
     ints = np.arange(0,ndata,ndata/9)
@@ -75,7 +75,7 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
         nt, nbins = data.shape
 
         a_i = (360/(2*np.pi))*np.arccos(1 - np.arange(nbins)*2/float(nbins))
-        b_i = (360/(2*np.pi))*np.arccos(1 - (np.arange(nbins)+1)*2/float(nbins)) 
+        b_i = (360/(2*np.pi))*np.arccos(1 - (np.arange(nbins)+1)*2/float(nbins))
         bins = (a_i + b_i)/2.0
 
         if ii == 0:

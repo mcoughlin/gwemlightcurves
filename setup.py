@@ -68,6 +68,7 @@ install_requires = [
     'astropy',
     'matplotlib',
     'sncosmo',
+    'pymultinest',
 ]
 tests_require = [
     'pytest'
