@@ -113,6 +113,13 @@ class KNTable(Table):
             data_out['m2'] = data_out['m2_source']
             print 'setting m2 to m2_source'
 
+        if 'dlam_tilde' in list(data_out.columns):
+            data_out['dlambdat'] = data_out['dlam_tilde']
+            print 'setting dlambdat to dlam_tilde'
+        if 'lam_tilde' in list(data_out.columns):
+            data_out['lambdat'] = data_out['lam_tilde']
+            print 'setting lambdat to lam_tilde'
+
         return KNTable(data_out)
 
     def calc_tidal_lambda(self, remove_negative_lambda=False):
