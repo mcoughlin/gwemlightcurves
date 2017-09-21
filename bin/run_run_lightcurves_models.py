@@ -10,6 +10,12 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
+from gwemlightcurves.sampler import *
+from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.sampler import run
+from gwemlightcurves import __version__
+from gwemlightcurves import lightcurve_utils, Global
+
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -26,7 +32,7 @@ def parse_commandline():
     parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("-n","--name",default="tanaka_compactmergers")
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
@@ -61,8 +67,8 @@ def loadLightcurves(filename):
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["BHNS", "BNS", "SN"]:
-   print "Model must be either: BHNS, BNS, SN"
+if not opts.model in ["KaKy2016", "DiUj2017", "SN"]:
+   print "Model must be either: KaKy2016, DiUj2017, SN"
    exit(0)
 
 lightcurvesDir = opts.lightcurvesDir
@@ -121,7 +127,16 @@ elif opts.doMassGap:
         if not ((q[ii] >= 3) and (q[ii] <=9)): continue
         if not ((m2[ii] >= 1) and (m2[ii] <=3)): continue
         #if not ((q[ii] >= 3) and (q[ii] <=5)): continue
-        print injnum[ii], m1[ii], m2[ii], q[ii], a1[ii]
+
+        c1, c2 = 0.147, 0.147
+        mb1, mb2 = lightcurve_utils.EOSfit(m1[ii],c1), lightcurve_utils.EOSfit(m2[ii],c2)
+        th = 0.2
+        ph = 3.14
+
+        t, lbol, mag = KaKy2016_model(q[ii],a1[ii],m2[ii],mb2,c2,th,ph)
+        #print q[ii],a1[ii],m2[ii],mb2,c2,th,ph
+        if len(mag) == 0: continue
+        idx = np.where(np.isfinite(mag[2]))[0]
 
         if opts.doEOSFit:
             eosfitFlag = "--doEOSFit"
@@ -135,7 +150,7 @@ elif opts.doMassGap:
         else:
             print "Enable --doEjecta or --doMasses"
             exit(0)
-        os.system(system_call)
+        #os.system(system_call)
 
 else:
     data = loadLightcurves(filename)
@@ -170,7 +185,7 @@ else:
         cut0a = len(filters) > 1
         if not cut0a: continue
 
-        plotDir = "plots/lightcurves_BHNS/%s"%name
+        plotDir = "plots/lightcurves_KaKy2016/%s"%name
         filename = os.path.join(plotDir,'samples.dat')
         if os.path.isfile(filename): continue
 

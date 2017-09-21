@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 import corner
 
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, SALT2
 from gwemlightcurves import lightcurve_utils
 
 def parse_commandline():
@@ -25,12 +24,18 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../lightcurves")
-    #parser.add_option("-n","--name",default="../plots/gws/Blue/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BNS/y_J_H_K/5_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
+    #parser.add_option("-n","--name",default="../plots/gws/DiUj2017_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/KaKy2016_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
     parser.add_option("--outputName",default="G298048_PS1_GROND_SOFI")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
 
-    parser.add_option("-n","--name",default="../plots/gws/Blue_EOSFit/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/BNS_EOSFit/y_J_H_K/5_14/masses/G298048_PS1_GROND_SOFI/1.00")
+    parser.add_option("-n","--name",default="../plots/gws/DiUj2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/KaKy2016_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00")
+
+    #parser.add_option("-n","--name",default="../plots/gws/Me2017_EOSFit/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/DiUj2017_EOSFit/y_J_H_K/5_14/masses/G298048_PS1_GROND_SOFI/1.00")
+
+    parser.add_option("--mchirp",default=1.1973,type=float)
+    parser.add_option("--massratio_min",default=1.0,type=float)
+    parser.add_option("--massratio_max",default=1.43,type=float)
 
     #parser.add_option("-l","--labelType",default="errorbar")
     parser.add_option("-l","--labelType",default="name")
@@ -39,17 +44,9 @@ def parse_commandline():
 
     return opts
 
-def get_post_file(basedir):
-    filenames = glob.glob(os.path.join(basedir,'2-post*'))
-    if len(filenames)>0:
-        filename = filenames[0]
-    else:
-        filename = []
-    return filename
-
 def get_labels(label):
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","KaKy2016","DiUj2017","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","WoKo2017","Me2017","SmCh2017"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)","Smartt et al. (2017)"]
 
     idx = models.index(label)
     return models_ref[idx]
@@ -66,22 +63,23 @@ post = {}
 for plotDir in names:
     plotDirSplit = plotDir.split("/")
     name = plotDirSplit[-6]
-    nameSplit = name.split("_")
-    name = nameSplit[0] 
-    if len(nameSplit) == 2:
+    if "EOSFit" in name:
         EOSFit = 1
     else:
         EOSFit = 0
+
+    nameSplit = name.split("_")
+    name = nameSplit[0] 
      
     errorbudget = float(plotDirSplit[-1])
     post[name] = {}
         
-    multifile = get_post_file(plotDir)
+    multifile = lightcurve_utils.get_post_file(plotDir)
     if not multifile: continue
     data = np.loadtxt(multifile)
 
     post[name][errorbudget] = {}
-    if name == "BHNS":
+    if name == "KaKy2016":
         if opts.doMasses:
             if EOSFit:
                 t0 = data[:,0]
@@ -94,7 +92,7 @@ for plotDir in names:
                 zp = data[:,7]
                 loglikelihood = data[:,8]
 
-                mchirp,eta,q = ms2mc(data[:,1]*data[:,3],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
 
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = q
@@ -110,7 +108,7 @@ for plotDir in names:
                 zp = data[:,8]
                 loglikelihood = data[:,9]
 
-                mchirp,eta,q = ms2mc(data[:,1]*data[:,3],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
 
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = q
@@ -127,7 +125,7 @@ for plotDir in names:
             post[name][errorbudget]["mej"] = mej
             post[name][errorbudget]["vej"] = vej
 
-    elif name == "BNS": 
+    elif name == "DiUj2017": 
         if opts.doMasses:
             if EOSFit:
                 t0 = data[:,0]
@@ -139,7 +137,7 @@ for plotDir in names:
                 ph = data[:,6]
                 zp = data[:,7]
  
-                mchirp,eta,q = ms2mc(m1,m2)
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
  
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = 1/q
@@ -155,7 +153,7 @@ for plotDir in names:
                 ph = data[:,8]
                 zp = data[:,9]
     
-                mchirp,eta,q = ms2mc(m1,m2)
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
     
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = 1/q
@@ -172,7 +170,7 @@ for plotDir in names:
             post[name][errorbudget]["mej"] = mej
             post[name][errorbudget]["vej"] = vej
 
-    elif name == "Blue":
+    elif name == "Me2017":
         if opts.doMasses:
             if EOSFit:
                 t0 = data[:,0]
@@ -184,7 +182,7 @@ for plotDir in names:
                 kappa_r = data[:,6]
                 zp = data[:,7]
  
-                mchirp,eta,q = ms2mc(m1,m2)
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
  
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = 1/q
@@ -200,7 +198,7 @@ for plotDir in names:
                 kappa_r = data[:,8]
                 zp = data[:,9]
     
-                mchirp,eta,q = ms2mc(m1,m2)
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
     
                 post[name][errorbudget]["mchirp"] = mchirp
                 post[name][errorbudget]["q"] = 1/q
@@ -210,6 +208,95 @@ for plotDir in names:
             mej = 10**data[:,1]
             vej = data[:,2]
             beta = data[:,3]
+            kappa_r = data[:,4]
+            zp = data[:,5]
+            loglikelihood = data[:,6]
+
+            post[name][errorbudget]["mej"] = mej
+            post[name][errorbudget]["vej"] = vej
+
+    elif name == "SmCh2017":
+        if opts.doMasses:
+            if EOSFit:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                c1 = data[:,2]
+                m2 = data[:,3]
+                c2 = data[:,4]
+                slope_r = data[:,5]
+                kappa_r = data[:,6]
+                zp = data[:,7]
+
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+            else:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                mb1 = data[:,2]
+                c1 = data[:,3]
+                m2 = data[:,4]
+                mb2 = data[:,5]
+                c2 = data[:,6]
+                slope_r = data[:,7]
+                kappa_r = data[:,8]
+                zp = data[:,9]
+
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+        elif opts.doEjecta:
+            t0 = data[:,0]
+            mej = 10**data[:,1]
+            vej = data[:,2]
+            slope_r = data[:,3]
+            kappa_r = data[:,4]
+            zp = data[:,5]
+            loglikelihood = data[:,6]
+
+            post[name][errorbudget]["mej"] = mej
+            post[name][errorbudget]["vej"] = vej
+
+    elif name == "WoKo2017":
+        if opts.doMasses:
+            if EOSFit:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                c1 = data[:,2]
+                m2 = data[:,3]
+                c2 = data[:,4]
+                theta_r = data[:,5]
+                kappa_r = data[:,6]
+                zp = data[:,7]
+
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+            else:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                mb1 = data[:,2]
+                c1 = data[:,3]
+                m2 = data[:,4]
+                mb2 = data[:,5]
+                c2 = data[:,6]
+                theta_r = data[:,7]
+                kappa_r = data[:,8]
+                zp = data[:,9]
+
+                mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
+
+                post[name][errorbudget]["mchirp"] = mchirp
+                post[name][errorbudget]["q"] = 1/q
+
+        elif opts.doEjecta:
+            t0 = data[:,0]
+            mej = 10**data[:,1]
+            vej = data[:,2]
+            theta_r = data[:,3]
             kappa_r = data[:,4]
             zp = data[:,5]
             loglikelihood = data[:,6]
@@ -272,9 +359,8 @@ if opts.doEjecta:
                 linestyle = '-'
     
             samples = np.log10(post[name][errorbudget]["mej"])
-            print samples
           
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
+            bins, hist1 = lightcurve_utils.hist_results(samples,Nbins=25,bounds=bounds) 
     
             if opts.labelType == "name" and jj > 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
@@ -322,7 +408,7 @@ if opts.doEjecta:
                 linestyle = '-'
     
             samples = post[name][errorbudget]["vej"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = lightcurve_utils.hist_results(samples,Nbins=25,bounds=bounds)
     
             if opts.labelType == "name" and jj > 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
@@ -374,8 +460,7 @@ elif opts.doMasses:
                 linestyle = '-'
 
             samples = post[name][errorbudget]["mchirp"]
-            print samples
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = lightcurve_utils.hist_results(samples,Nbins=25,bounds=bounds)
 
             if opts.labelType == "name" and jj > 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
@@ -383,6 +468,7 @@ elif opts.doMasses:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
 
             maxhist = np.max([maxhist,np.max(hist1)])
+    plt.semilogy([opts.mchirp,opts.mchirp],[1e-3,100],'k--')
 
     plt.xlabel(r"${\rm M}_{\rm c}$",fontsize=24)
     plt.ylabel('Probability Density Function',fontsize=24)
@@ -396,7 +482,7 @@ elif opts.doMasses:
 
     bounds = [0.0,2.0]
     xlims = [0.9,2.0]
-    ylims = [1e-1,10]
+    ylims = [1e-1,50]
 
     plotName = "%s/q.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
@@ -424,7 +510,7 @@ elif opts.doMasses:
                 linestyle = '-'
 
             samples = post[name][errorbudget]["q"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = lightcurve_utils.hist_results(samples,Nbins=25,bounds=bounds)
 
             if opts.labelType == "name" and jj > 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
@@ -432,6 +518,9 @@ elif opts.doMasses:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
 
             maxhist = np.max([maxhist,np.max(hist1)])
+
+    print opts.massratio_min,opts.massratio_max
+    plt.fill_between([opts.massratio_min,opts.massratio_max],[1e-3,1e-3],[1e2,1e2],facecolor='k',alpha=0.2)
 
     plt.xlabel(r"$q$",fontsize=24)
     plt.ylabel('Probability Density Function',fontsize=24)

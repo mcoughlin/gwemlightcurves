@@ -32,6 +32,25 @@ def loadModelsSpec(outputDir,name):
 
     return specs
 
+def getLegend(outputDir,names):
+
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2015)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
+
+    filenames = []
+    legend_names = []
+    for name in names:
+        for ii,model in enumerate(models):
+            filename = '%s/%s/%s.dat'%(outputDir,model,name)
+            print filename
+            if not os.path.isfile(filename):
+                continue
+            filenames.append(filename)
+            legend_names.append(models_ref[ii])
+            break
+
+    return legend_names
+
 def loadModels(outputDir,name):
 
     models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett"]
@@ -118,10 +137,12 @@ def loadEventLbol(filename):
 
     data = {}
     data["tt"] = data_out[:,0]
-    data["Lbol"] = 10**data_out[:,4]
-    data["Lbol_err"] = np.log(10)*(10**(data_out[:,4]))*data_out[:,5]
-    data["T"] = data_out[:,6]
-    data["T_err"] = data_out[:,7]
+    data["Lbol"] = 10**data_out[:,2]
+    data["Lbol_err"] = np.log(10)*(10**(data_out[:,2]))*data_out[:,3]
+    data["T"] = data_out[:,4]
+    data["T_err"] = data_out[:,5]
+    data["R"] = data_out[:,6]
+    data["R_err"] = data_out[:,7]
 
     return data
 
@@ -218,6 +239,12 @@ def read_posterior_samples_old(filename_samples):
 def read_posterior_samples(filename_samples):
 
     data_out = Table.read(filename_samples, format='ascii')
+
+    if 'm1_source' in list(data_out.columns):
+        data_out['m1'] = data_out['m1_source']
+    if 'm2_source' in list(data_out.columns):
+        data_out['m2'] = data_out['m2_source']
+
     return data_out
 
 def read_files_lbol(files):
@@ -392,7 +419,7 @@ def hist_results(samples,Nbins=16,bounds=None):
     return bins, hist1
 
 def get_post_file(basedir):
-    filenames = glob.glob(os.path.join(basedir,'2-post*'))
+    filenames = glob.glob(os.path.join(basedir,'2-pos*'))
     if len(filenames)>0:
         filename = filenames[0]
     else:
@@ -421,6 +448,8 @@ def get_truths(name,model,n_params,doEjecta):
         truths = [0,np.log10(0.005),0.2,0.2,3.14,0.0]
     elif name == "rpft_m005_v2":
         truths = [0,np.log10(0.005),0.2,False,False,False]
+    elif name == "rpft_m05_v2":
+        truths = [0,np.log10(0.05),0.2,False,False,False]
     elif name == "APR4-1215_k1":
         truths = [0,np.log10(0.009),0.24,False,False,0.0]
     elif name == "APR4-1314_k1":

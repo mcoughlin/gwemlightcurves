@@ -50,7 +50,7 @@ def lightcurve_break(tini,tmax,dt,slope_r,kappa_r,t_break,slope_break,m1,mb1,c1,
 def calc_lc(tini,tmax,dt,mej,vej,slope_r,kappa_r):
 
     t_break = 10.0
-    slope_break = 2*slope_r
+    slope_break = slope_r * 1.0
     t, lbol, mag, Tobs = calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break)
 
     return t, lbol, mag, Tobs
@@ -135,12 +135,12 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         ts = 1.3
         sigma = 0.11
         eth = 0.36*(np.exp(-0.56*z*tau_m/(24*3600)) + (np.log(1 + 2*0.17*(z*tau_m/(24*3600))**0.74))/(2*0.17*(z*tau_m/(24*3600))**0.74))
-
-        power[ind] = eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse);
+         
+        power[ind] = eth[ind]*1.9e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse);
         ind = np.where(z*tau_m > t_break*24*3600)[0]
         slopeuse = slope_break
-        power[ind] = 10**(slope-slopeuse)*eth[ind]*1.6e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
-
+        power[ind] = 10**(slope-slopeuse)*eth[ind]*1.9e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
+    
         # Kilnova part
         taudiff = 1.05/(13.7*3e10)**0.5*kappa**0.5*(M_ej*2e33)**0.75*(E_51*1e51)**(-0.25)/(24*3600)
         if (tvec_days[i] <= 2.5*taudiff):

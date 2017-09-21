@@ -16,8 +16,9 @@ from matplotlib.pyplot import cm
 
 from scipy.optimize import curve_fit
 
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, BlueKilonovaLightcurve, ArnettKilonovaLightcurve, SALT2
-from gwemlightcurves import lightcurve_utils
+from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves import __version__
+from gwemlightcurves import lightcurve_utils, Global
 
 def parse_commandline():
     """
@@ -125,11 +126,9 @@ spectraDir = opts.spectraDir
 
 outputDir = opts.outputDir
 baseplotDir = opts.plotDir
-if not os.path.isdir(baseplotDir):
-    os.mkdir(baseplotDir)
 plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    os.makedir(plotDir)
 
 models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
 models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2015)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
@@ -340,7 +339,8 @@ if opts.doAB:
         colors_names=cm.rainbow(np.linspace(0,1,len(names)))
 
     plotName = "%s/models_panels.pdf"%(plotDir)
-    plt.figure(figsize=(20,18))
+    #plt.figure(figsize=(20,18))
+    plt.figure(figsize=(20,28))
 
     tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
@@ -361,9 +361,9 @@ if opts.doAB:
             idx = np.where(~np.isnan(y))[0]
             t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
             idx = np.where(np.isfinite(sigma_y))[0]
-            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k',markersize=15)
             idx = np.where(~np.isfinite(sigma_y))[0]
-            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k',markersize=15)
 
         if opts.doModels:
             for model in model_data:
@@ -398,7 +398,7 @@ if opts.doAB:
             plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],linewidth=2,label=legend_names[ii])
             plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
     
-        plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+        plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
         plt.xlim([0.0, 18.0])
         plt.ylim([-18.0,-10.0])
         plt.gca().invert_yaxis()
@@ -407,12 +407,14 @@ if opts.doAB:
         if cnt == 1:
             ax1.set_yticks([-18,-16,-14,-12,-10])
             plt.setp(ax1.get_xticklabels(), visible=False)
-            l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
+            l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         elif not cnt == len(filts):
             plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.xticks(fontsize=28)
+        plt.yticks(fontsize=28)
 
     ax1.set_zorder(1)
-    plt.xlabel('Time [days]',fontsize=24)
+    plt.xlabel('Time [days]',fontsize=48)
     plt.savefig(plotName)
     plt.close()
    
@@ -586,7 +588,30 @@ if opts.doAB:
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
     plt.close()
-    
+  
+    colors = ["g","r","c","y","m"]
+ 
+    plotName = "%s/models_gminusi.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    for ii,name in enumerate(names):
+        mag_d = mags[name]
+        indexes = np.where(~np.isnan(mag_d["g"]))[0]
+        index1 = indexes[0]
+        index2 = int(len(indexes)/2)
+        offset = -mag_d["g"][index2] + ii*3
+        offset = 0.0
+        t = mag_d["t"]
+        plt.semilogx(t,mag_d["g"]-mag_d["i"],'-',label=legend_names[ii],linewidth=2,color=colors[ii])
+    plt.xlim([10**-2,50])
+    #plt.ylim([-15,5])
+    plt.xlabel('Time [days]',fontsize=24)
+    plt.ylabel('Absolute Magnitude [g-i]',fontsize=24)
+    plt.legend(loc="best")
+    plt.grid()
+    plt.gca().invert_yaxis()
+    plt.savefig(plotName)
+    plt.close()
+ 
 elif opts.doSpec:
 
     names = opts.name.split(",")
