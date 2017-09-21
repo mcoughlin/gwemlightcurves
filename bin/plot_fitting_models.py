@@ -13,8 +13,14 @@ import matplotlib.pyplot as plt
 
 import corner
 
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
-from gwemlightcurves import lightcurve_utils
+from gwemlightcurves.sampler import *
+from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.sampler import run
+from gwemlightcurves import __version__
+from gwemlightcurves import lightcurve_utils, Global
+
+from gwemlightcurves.EjectaFits import KaKy2016
+from gwemlightcurves.EjectaFits import DiUj2017
 
 def parse_commandline():
     """
@@ -28,7 +34,7 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-n","--name",default="1087")
     parser.add_option("--outputName",default="GWEM")
-    parser.add_option("-m","--model",default="BHNS")
+    parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--mej",default=0.005,type=float)
     parser.add_option("--vej",default=0.25,type=float)
     parser.add_option("-e","--errorbudget",default="0.2,1.0")
@@ -43,6 +49,9 @@ def parse_commandline():
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
+    parser.add_option("--tmax",default=7.0,type=float)
+    parser.add_option("--tmin",default=0.05,type=float)
+    parser.add_option("--dt",default=0.05,type=float)
 
     opts, args = parser.parse_args()
 
@@ -63,53 +72,17 @@ def hist_results(samples,Nbins=16,bounds=None):
 
 def bhns_model(q,chi_eff,mns,mb,c):
 
-    meje = BHNSKilonovaLightcurve.calc_meje(q,chi_eff,c,mb,mns)
-    vave = BHNSKilonovaLightcurve.calc_vave(q)
+    meje = KaKy2016.calc_meje(q,chi_eff,c,mb,mns)
+    vave = KaKy2016.calc_vave(q)
 
     return meje, vave
 
 def bns_model(m1,mb1,c1,m2,mb2,c2):
 
-    mej = BNSKilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
-    vej = BNSKilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+    mej = DiUj2017.calc_meje(m1,mb1,c1,m2,mb2,c2)
+    vej = DiUj2017.calc_vej(m1,c1,m2,c2)
 
     return mej, vej
-
-def get_post_file(basedir):
-    filenames = glob.glob(os.path.join(basedir,'2-post*'))
-    if len(filenames)>0:
-        filename = filenames[0]
-    else:
-        filename = []
-    return filename
-
-def q2eta(q):
-    return q/(1+q)**2
-
-def mc2ms(mc,eta):
-    """
-    Utility function for converting mchirp,eta to component masses. The
-    masses are defined so that m1>m2. The rvalue is a tuple (m1,m2).
-    """
-    root = np.sqrt(0.25-eta)
-    fraction = (0.5+root) / (0.5-root)
-    invfraction = 1/fraction
-
-    m2= mc * np.power((1+fraction),0.2) / np.power(fraction,0.6)
-
-    m1= mc* np.power(1+invfraction,0.2) / np.power(invfraction,0.6)
-    return (m1,m2)
-
-def ms2mc(m1,m2):
-    eta = m1*m2/( (m1+m2)*(m1+m2) )
-    mchirp = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
-    q = m2/m1
-
-    return (mchirp,eta,q)
-
-def EOSfit(mns,c):
-    mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
-    return mb
 
 # Parse command line
 opts = parse_commandline()
@@ -118,8 +91,8 @@ filters = opts.filters.split(",")
 names = opts.name.split(",")
 errorbudgets = opts.errorbudget.split(",")
 
-if not opts.model in ["BHNS", "BNS", "SN"]:
-   print "Model must be either: BHNS, BNS, SN"
+if not opts.model in ["KaKy2016", "DiUj2017", "SN"]:
+   print "Model must be either: KaKy2016, DiUj2017, SN"
    exit(0)
 
 if not (opts.doEjecta or opts.doMasses):
@@ -154,6 +127,7 @@ elif opts.doSimulation:
     plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
 elif opts.doGoingTheDistance or opts.doMassGap:
     plotDir = os.path.join(plotDir,"_".join(filters))
+    plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -184,7 +158,7 @@ for name in names:
             dataDir = os.path.join(basedataDir,"%.2f"%float(errorbudget))
             plotDir = os.path.join(baseplotDir,"%.2f"%float(errorbudget))
 
-            multifile = get_post_file(dataDir)
+            multifile = lightcurve_utils.get_post_file(dataDir)
             data = np.loadtxt(multifile)
 
             filename = os.path.join(dataDir,"truth_mej_vej.dat")
@@ -202,41 +176,42 @@ for name in names:
                 vej_true = truths_mej_vej[1]
 
             elif opts.doMasses:
-                if opts.model == "BNS":
+                if opts.model == "DiUj2017":
                     if opts.doEOSFit:
-                        mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,3])
-                        mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
+                        mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
+                        mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
                     else:
-                        mchirp_em,eta_em,q_em = ms2mc(data[:,1],data[:,4])
-                        mchirp_true,eta_true,q_true = ms2mc(truths[0],truths[2])
-                elif opts.model == "BHNS":
+                        mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
+                        mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
+                elif opts.model == "KaKy2016":
                     if opts.doEOSFit:
-                        mchirp_em,eta_em,q_em = ms2mc(data[:,1]*data[:,3],data[:,3])
-                        mchirp_true,eta_true,q_true = ms2mc(truths[0]*truths[4],truths[4])
+                        mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
+                        mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0]*truths[4],truths[4])
                     else:
-                        mchirp_em,eta_em,q_em = ms2mc(data[:,1]*data[:,3],data[:,3])
-                        mchirp_true,eta_true,q_true = ms2mc(truths[0]*truths[4],truths[4])
+                        mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
+                        mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0]*truths[4],truths[4])
                 q_em = 1/q_em
                 q_true = 1/q_true
 
-        multifile = get_post_file(plotDir)
+        multifile = lightcurve_utils.get_post_file(plotDir)
+
         if not multifile: continue
         data = np.loadtxt(multifile)
 
         post[name][errorbudget] = {}
         if opts.doGoingTheDistance or opts.doMassGap:
-            if opts.model == "BNS":
+            if opts.model == "DiUj2017":
                 if opts.doEOSFit:
-                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,2])
+                    mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,2])
                     mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
                     ii = 0
                     for m1,c1,m2,c2 in data[:,:-1]:
-                        mb1 = EOSfit(m1,c1)
-                        mb2 = EOSfit(m2,c2)
+                        mb1 = lightcurve_utils.EOSfit(m1,c1)
+                        mb2 = lightcurve_utils.EOSfit(m2,c2)
                         mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
                         ii = ii + 1
                 else:
-                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0],data[:,3])
+                    mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,3])
                     mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
                     ii = 0
                     for m1,mb1,c1,m2,mb2,c2 in data[:,:-1]:
@@ -244,17 +219,17 @@ for name in names:
                         ii = ii + 1
                 q_gw = 1/q_gw
                 mej_gw = np.log10(mej_gw)
-            elif opts.model == "BHNS":
+            elif opts.model == "KaKy2016":
                 if opts.doEOSFit:
-                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0]*data[:,2],data[:,2])
+                    mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0]*data[:,2],data[:,2])
                     mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
                     ii = 0
                     for q,chi,mns,c in data[:,:-1]:
-                        mb = EOSfit(mns,c)
+                        mb = lightcurve_utils.EOSfit(mns,c)
                         mej_gw[ii], vej_gw[ii] = bhns_model(q,chi,mns,mb,c)
                         ii = ii + 1
                 else:
-                    mchirp_gw,eta_gw,q_gw = ms2mc(data[:,0]*data[:,2],data[:,3])
+                    mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0]*data[:,2],data[:,3])
                     mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
                     ii = 0
                     for q,chi,mns,mb,c in data[:,:-1]:
@@ -263,8 +238,8 @@ for name in names:
                 q_gw = 1/q_gw
                 mej_gw = np.log10(mej_gw)
 
-            combinedDir = os.path.join(plotDir,"combined")
-            multifile = get_post_file(combinedDir)
+            combinedDir = os.path.join(plotDir,"com")
+            multifile = lightcurve_utils.get_post_file(combinedDir)
             data_combined = np.loadtxt(multifile)
 
             if opts.doEjecta:
@@ -304,11 +279,11 @@ linestyles = ['-', '-.', ':','--']
 
 if opts.doEjecta:
 
-    if opts.model == "BHNS":
-        bounds = [-3.0,0.0]
-        xlims = [-3.0,0.0]
-        ylims = [1e-1,10]
-    elif opts.model == "BNS":
+    if opts.model == "KaKy2016":
+        bounds = [-2.5,0.0]
+        xlims = [-2.5,0.0]
+        ylims = [1e-1,3]
+    elif opts.model == "DiUj2017":
         bounds = [-3.0,-1.0]
         xlims = [-3.0,-1.3]
         ylims = [1e-1,10]
@@ -326,7 +301,7 @@ if opts.doEjecta:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["mej_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds) 
+                bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds) 
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["mej_true"],post[name][errorbudget]["mej_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -335,7 +310,7 @@ if opts.doEjecta:
 
             label = "EM"
             samples = post[name][errorbudget]["mej_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:            
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -345,7 +320,7 @@ if opts.doEjecta:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["mej_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -363,11 +338,11 @@ if opts.doEjecta:
     plt.savefig(plotName)
     plt.close()
 
-    if opts.model == "BHNS":
+    if opts.model == "KaKy2016":
         bounds = [0.0,1.0]
         xlims = [0.0,1.0]
         ylims = [1e-1,20]
-    elif opts.model == "BNS":
+    elif opts.model == "DiUj2017":
         bounds = [0.0,1.0]
         xlims = [0.0,1.0]
         ylims = [1e-1,10]
@@ -385,16 +360,16 @@ if opts.doEjecta:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["vej_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+                bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
-                plt.semilogy([post[name][errorbudget]["vej_true"],post[name][errorbudget]["vej_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
+                plt.semilogy([post[name][errorbudget]["vej_true"],post[name][errorbudget]["vej_true"]],[1e-3,20.0],'%s--'%colortrue,linewidth=3)
 
             color = colors[ii+1]
 
             label = "EM"
             samples = post[name][errorbudget]["vej_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -404,7 +379,7 @@ if opts.doEjecta:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["vej_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -424,11 +399,11 @@ if opts.doEjecta:
 
 elif opts.doMasses:
 
-    if opts.model == "BHNS":
-        bounds = [0.8,4.0]
-        xlims = [0.8,4.0]
-        ylims = [1e-1,10]
-    elif opts.model == "BNS":
+    if opts.model == "KaKy2016":
+        bounds = [0.8,6.5]
+        xlims = [0.8,6.5]
+        ylims = [1e-1,5]
+    elif opts.model == "DiUj2017":
         bounds = [0.8,2.0]
         xlims = [0.8,2.0]
         ylims = [1e-1,10]
@@ -482,11 +457,11 @@ elif opts.doMasses:
     plt.savefig(plotName)
     plt.close()
 
-    if opts.model == "BHNS":
+    if opts.model == "KaKy2016":
         bounds = [2.9,9.1]
         xlims = [2.9,9.1]
-        ylims = [1e-1,10]
-    elif opts.model == "BNS":
+        ylims = [1e-1,1]
+    elif opts.model == "DiUj2017":
         bounds = [0.0,2.0]
         xlims = [0.9,2.0]
         ylims = [1e-1,10]
@@ -504,7 +479,7 @@ elif opts.doMasses:
             if jj == 0:
                 label = "GW"
                 samples = post[name][errorbudget]["q_gw"]
-                bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+                bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
                 plt.semilogy([post[name][errorbudget]["q_true"],post[name][errorbudget]["q_true"]],[1e-3,10.0],'%s--'%colortrue,linewidth=3)
@@ -512,7 +487,7 @@ elif opts.doMasses:
             color = colors[ii+1]
             label = "EM"
             samples = post[name][errorbudget]["q_em"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
@@ -522,7 +497,7 @@ elif opts.doMasses:
 
             label = "GW-EM"
             samples = post[name][errorbudget]["q_combined"]
-            bins, hist1 = hist_results(samples,Nbins=25,bounds=bounds)
+            bins, hist1 = hist_results(samples,Nbins=15,bounds=bounds)
 
             if jj == 0:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)

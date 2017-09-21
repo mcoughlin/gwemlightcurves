@@ -112,14 +112,16 @@ class KNTable(Table):
         Takes posterior samples and calculates lambda1 and lambda2 from
         lambdat and dlambdat.
         """
-        self['lambda1'], self['lambda2'] = tidal_lambda_from_tilde(
+
+        if (not 'lambda1' in list(self.columns)) and (not 'lambda2' in list(self.columns)):
+            self['lambda1'], self['lambda2'] = tidal_lambda_from_tilde(
                                           self["m1"], self["m2"],
                                           self["lambdat"], self["dlambdat"])
         if remove_negative_lambda:
             print 'You have requested to remove negative lambda values'
             mask = (self["lambda1"] < 0) | (self["lambda2"] < 0)
             self = self[~mask]
-            print "Removing %d/%d due to negative lambdas"%(np.sum(~mask),len(mask))
+            print "Removing %d/%d due to negative lambdas"%(np.sum(mask),len(mask))
 
         return self
 

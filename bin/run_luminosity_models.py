@@ -253,13 +253,13 @@ if opts.doFixZPT0:
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
-                       truths=truths[1:-1])
+                       truths=truths[1:-1], smooth=0.75, levels=[0.68, 0.95, 0.997])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths)
+                       truths=truths, smooth=0.75, levels=[0.68, 0.95, 0.997])
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
 else:

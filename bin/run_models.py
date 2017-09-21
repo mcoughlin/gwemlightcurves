@@ -2,6 +2,8 @@
 import os, sys
 import optparse
 import numpy as np
+import h5py
+import bisect
 from scipy.interpolate import interpolate as interp
 
 import matplotlib
@@ -163,6 +165,63 @@ def getMagAB(filename,band,model):
 
     return t_d, mag_d, L_d
 
+def getMagSpecH5(filename,band,model):
+    fin    = h5py.File(filename,'r')
+    # frequency in Hz
+    nu    = np.array(fin['nu'],dtype='d')
+    # array of time in seconds
+    times = np.array(fin['time'])
+    # covert time to days
+    times = times/3600.0/24.0
+
+    # specific luminosity (ergs/s/Hz) 
+    # this is a 2D array, Lnu[times][nu]
+    Lnu_all   = np.array(fin['Lnu'],dtype='d')
+
+    S = 0.1089/band[:,0]**2
+
+    S1 = S*band[:,1]
+
+    ZP = np.trapz(S1,x=band[:,0])
+
+    t_d = []
+    mag_d = []
+    L_d = []
+
+    for t in times[:-1]:
+        # index corresponding to t
+        it = bisect.bisect(times,t)
+        # spectrum at this epoch
+        Lnu = np.flipud(Lnu_all[it,:])
+
+        # if you want thing in Flambda (ergs/s/Angstrom)
+        c    = 2.99e10
+        lam  = np.flipud(c/nu*1e8)
+        Llam = Lnu*nu**2.0/c/1e8
+
+        D_cm = 10*3.0857e16*100 # 10 pc in cm
+
+        Llam = Llam / (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+
+        spec = np.array(zip(lam,Llam))
+        spec1 = easyint(spec[:,0],spec[:,1],band[:,0])
+
+        conv = spec1*band[:,1]
+        flux = np.trapz(conv,x=band[:,0])
+        mag = -2.5*np.log10(flux/ZP)
+        Lbol = np.trapz(spec[:,1]*(4*np.pi*D_cm**2),x=spec[:,0])
+
+        if not np.isfinite(mag):
+            mag = np.nan
+        w=[]
+        L=[]
+
+        t_d.append(t)
+        mag_d.append(mag)
+        L_d.append(Lbol)
+
+    return t_d, mag_d, L_d
+
 def getMagSpec(filename,band,model):
     #u = np.genfromtxt(opts.name)
     u = np.loadtxt(filename,skiprows=1)
@@ -228,6 +287,49 @@ def getMagSpec(filename,band,model):
 
     return t_d, mag_d, L_d
 
+def getSpecH5(filename,model):
+
+    fin    = h5py.File(filename,'r')
+    # frequency in Hz
+    nu    = np.array(fin['nu'],dtype='d')
+    # array of time in seconds
+    times = np.array(fin['time'])
+    # covert time to days
+    times = times/3600.0/24.0
+
+    # specific luminosity (ergs/s/Hz) 
+    # this is a 2D array, Lnu[times][nu]
+    Lnu_all   = np.array(fin['Lnu'],dtype='d')
+
+    t_d = []
+    lambda_d = []
+    spec_d = []
+
+    for t in times[:-1]:
+        # index corresponding to t
+        it = bisect.bisect(times,t)
+        # spectrum at this epoch
+        Lnu = Lnu_all[it,:]
+
+        # if you want thing in Flambda (ergs/s/Angstrom)
+        c    = 2.99e10
+        lam  = c/nu*1e8
+        Llam = Lnu*nu**2.0/c/1e8
+
+        D_cm = 10*3.0857e16*100 # 10 pc in cm
+
+        Llam = Llam / (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+
+        t_d.append(t)
+        lambda_d = lam
+        spec_d.append(Llam)
+
+    t_d = np.array(t_d)
+    lambda_d = np.array(lambda_d)
+    spec_d = np.array(spec_d)
+
+    return t_d, lambda_d, spec_d
+
 def getSpec(filename,model):
     #u = np.genfromtxt(opts.name)
     u = np.loadtxt(filename,skiprows=1)
@@ -284,21 +386,18 @@ def getSpec(filename,model):
 opts = parse_commandline()
 
 baseoutputDir = opts.outputDir
-if not os.path.isdir(baseoutputDir):
-    os.mkdir(baseoutputDir)
 outputDir = os.path.join(baseoutputDir,opts.model)
 if not os.path.isdir(outputDir):
-    os.mkdir(outputDir)
+    os.makedir(outputDir)
 
 baseplotDir = opts.plotDir
-if not os.path.isdir(baseplotDir):
-    os.mkdir(baseplotDir)
 plotDir = os.path.join(baseplotDir,opts.model)
 if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    os.makedir(plotDir)
 dataDir = opts.dataDir
 
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
+spech5models = ["kasen_kilonova_survey"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
 absABmodels = ["tanaka_compactmergers","korobkin_kilonova"]
@@ -310,6 +409,8 @@ elif opts.model == "macronovae-rosswog":
 elif opts.model == "korobkin_kilonova":
     filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
     filename_bol = []
+elif opts.model == "kasen_kilonova_survey":
+    filename = "%s/%s/%s.h5"%(dataDir,opts.model,opts.name)
 elif opts.model in specmodels:
     filename = "%s/%s/%s.spec"%(dataDir,opts.model,opts.name)
 elif opts.model in absABmodels:
@@ -334,6 +435,8 @@ if opts.doAB:
             t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
+        elif opts.model == "kasen_kilonova_survey":
+            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model)
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
         else:
@@ -392,7 +495,10 @@ if opts.doAB:
     plt.close()
 elif opts.doSpec:
 
-    t_d, lambda_d, spec_d = getSpec(filename,opts.model)
+    if opts.model == "kasen_kilonova_survey":
+        t_d, lambda_d, spec_d = getSpecH5(filename,opts.model)
+    else:
+        t_d, lambda_d, spec_d = getSpec(filename,opts.model)
 
     filename = "%s/%s_spec.dat"%(outputDir,opts.name)
     fid = open(filename,'w')

@@ -11,8 +11,11 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 
+from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
+from gwemlightcurves import lightcurve_utils, Global
 
 def parse_commandline():
     """

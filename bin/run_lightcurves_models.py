@@ -17,6 +17,7 @@ from matplotlib.pyplot import cm
 import corner
 
 import pymultinest
+from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
@@ -147,6 +148,13 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
             mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
             q = 1/q 
             chi_eff = truths["a1"]
+            chi_eff = 0.75
+            
+            eta = lightcurve_utils.q2eta(np.mean(data_out["q"]))
+            m1, m2 = lightcurve_utils.mc2ms(np.mean(data_out["mc"]), eta)
+            mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
+            q = 1/q
+
         else:
             eta = lightcurve_utils.q2eta(data_out["q"])
             m1, m2 = lightcurve_utils.mc2ms(data_out["mc"], eta)
@@ -162,11 +170,14 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         ph = 3.14
 
         if m1 > 3:
-            mej = KaKy2016KilonovaLightcurve.calc_meje(q,chi_eff,c2,mb2,m2)
-            vej = KaKy2016KilonovaLightcurve.calc_vave(q)
+            from gwemlightcurves.EjectaFits.KaKy2016 import calc_meje, calc_vave
+            mej = calc_meje(q,chi_eff,c2,mb2,m2)
+            vej = calc_vave(q)
+
         else:
-            mej = DiUj2017KilonovaLightcurve.calc_meje(m1,mb1,c1,m2,mb2,c2)
-            vej = DiUj2017KilonovaLightcurve.calc_vej(m1,c1,m2,c2)
+            from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
+            mej = calc_meje(m1,mb1,c1,m2,mb2,c2)
+            vej = calc_vej(m1,c1,m2,c2)
 
         filename = os.path.join(plotDir,'truth_mej_vej.dat')
         fid = open(filename,'w+')
@@ -334,13 +345,13 @@ if opts.doFixZPT0:
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
-                       truths=truths[1:-1])
+                       truths=truths[1:-1], smooth=3)
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
-                       truths=truths)
+                       truths=truths, smooth=3)
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
 else:
@@ -351,13 +362,16 @@ plt.close()
 tmag = tmag + t0_best
 
 filts = ["u","g","r","i","z","y","J","H","K"]
-#colors = ["y","g","b","c","k","pink","orange","purple"]
-colors=cm.rainbow(np.linspace(0,1,len(filts)))
+colors = ["y","g","b","c","k","pink","orange","purple"]
+colors = ["purple","y","g","b","c","k","pink","orange"]
+
+#colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
 plotName = "%s/lightcurve.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for filt, color, magidx in zip(filts,colors,magidxs):
+    if not filt in filters: continue
     if not filt in data_out: continue
     samples = data_out[filt]
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
@@ -379,7 +393,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 if opts.model == "SN":
     plt.xlim([0.0, 10.0])
 else:
-    plt.xlim([1.0, 18.0])
+    plt.xlim([1.0, 8.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)

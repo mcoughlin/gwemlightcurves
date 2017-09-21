@@ -31,7 +31,8 @@ def parse_commandline():
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017")
+    #parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017")
+    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,WoKo2017")
     parser.add_argument("--name",default="G298048")
 
     parser.add_argument("--doEvent",  action="store_true", default=False)
@@ -116,7 +117,7 @@ samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 samples = samples.calc_compactness()
 # Calc baryonic mass
 samples = samples.calc_baryonic_mass()
-#samples = samples.downsample()
+#samples = samples.downsample(Nsamples=1000)
 
 #add default values from above to table
 samples['tini'] = tini
@@ -268,14 +269,24 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.grid()
 
     if cnt == 1:
-        ax1.set_yticks([-18,-14,-10])
+        ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
-    elif not cnt == len(filts):
+        ax3 = ax1.twinx()   # mirror them
+        ax3.set_yticks([16,12,8,4,0])
+        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        ax3.set_yticklabels(app.astype(int))
+    else:
+        ax4 = ax2.twinx()   # mirror them
+        ax4.set_yticks([16,12,8,4,0])
+        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        ax4.set_yticklabels(app.astype(int))
+
+    if (not cnt == len(filts)) and (not cnt == 1):
         plt.setp(ax2.get_xticklabels(), visible=False)
 
 ax1.set_zorder(1)
-plt.xlabel('Time [days]',fontsize=24)
+ax2.set_xlabel('Time [days]',fontsize=24)
 plt.savefig(plotName)
 plt.close()
 
