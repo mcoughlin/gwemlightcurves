@@ -22,6 +22,7 @@
 import numpy as np
 
 from astropy.table import (Table, Column, vstack)
+from distutils.spawn import find_executable
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit']
@@ -161,8 +162,8 @@ class KNTable(Table):
         else:
             print 'You have chose to calculate compactness from radius.'
             print 'you are therefore must have selected a EOS'
-            self['c1'] = m_ns1 / r_ns1 * G / c**2 * msun
-            self['c2'] = m_ns2 / r_ns2 * G / c**2 * msun
+            self['c1'] = self['m1'] / self['r1'] * G / c**2 * msun
+            self['c2'] = self['m2'] / self['r2'] * G / c**2 * msun
         return self
 
 
@@ -177,7 +178,7 @@ class KNTable(Table):
             self["mb2"] = EOSfit(self["m2"], self["c2"])
             return self
 
-        if EOS not in ['H4','sly','mpa1','ms1', 'ms1b', 'alf2']:
+        if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
             raise ValueError('You have provided a EOS '
                              'for which we have no data '
                              'and therefore cannot '
@@ -189,23 +190,55 @@ class KNTable(Table):
                              'and therefore cannot '
                              'calculate the Baryonic mass.')
 
+        
+        if TOV == 'Monica':
+            import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+            import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
+            MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_mr.dat'), format='ascii')
+            baryonic_mass_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'])
+            # after obtaining the baryonic_mass_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
+            self['mb1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
+            self['mb2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
+            
+            
+
+        if TOV == 'Wolfgang':
+            MassRadiusBaryMassTable = Table.read(EOS + '.tidal.seq')
+
         return self
 
 
     def calc_radius(self, EOS, TOV):
         """
         """
-        if EOS not in ['H4','sly','mpa1','ms1', 'ms1b', 'alf2']:
-            raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the radius.')
-
         if TOV not in ['Monica', 'Wolfgang', 'lalsim']:
             raise ValueError('You have provided a TOV '
                              'for which we have no data '
                              'and therefore cannot '
                              'calculate the radius.')
+
+        if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
+            raise ValueError('You have provided a EOS '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the radius.')
+
+        if TOV == 'Monica':
+            import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+            import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
+            MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_mr.dat'), format='ascii')
+            radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
+            # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
+            # also radius is in km in table. need to convert to SI (i.e. meters)
+            self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
+            self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
+
+        elif TOV == 'Wolfgang':
+            MassRadiusBaryMassTable = Table.read(EOS + '.tidal.seq')
+        elif TOV == 'lalsim':
+            import lalsimulation as lalsim
+            MassRadiusTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
+
 
         return self
 

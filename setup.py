@@ -88,7 +88,7 @@ extras_require = {
 # -- run setup ----------------------------------------------------------------
 
 packagenames = find_packages()
-scripts = glob.glob(os.path.join('bin', '*'))
+scripts = glob.glob(os.path.join('bin', '*')) + glob.glob('input/Monica/*') + glob.glob('input/Wolfgang/*') + glob.glob('input/lalsim/*')
 
 setup(name=DISTNAME,
       provides=[PACKAGENAME],

@@ -114,9 +114,9 @@ print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
-samples = samples.calc_compactness()
+samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
-samples = samples.calc_baryonic_mass()
+samples = samples.calc_baryonic_mass(EOS='H4', TOV='Monica', fit=True)
 #samples = samples.downsample(Nsamples=1000)
 
 #add default values from above to table
