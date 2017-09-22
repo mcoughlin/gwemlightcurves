@@ -24,7 +24,7 @@ import numpy as np
 from astropy.table import (Table, Column, vstack)
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
-__all__ = ['KNTable']
+__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit']
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
@@ -141,22 +141,72 @@ class KNTable(Table):
         return self
 
 
-    def calc_compactness(self):
+    def calc_compactness(self, fit=False):
         """
         calculate compactness of objects from lambda1 and lambda2
         """
-        self["c1"] = CLove(self["lambda1"])
-        self["c2"] = CLove(self["lambda2"])
+        try:
+            import lal
+            G = lal.G_SI; c = lal.C_SI; msun = lal.MSUN_SI
+        except:
+            import astropy.units as u
+            import astropy.constants as C
+            G = lal.G_SI; c = C.c.value; msun = u.M_sun.to(u.kg)
+
+        if fit:
+            print 'You have chose to calculate compactness from fit.'
+            print 'you are therefore choosing to be EOS agnostic'
+            self["c1"] = CLove(self["lambda1"])
+            self["c2"] = CLove(self["lambda2"])
+        else:
+            print 'You have chose to calculate compactness from radius.'
+            print 'you are therefore must have selected a EOS'
+            self['c1'] = m_ns1 / r_ns1 * G / c**2 * msun
+            self['c2'] = m_ns2 / r_ns2 * G / c**2 * msun
         return self
 
 
-    def calc_baryonic_mass(self):
+    def calc_baryonic_mass(self, EOS, TOV, fit=False):
         """
-        # Equation to relate EOS and neutron star mass to Baryonic mass
-        # Eq 8: https://arxiv.org/pdf/1708.07714.pdf
+        if fit=True then the fit from
+        Equation to relate EOS and neutron star mass to Baryonic mass
+        Eq 8: https://arxiv.org/pdf/1708.07714.pdf
         """
-        self["mb1"] = EOSfit(self["m1"], self["c1"])
-        self["mb2"] = EOSfit(self["m2"], self["c2"])
+        if fit:
+            self["mb1"] = EOSfit(self["m1"], self["c1"])
+            self["mb2"] = EOSfit(self["m2"], self["c2"])
+            return self
+
+        if EOS not in ['H4','sly','mpa1','ms1', 'ms1b', 'alf2']:
+            raise ValueError('You have provided a EOS '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the Baryonic mass.')
+
+        if TOV not in ['Monica', 'Wolfgang']:
+            raise ValueError('You have provided a TOV '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the Baryonic mass.')
+
+        return self
+
+
+    def calc_radius(self, EOS, TOV):
+        """
+        """
+        if EOS not in ['H4','sly','mpa1','ms1', 'ms1b', 'alf2']:
+            raise ValueError('You have provided a EOS '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the radius.')
+
+        if TOV not in ['Monica', 'Wolfgang', 'lalsim']:
+            raise ValueError('You have provided a TOV '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the radius.')
+
         return self
 
 
