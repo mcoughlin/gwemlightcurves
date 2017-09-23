@@ -272,6 +272,59 @@ def myloglike_DiUj2017_EOSFit(cube, ndim, nparams):
 
     return prob
 
+def myloglike_BaKa2016(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    mb1 = cube[2]
+    c1 = cube[3]
+    m2 = cube[4]
+    mb2 = cube[5]
+    c2 = cube[6]
+    zp = cube[7]
+
+    tmag, lbol, mag = BaKa2016_model(m1,mb1,c1,m2,mb2,c2)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
+def myloglike_BaKa2016_ejecta(cube, ndim, nparams):
+    t0 = cube[0]  
+    mej = 10**cube[1]
+    vej = cube[2]
+    zp = cube[3]
+
+    tmag, lbol, mag = BaKa2016_model_ejecta(mej,vej)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_BaKa2016_EOSFit(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    c1 = cube[2]
+    m2 = cube[3]
+    c2 = cube[4]
+    zp = cube[5]
+
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
+
+    tmag, lbol, mag = BaKa2016_model(m1,mb1,c1,m2,mb2,c2)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
 def myloglike_KaKy2016(cube, ndim, nparams):
     t0 = cube[0]
     q = cube[1]

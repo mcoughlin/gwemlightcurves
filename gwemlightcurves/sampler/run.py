@@ -9,9 +9,10 @@ def multinest(opts,plotDir):
    
     n_live_points = 1000
     evidence_tolerance = 0.5
+    #evidence_tolerance = 100.0
     max_iter = 0
 
-    if opts.model in ["KaKy2016","DiUj2017","Me2017","SmCh2017","WoKo2017"]:
+    if opts.model in ["KaKy2016","DiUj2017","Me2017","SmCh2017","WoKo2017","BaKa2016"]:
     
         if opts.doMasses:
             if opts.model == "KaKy2016":
@@ -36,6 +37,17 @@ def multinest(opts,plotDir):
                     labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                     n_params = len(parameters)
                     pymultinest.run(myloglike_DiUj2017, myprior_DiUj2017, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "BaKa2016":
+                if opts.doEOSFit:
+                    parameters = ["t0","m1","c1","m2","c2","zp"]
+                    labels = [r"$T_0$",r"$M_{\rm 1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$C_{\rm 2}$","ZP"]
+                    n_params = len(parameters)
+                    pymultinest.run(myloglike_BaKa2016_EOSFit, myprior_BaKa2016_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+                else:
+                    parameters = ["t0","m1","mb1","c1","m2","mb2","c2","zp"]
+                    labels = [r"$T_0$",r"$M_{\rm 1}$",r"$M_{\rm b1}$",r"$C_{\rm 1}$",r"$M_{\rm 2}$",r"$M_{\rm b2}$",r"$C_{\rm 2}$","ZP"]
+                    n_params = len(parameters)
+                    pymultinest.run(myloglike_BaKa2016, myprior_BaKa2016, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Me2017":
                 if opts.doEOSFit:
                     parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
@@ -80,6 +92,11 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_DiUj2017_ejecta, myprior_DiUj2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "BaKa2016":
+                parameters = ["t0","mej","vej","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_BaKa2016_ejecta, myprior_BaKa2016_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Me2017":
                 parameters = ["t0","mej","vej","beta","kappa_r","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\alpha$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
@@ -106,21 +123,6 @@ def multinest(opts,plotDir):
     
         pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
     
-    # lets analyse the results
-    a = pymultinest.Analyzer(n_params = n_params, outputfiles_basename='%s/2-'%plotDir)
-    s = a.get_stats()
-    
-    import json
-    # store name of parameters, always useful
-    with open('%sparams.json' % a.outputfiles_basename, 'w') as f:
-                json.dump(parameters, f, indent=2)
-    # store derived stats
-    with open('%sstats.json' % a.outputfiles_basename, mode='w') as f:
-                json.dump(s, f, indent=2)
-    print()
-    print("-" * 30, 'ANALYSIS', "-" * 30)
-    print("Global Evidence:\n\t%.15e +- %.15e" % ( s['nested sampling global log-evidence'], s['nested sampling global log-evidence error'] ))
-    
     #multifile= os.path.join(plotDir,'2-.txt')
     multifile = lightcurve_utils.get_post_file(plotDir)
     data = np.loadtxt(multifile)
@@ -138,7 +140,7 @@ def multinest(opts,plotDir):
                 zp = data[:,7]
                 loglikelihood = data[:,8]
                 idx = np.argmax(loglikelihood)
-                mb = EOSfit(mns,c)
+                mb = lightcurve_utils.EOSfit(mns,c)
     
                 t0_best = data[idx,0]
                 q_best = data[idx,1]
@@ -209,8 +211,8 @@ def multinest(opts,plotDir):
                 zp = data[:,7]
                 loglikelihood = data[:,8]
                 idx = np.argmax(loglikelihood)
-                mb1 = EOSfit(m1,c1)
-                mb2 = EOSfit(m2,c2)
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
     
                 t0_best = data[idx,0]
                 m1_best = data[idx,1]
@@ -226,7 +228,7 @@ def multinest(opts,plotDir):
                 data_new = np.zeros(data.shape)
                 parameters = ["t0","m1","c1","m2","c2","th","ph","zp"]
                 labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\theta_{\rm ej}$",r"$\phi_{\rm ej}$","ZP"]
-                mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 data_new[:,0] = data[:,0]
                 data_new[:,1] = 1/q
                 data_new[:,2] = mchirp
@@ -281,6 +283,80 @@ def multinest(opts,plotDir):
             zp_best = data[idx,5]
             tmag, lbol, mag = DiUj2017_model_ejecta(mej_best,vej_best,th_best,ph_best)
     
+    elif opts.model == "BaKa2016":
+
+        if opts.doMasses:
+            if opts.doEOSFit:
+
+                t0 = data[:,0]
+                m1 = data[:,1]
+                c1 = data[:,2]
+                m2 = data[:,3]
+                c2 = data[:,4]
+                zp = data[:,6]
+                loglikelihood = data[:,7]
+                idx = np.argmax(loglikelihood)
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
+
+                t0_best = data[idx,0]
+                m1_best = data[idx,1]
+                c1_best = data[idx,2]
+                m2_best = data[idx,3]
+                c2_best = data[idx,4]
+                zp_best = data[idx,5]
+                mb1_best = mb1[idx]
+                mb2_best = mb2[idx]
+
+                data_new = np.zeros(data.shape)
+                parameters = ["t0","m1","c1","m2","c2","zp"]
+                labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$","ZP"]
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1],data[:,3])
+                data_new[:,0] = data[:,0]
+                data_new[:,1] = 1/q
+                data_new[:,2] = mchirp
+                data_new[:,3] = data[:,2]
+                data_new[:,4] = data[:,4]
+                data_new[:,5] = data[:,5]
+                data = data_new
+
+            else:
+                t0 = data[:,0]
+                m1 = data[:,1]
+                mb1 = data[:,2]
+                c1 = data[:,3]
+                m2 = data[:,4]
+                mb2 = data[:,5]
+                c2 = data[:,6]
+                zp = data[:,7]
+                loglikelihood = data[:,8]
+                idx = np.argmax(loglikelihood)
+
+                t0_best = data[idx,0]
+                m1_best = data[idx,1]
+                mb1_best = data[idx,2]
+                c1_best = data[idx,3]
+                m2_best = data[idx,4]
+                mb2_best = data[idx,5]
+                c2_best = data[idx,6]
+                zp_best = data[idx,7]
+
+            tmag, lbol, mag = BaKa2016_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best)
+
+        elif opts.doEjecta:
+            t0 = data[:,0]
+            mej = 10**data[:,1]
+            vej = data[:,2]
+            zp = data[:,3]
+            loglikelihood = data[:,4]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            mej_best = 10**data[idx,1]
+            vej_best = data[idx,2]
+            zp_best = data[idx,4]
+            tmag, lbol, mag = BaKa2016_model_ejecta(mej_best,vej_best,th_best,ph_best)
+
     elif opts.model == "Me2017":
     
         if opts.doMasses:
@@ -296,8 +372,8 @@ def multinest(opts,plotDir):
                 zp = data[:,7]
                 loglikelihood = data[:,8]
                 idx = np.argmax(loglikelihood)
-                mb1 = EOSfit(m1,c1)
-                mb2 = EOSfit(m2,c2)
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
     
                 t0_best = data[idx,0]
                 m1_best = data[idx,1]
@@ -313,7 +389,7 @@ def multinest(opts,plotDir):
                 data_new = np.zeros(data.shape)
                 parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
                 labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
-                mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 data_new[:,0] = data[:,0]
                 data_new[:,1] = 1/q
                 data_new[:,2] = mchirp
@@ -386,8 +462,8 @@ def multinest(opts,plotDir):
                 zp = data[:,7]
                 loglikelihood = data[:,8]
                 idx = np.argmax(loglikelihood)
-                mb1 = EOSfit(m1,c1)
-                mb2 = EOSfit(m2,c2)
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
     
                 t0_best = data[idx,0]
                 m1_best = data[idx,1]
@@ -403,7 +479,7 @@ def multinest(opts,plotDir):
                 data_new = np.zeros(data.shape)
                 parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
                 labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\theta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
-                mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 data_new[:,0] = data[:,0]
                 data_new[:,1] = 1/q
                 data_new[:,2] = mchirp
@@ -476,8 +552,8 @@ def multinest(opts,plotDir):
                 zp = data[:,7]
                 loglikelihood = data[:,8]
                 idx = np.argmax(loglikelihood)
-                mb1 = EOSfit(m1,c1)
-                mb2 = EOSfit(m2,c2)
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
     
                 t0_best = data[idx,0]
                 m1_best = data[idx,1]
@@ -493,7 +569,7 @@ def multinest(opts,plotDir):
                 data_new = np.zeros(data.shape)
                 parameters = ["t0","m1","c1","m2","c2","beta","kappa_r","zp"]
                 labels = [r"$T_0$",r"$q$",r"$M_{\rm c}$",r"$C_{\rm 1}$",r"$C_{\rm 2}$",r"$\beta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
-                mchirp,eta,q = ms2mc(data[:,1],data[:,3])
+                mchirp,eta,q = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 data_new[:,0] = data[:,0]
                 data_new[:,1] = 1/q
                 data_new[:,2] = mchirp
@@ -552,8 +628,8 @@ def multinest(opts,plotDir):
     
         data = np.delete(data,-5,1)
         labels.pop(-4)
-        #idx = np.where((data[:,1]>=-2.0) & (data[:,3]<=0.5))[0]
-        #data = data[idx,:]
+        idx = np.where((data[:,1]>=-2.0) & (data[:,3]<=0.5))[0]
+        data = data[idx,:]
     
     elif opts.model == "SN":
     
@@ -623,7 +699,32 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,th_best,ph_best,zp_best))
             fid.close()
-    
+
+    elif opts.model == "BaKa2016":
+        if opts.doMasses:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n, o, p in zip(t0,m1,mb1,c1,m2,mb2,c2,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,zp_best))
+            fid.close()   
+ 
+        elif opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l in zip(t0,mej,vej,zp):
+                fid.write('%.5f %.5f %.5f %.5f\n'%(i,j,k,l))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,zp_best))
+            fid.close()
+
     elif opts.model == "Me2017":
         if opts.doMasses:
             filename = os.path.join(plotDir,'samples.dat')

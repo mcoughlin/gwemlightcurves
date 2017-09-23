@@ -168,6 +168,46 @@ def WoKo2017_model_ejecta(mej,vej,theta_r,kappa_r):
 
     return t, lbol, mag
 
+def BaKa2016_model(m1,mb1,c1,m2,mb2,c2):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+
+    model = "BaKa2016"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def BaKa2016_model_ejecta(mej,vej):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+
+    model = "BaKa2016"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def SmCh2017_model(m1,mb1,c1,m2,mb2,c2,slope_r,kappa_r):
 
     tini = 0.1
