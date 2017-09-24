@@ -61,8 +61,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017"
     exit(0)
 
 if opts.doFixZPT0:
@@ -96,7 +96,7 @@ else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:

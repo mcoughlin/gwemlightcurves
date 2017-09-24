@@ -53,8 +53,8 @@ def getLegend(outputDir,names):
 
 def loadModels(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)"]
 
     filenames = []
     legend_names = []
@@ -473,4 +473,5 @@ def get_truths(name,model,n_params,doEjecta):
     elif name == "SED_ns12ns12_kappa10":
         truths = [0,np.log10(0.0079), 0.12,False,False,False]
     return truths
+
 

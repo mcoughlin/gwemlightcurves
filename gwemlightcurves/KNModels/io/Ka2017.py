@@ -12,18 +12,18 @@ from .. import KNTable
 from gwemlightcurves import lightcurve_utils, Global, svd_utils
 from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
-def get_BaKa2016_model(table, **kwargs):
+def get_Ka2017_model(table, **kwargs):
 
     if not Global.svd_mag_model == 0:
         svd_mag_model = Global.svd_mag_model
     else:
-        svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016")
+        svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Ka2017")
         Global.svd_mag_model = svd_mag_model
 
     if not Global.svd_lbol_model == 0:
         svd_lbol_model = Global.svd_lbol_model
     else:
-        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0])
+        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Ka2017")
         Global.svd_lbol_model = svd_lbol_model
 
     if not 'mej' in table.colnames:
@@ -48,9 +48,9 @@ def get_BaKa2016_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
-        table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [table['mej'][isample],table['vej'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "BaKa2016")
+        table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [table['mej'][isample],table['vej'][isample],np.log10(table['Xlan'][isample])],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Ka2017")
 
     return table
 
-register_model('BaKa2016', KNTable, get_BaKa2016_model,
+register_model('Ka2017', KNTable, get_Ka2017_model,
                  usage="table")

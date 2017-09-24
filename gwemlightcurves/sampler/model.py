@@ -9,6 +9,7 @@ def generate_lightcurve(model,samples):
         t.add_column(Column(data=[val],name=key))
     samples = t
     model_table = KNTable.model(model, samples)
+
     if len(model_table) == 0:
         return [], [], []
     else:
@@ -204,6 +205,52 @@ def BaKa2016_model_ejecta(mej,vej):
     samples['vej'] = vej
 
     model = "BaKa2016"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Ka2017_model(m1,mb1,c1,m2,mb2,c2,Xlan):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['mb1'] = mb1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['mb2'] = mb2
+    samples['c2'] = c2
+    samples['Xlan'] = Xlan
+
+    model = "Ka2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Ka2017_model_ejecta(mej,vej,Xlan):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    mej = 0.04
+    vej = 0.10
+    Xlan = 0.01
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['Xlan'] = Xlan
+
+    model = "Ka2017"
     t, lbol, mag = generate_lightcurve(model,samples)
 
     return t, lbol, mag

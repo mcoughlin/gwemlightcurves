@@ -14,7 +14,7 @@ def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
 def prior_KaKy2016(q,chi_eff,mns,mb,c):
     return 1.0
 
-def myloglike_Me2017(cube, ndim, nparams):
+def myloglike_Ka2017(cube, ndim, nparams):
 
     t0 = cube[0]
     m1 = cube[1]
@@ -23,11 +23,45 @@ def myloglike_Me2017(cube, ndim, nparams):
     m2 = cube[4]
     mb2 = cube[5]
     c2 = cube[6]
-    beta = cube[7]
-    kappa_r = 10**cube[8]
-    zp = cube[9]
+    Xlan = 10**cube[7]
+    zp = cube[8]
 
-    tmag, lbol, mag = Me2017_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
+    tmag, lbol, mag = Ka2017_model(m1,mb1,c1,m2,mb2,c2,Xlan)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
+def myloglike_Ka2017_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Xlan = 10**cube[3]
+    zp = cube[4]
+
+    tmag, lbol, mag = Ka2017_model_ejecta(mej,vej,Xlan)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Ka2017_EOSFit(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    c1 = cube[2]
+    m2 = cube[3]
+    c2 = cube[4]
+    Xlan = 10**cube[5]
+    zp = cube[6]
+
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
+
+    tmag, lbol, mag = Ka2017_model(m1,mb1,c1,m2,mb2,c2,Xlan)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
     prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
@@ -457,6 +491,10 @@ def calc_prob(tmag, lbol, mag, t0, zp):
         return prob
 
     elif Global.doLightcurves:
+        if len(np.isfinite(lbol)) == 0:
+            prob = -np.inf
+            return prob
+
         if np.sum(lbol) == 0.0:
             prob = -np.inf
             return prob

@@ -14,6 +14,8 @@ def parse_commandline():
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
+    parser.add_option("--doLightcurves",  action="store_true", default=False)
+    parser.add_option("--doLuminosity",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -44,13 +46,22 @@ else:
     print "Must specify --doMasses or --doEjecta"
     exit(0)
 
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K %s %s %s "%(opts.model,eosfitFlag,fixzpt0Flag,typeFlag)
-os.system(system_command)
+if not (opts.doLuminosity or opts.doLightcurves):
+    print "Must specify --doLuminosity or --doLightcurves"
+    exit(0)
 
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 2.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K %s %s %s"%(opts.model,eosfitFlag,fixzpt0Flag,typeFlag)
-os.system(system_command)
+if opts.doLightcurves:
+    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    os.system(system_command)
 
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K %s %s %s"%(opts.model,eosfitFlag,fixzpt0Flag,typeFlag)
-os.system(system_command)
+    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K --errorbudget %.2f %s %s %s"%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    os.system(system_command)
+
+if opts.doLuminosity:
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    os.system(system_command)
+
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --errorbudget %.2f %s %s %s"%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    os.system(system_command)
 
 
