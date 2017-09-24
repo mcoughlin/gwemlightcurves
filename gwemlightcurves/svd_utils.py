@@ -8,12 +8,15 @@ from scipy.interpolate import griddata
 
 from gwemlightcurves import lightcurve_utils, Global
 
-def calc_svd_lbol(tini,tmax,dt,model = "BaKa2016"):
+def calc_svd_lbol(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
 
     if model == "BaKa2016":    
         fileDir = "../output/barnes_kilonova_spectra"
     elif model == "Ka2017":
         fileDir = "../output/kasen_kilonova_survey"
+    elif model == "RoFe2017":
+        fileDir = "../output/macronovae-rosswog_wind"
+
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
     lbols, names = lightcurve_utils.read_files_lbol(filenames)
@@ -41,6 +44,8 @@ def calc_svd_lbol(tini,tmax,dt,model = "BaKa2016"):
             lbols[key]["mej"] = mej0
             lbols[key]["vej"] = vej0
             lbols[key]["Xlan"] = Xlan0
+        elif keySplit[0] == "SED":
+            lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
 
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
@@ -52,9 +57,12 @@ def calc_svd_lbol(tini,tmax,dt,model = "BaKa2016"):
     for key in lbolkeys:
         lbol_array.append(lbols[key]["Lbol"])
         if model == "BaKa2016":
-            param_array.append([lbols[key]["mej"],lbols[key]["vej"]])
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["vej"]])
         elif model == "Ka2017":
-            param_array.append([lbols[key]["mej"],lbols[key]["vej"],np.log10(lbols[key]["Xlan"])])
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["vej"],np.log10(lbols[key]["Xlan"])])
+        elif model == "RoFe2017":
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["vej"],lbols[key]["Ye"]]) 
+
     param_array = np.array(param_array)
     lbol_array_postprocess = np.array(lbol_array)
 
@@ -70,7 +78,6 @@ def calc_svd_lbol(tini,tmax,dt,model = "BaKa2016"):
     m, m = VA.shape
 
     #n_coeff = m
-    n_coeff = 100
     cAmat = np.zeros((n_coeff,n))
     for i in range(n):
         cAmat[:,i] = np.dot(lbol_array_postprocess[i,:],VA[:,:n_coeff])
@@ -85,12 +92,14 @@ def calc_svd_lbol(tini,tmax,dt,model = "BaKa2016"):
 
     return svd_model
 
-def calc_svd_mag(tini,tmax,dt,model = "BaKa2016"):
+def calc_svd_mag(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
 
     if model == "BaKa2016":
         fileDir = "../output/barnes_kilonova_spectra"
     elif model == "Ka2017":
         fileDir = "../output/kasen_kilonova_survey"
+    elif model == "RoFe2017":
+        fileDir = "../output/macronovae-rosswog_wind"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -127,6 +136,8 @@ def calc_svd_mag(tini,tmax,dt,model = "BaKa2016"):
             mags[key]["mej"] = mej0
             mags[key]["vej"] = vej0
             mags[key]["Xlan"] = Xlan0
+        elif keySplit[0] == "SED":
+            mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
 
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
 
@@ -142,10 +153,12 @@ def calc_svd_mag(tini,tmax,dt,model = "BaKa2016"):
     for key in magkeys:
         mag_array.append(mags[key]["data_vector"])
         if model == "BaKa2016":
-            param_array.append([mags[key]["mej"],mags[key]["vej"]])
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["vej"]])
         elif model == "Ka2017":
-            param_array.append([mags[key]["mej"],mags[key]["vej"],np.log10(mags[key]["Xlan"])])
-    
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["vej"],np.log10(mags[key]["Xlan"])])
+        elif model == "RoFe2017":
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["vej"],mags[key]["Ye"]])    
+
     param_array = np.array(param_array)
     mag_array_postprocess = np.array(mag_array)
     
@@ -160,7 +173,6 @@ def calc_svd_mag(tini,tmax,dt,model = "BaKa2016"):
     m, m = VA.shape
 
     #n_coeff = m
-    n_coeff = 100
     cAmat = np.zeros((n_coeff,n))
     for i in range(n):
         cAmat[:,i] = np.dot(mag_array_postprocess[i,:],VA[:,:n_coeff])

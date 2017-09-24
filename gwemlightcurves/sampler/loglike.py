@@ -14,6 +14,62 @@ def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
 def prior_KaKy2016(q,chi_eff,mns,mb,c):
     return 1.0
 
+def myloglike_RoFe2017(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    mb1 = cube[2]
+    c1 = cube[3]
+    m2 = cube[4]
+    mb2 = cube[5]
+    c2 = cube[6]
+    Ye = cube[7]
+    zp = cube[8]
+
+    tmag, lbol, mag = RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
+def myloglike_RoFe2017_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Ye = cube[3]
+    zp = cube[4]
+
+    tmag, lbol, mag = RoFe2017_model_ejecta(mej,vej,Ye)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_RoFe2017_EOSFit(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    c1 = cube[2]
+    m2 = cube[3]
+    c2 = cube[4]
+    Ye = cube[5]
+    zp = cube[6]
+
+    mb1 = lightcurve_utils.EOSfit(m1,c1)
+    mb2 = lightcurve_utils.EOSfit(m2,c2)
+
+    tmag, lbol, mag = RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
 def myloglike_Ka2017(cube, ndim, nparams):
 
     t0 = cube[0]

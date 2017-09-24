@@ -26,7 +26,8 @@ from . import (  # pylint: disable=unused-import
     KaKy2016, # Kawaguchi et al. (2016) Model
     WoKo2017, # Wollaeger et al. (2017) Model
     BaKa2016, # Barnes et al. (2016) Model
-    Ka2017 # Kasen (2017) Model
+    Ka2017, # Kasen (2017) Model
+    RoFe2017 # Rosswog et al. (2017) Model
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'

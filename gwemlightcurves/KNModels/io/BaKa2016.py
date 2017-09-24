@@ -23,7 +23,7 @@ def get_BaKa2016_model(table, **kwargs):
     if not Global.svd_lbol_model == 0:
         svd_lbol_model = Global.svd_lbol_model
     else:
-        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0])
+        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016")
         Global.svd_lbol_model = svd_lbol_model
 
     if not 'mej' in table.colnames:
@@ -48,7 +48,7 @@ def get_BaKa2016_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
-        table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [table['mej'][isample],table['vej'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "BaKa2016")
+        table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['vej'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "BaKa2016")
 
     return table
 
