@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
-from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
 from gwemlightcurves import lightcurve_utils, Global
 
@@ -47,6 +46,7 @@ def parse_commandline():
     parser.add_option("--beta",default=3.0,type=float)
     parser.add_option("--kappa_r",default=0.1,type=float)
     parser.add_option("--slope_r",default=-1.2,type=float)
+    parser.add_option("--Xlan",default=1e-3,type=float)
     
     opts, args = parser.parse_args()
  
@@ -70,6 +70,7 @@ theta_obs = opts.theta_obs
 beta = opts.beta
 kappa_r = opts.kappa_r
 slope_r = opts.slope_r
+Xlan = opts.Xlan
 
 if opts.eos == "APR4":
     c = 0.180
@@ -121,14 +122,12 @@ samples['flgbct'] = flgbct
 samples['beta'] = beta
 samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
+samples['Xlan'] = Xlan
 
 samples['theta_0'] = theta_0
 samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs
-samples['beta'] = beta
-samples['kappa_r'] = kappa_r
-samples['slope_r'] = slope_r
 
 if opts.doEjecta:
     samples['mej'] = opts.mej
@@ -142,6 +141,9 @@ elif opts.doMasses:
     samples['c2'] = c
     samples['mb1'] = mb
     samples['mb2'] = mb
+else:
+    print "Enable --doEjecta or --doMasses"
+    exit(0)
 
 t = Table()
 for key, val in samples.iteritems():
@@ -185,6 +187,22 @@ elif opts.model == "SmCh2017":
 elif opts.model == "WoKo2017":
     if opts.doEjecta:
         name = "WoKo2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
+elif opts.model == "BaKa2016":
+    if opts.doEjecta:
+        name = "BaKa2016_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
+elif opts.model == "Ka2017":
+    if opts.doEjecta:
+        name = "Ka2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
     else:

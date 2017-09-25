@@ -53,8 +53,8 @@ def getLegend(outputDir,names):
 
 def loadModels(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)"]
 
     filenames = []
     legend_names = []
@@ -474,3 +474,50 @@ def get_truths(name,model,n_params,doEjecta):
         truths = [0,np.log10(0.0079), 0.12,False,False,False]
     return truths
 
+def get_macronovae_rosswog(name):
+    
+    if name == "SED_wind1":
+        params = [0.01, 0.05, 0.3]
+    elif name == "SED_wind2":
+        params = [0.01, 0.05, 0.25]
+    elif name == "SED_wind3":
+        params = [0.01, 0.05, 0.35]
+    elif name == "SED_wind4":
+        params = [0.05, 0.05, 0.25]
+    elif name == "SED_wind5":
+        params = [0.05, 0.05, 0.3]
+    elif name == "SED_wind6":
+        params = [0.05, 0.05, 0.35]
+    elif name == "SED_wind7":
+        params = [0.05, 0.1, 0.25]
+    elif name == "SED_wind8":
+        params = [0.05, 0.1, 0.3]
+    elif name == "SED_wind9":
+        params = [0.1, 0.1, 0.25]
+    elif name == "SED_wind10":
+        params = [0.01, 0.1, 0.25]
+    elif name == "SED_wind11":
+        params = [0.01, 0.25, 0.25]
+    elif name == "SED_wind12": 
+        params = [0.01, 0.5, 0.25]
+    elif name == "SED_wind13":
+        params = [0.1, 0.01, 0.35]
+    elif name == "SED_wind14":
+        params = [0.1, 0.05, 0.3]
+    elif name == "SED_wind15":
+        params = [0.2, 0.01, 0.35]
+    elif name == "SED_wind16":
+        params = [0.2, 0.05, 0.3]
+    elif name == "SED_wind17":
+        params = [0.2, 0.1, 0.25]
+    elif name == "SED_wind18":
+        params = [0.01, 0.01, 0.35]
+    elif name == "SED_wind19":
+        params = [0.05, 0.25, 0.25]
+    elif name == "SED_wind20":
+        params = [0.1, 0.25, 0.25]
+    elif name == "SED_wind21":
+        params = [0.2, 0.25, 0.25]
+    else:
+        params = [-1,-1,-1]
+    return params

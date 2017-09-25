@@ -105,6 +105,26 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     tau_co = 77.27*24*60*60/np.log(2)    # Decay time (half life / ln2) for Co56 (s) 77.27d  CHECKED
     kappa_gamma = 0.03  # CHECKED
 
+<<<<<<< HEAD
+=======
+    # total ejecta mass 
+    M0 = mej*Msun
+    # minimum initial velocity
+    v0 = vej*c
+    # velocity index (M ~ v**-beta)
+    beta = 3.
+  
+    # ** define mass/velocity array of outer ejecta, comprised of half of mass **
+    mmin = np.log(1.0e-8)
+    mmax = np.log(M0/Msun)
+    mprec = 300
+    m = np.arange(mprec)*(mmax-mmin)/(mprec-1.0) + mmin
+    m = np.exp(m)
+ 
+    vm = v0*(m/(M0/Msun))**(-1./beta)
+    vm[vm > c] = c
+
+>>>>>>> mcoughlin/master
     tau_m = 1.05*((kappa/(13.7*c))**0.5) * (((((M_ej*m_sol)**3))/(E_51*1e51))**0.25)    # Diffusion time (Arnett 1982) Eq 18, 19, 22, 23 CHECKED
     y = tau_m/(2*tau_ni)   # Arnett 1982 Eq 33 CHECKED
     yp = tau_m/(2*tau_co)    # Arnet 1982 Eq 33, modified to 56Co decay  CHECKED
@@ -114,6 +134,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     tvec_days = np.arange(tini,tmax+dt,dt)
     Ntimes = len(tvec_days)
     Ltotm = np.zeros(tvec_days.shape)
+    vphoto = np.zeros(tvec_days.shape)
     Rphoto = np.zeros(tvec_days.shape)
 
     for i in xrange(Ntimes):
@@ -136,7 +157,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         sigma = 0.11
         eth = 0.36*(np.exp(-0.56*z*tau_m/(24*3600)) + (np.log(1 + 2*0.17*(z*tau_m/(24*3600))**0.74))/(2*0.17*(z*tau_m/(24*3600))**0.74))
          
-        power[ind] = eth[ind]*1.9e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse);
+        power[ind] = eth[ind]*1.9e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
         ind = np.where(z*tau_m > t_break*24*3600)[0]
         slopeuse = slope_break
         power[ind] = 10**(slope-slopeuse)*eth[ind]*1.9e10*(M_ej*m_sol)*(z[ind]*tau_m/(t0*24*3600))**(slopeuse)
@@ -149,7 +170,20 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         else:
             Lambda_kilonova = power[Nintegrate-1]
         Ltotm[i] = Lambda_kilonova   # Calculate luminosity
+<<<<<<< HEAD
         Rphoto[i] = V_ej*tvec_days[i]*86400
+=======
+
+        kappa_correction = 1.0
+        tdiff = 0.08*kappa*m*Msun*3*kappa_correction/(vm*c*t*beta)
+        tau = m*Msun*kappa/(4.0*np.pi*(t*vm)**(2.0))
+
+        # photosphere 
+        pig1 = np.argmin(np.abs(taudiff-t))
+        pig = np.argmin(np.abs(tau-1.0))
+        vphoto[i] = vm[pig]
+        Rphoto[i] = vphoto[i]*t
+>>>>>>> mcoughlin/master
 
     Ltotm = Ltotm/1.0e20
     Ltotm = Ltotm/1.0e20
