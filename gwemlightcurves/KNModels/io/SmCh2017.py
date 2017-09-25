@@ -105,8 +105,6 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     tau_co = 77.27*24*60*60/np.log(2)    # Decay time (half life / ln2) for Co56 (s) 77.27d  CHECKED
     kappa_gamma = 0.03  # CHECKED
 
-<<<<<<< HEAD
-=======
     # total ejecta mass 
     M0 = mej*Msun
     # minimum initial velocity
@@ -124,7 +122,6 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     vm = v0*(m/(M0/Msun))**(-1./beta)
     vm[vm > c] = c
 
->>>>>>> mcoughlin/master
     tau_m = 1.05*((kappa/(13.7*c))**0.5) * (((((M_ej*m_sol)**3))/(E_51*1e51))**0.25)    # Diffusion time (Arnett 1982) Eq 18, 19, 22, 23 CHECKED
     y = tau_m/(2*tau_ni)   # Arnett 1982 Eq 33 CHECKED
     yp = tau_m/(2*tau_co)    # Arnet 1982 Eq 33, modified to 56Co decay  CHECKED
@@ -170,9 +167,6 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         else:
             Lambda_kilonova = power[Nintegrate-1]
         Ltotm[i] = Lambda_kilonova   # Calculate luminosity
-<<<<<<< HEAD
-        Rphoto[i] = V_ej*tvec_days[i]*86400
-=======
 
         kappa_correction = 1.0
         tdiff = 0.08*kappa*m*Msun*3*kappa_correction/(vm*c*t*beta)
@@ -183,7 +177,6 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
         pig = np.argmin(np.abs(tau-1.0))
         vphoto[i] = vm[pig]
         Rphoto[i] = vphoto[i]*t
->>>>>>> mcoughlin/master
 
     Ltotm = Ltotm/1.0e20
     Ltotm = Ltotm/1.0e20
