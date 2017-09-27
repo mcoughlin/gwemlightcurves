@@ -16,6 +16,7 @@ def parse_commandline():
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
     parser.add_option("--doLuminosity",  action="store_true", default=False)
+    parser.add_option("-f","--filters",default="u,g,r,i,z,y,J,H,K")
 
     opts, args = parser.parse_args()
 
@@ -24,8 +25,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016","Ka2017","RoFe2017"
     exit(0)
 
 if opts.doEOSFit:
@@ -51,10 +52,10 @@ if not (opts.doLuminosity or opts.doLightcurves):
     exit(0)
 
 if opts.doLightcurves:
-    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s "%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     os.system(system_command)
 
-    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --filters u,g,r,i,z,y,J,H,K --errorbudget %.2f %s %s %s"%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_lightcurves_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     os.system(system_command)
 
 if opts.doLuminosity:
