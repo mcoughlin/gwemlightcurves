@@ -12,6 +12,14 @@ from .. import KNTable
 from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
 def get_Me2017_model(table, **kwargs):
+    """
+.. py:function:: get_Me2017_model(table, **kwargs) 
+
+   :param table table: a table which must at least have columns of solar masses of objects the baryonic masses of the objects and the compactness of the object. The table except m1, mb1, c1, m2, mb2, c2, mej and vej as column names
+   :return: The lbol, mag and sampling times of the KN Metzger 2017
+   :rtype: table
+
+    """
     if not 'mej' in table.colnames:
         # calc the mass of ejecta
         table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
