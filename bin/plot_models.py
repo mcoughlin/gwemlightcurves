@@ -8,6 +8,7 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 from astropy.time import Time
 
 import matplotlib
+matplotlib.rc('pdf', fonttype=42)
 #matplotlib.rc('text', usetex=True)
 matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})

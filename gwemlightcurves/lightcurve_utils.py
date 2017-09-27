@@ -521,3 +521,35 @@ def get_macronovae_rosswog(name):
     else:
         params = [-1,-1,-1]
     return params
+
+def calc_peak_mags(model_table):
+    """
+    # Peak magnitudes and times in each band"
+    """
+
+    filts = ["u","g","r","i","z","y","J","H","K"]
+    magidxs = [0,1,2,3,4,5,6,7,8]
+
+    model_table_tts = {}
+    model_table_mags = {}
+    for filt, magidx in zip(filts,magidxs):
+        model_table_tts[filt] = []
+        model_table_mags[filt] = []
+
+    for row in model_table:
+        t, lbol, mag = row["t"], row["lbol"], row["mag"]
+        for filt, magidx in zip(filts,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            if len(idx) == 0:
+                model_table_tts[filt].append(np.nan)
+                model_table_mags[filt].append(np.nan)
+            else:
+                ii = np.argmin(mag[magidx][idx])
+                model_table_tts[filt].append(t[idx][ii])
+                model_table_mags[filt].append(mag[magidx][idx][ii])
+
+    for filt, magidx in zip(filts,magidxs):
+        model_table["peak_tt_%s"%filt] = model_table_tts[filt]
+        model_table["peak_mag_%s"%filt] = model_table_mags[filt]        
+
+    return model_table
