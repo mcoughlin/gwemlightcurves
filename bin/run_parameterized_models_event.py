@@ -32,7 +32,7 @@ def parse_commandline():
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
     #parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017")
-    parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,WoKo2017")
+    parser.add_argument("-m","--model",default="DiUj2017,Me2017,WoKo2017", help="DiUj2017,Me2017,WoKo2017")
     parser.add_argument("--name",default="G298048")
 
     parser.add_argument("--doEvent",  action="store_true", default=False)
@@ -72,6 +72,12 @@ def get_legend(model):
         legend_name = "Smartt et al. (2017)"
     elif model == "WoKo2017":
         legend_name = "Wollaeger et al. (2017)"
+    elif model == "BaKa2016":
+        legend_name = "Barnes et al. (2016)"
+    elif model == "Ka2017":
+        legend_name = "Kasen (2017)"
+    elif model == "RoFe2017":
+        legend_name = "Rosswog et al. (2017)"
 
     return legend_name
 
@@ -80,8 +86,8 @@ opts = parse_commandline()
 
 models = opts.model.split(",")
 for model in models:
-    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
-        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017"
+    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016,Ka2017,RoFe2017"
         exit(0)
 
 lightcurvesDir = opts.lightcurvesDir
@@ -89,21 +95,22 @@ lightcurvesDir = opts.lightcurvesDir
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
 tmax = 50.0
-dt = 0.1
+dt = 0.01
 
 vmin = 0.02
 th = 0.2
 ph = 3.14
-kappa = 10.0
+kappa = 1.0
 eps = 1.58*(10**10)
 alp = 1.2
 eth = 0.5
 flgbct = 1
 
 beta = 3.0
-kappa_r = 10.0
+kappa_r = 1.0
 slope_r = -1.2
 theta_r = 0.0
+Ye = 0.3
 
 # read in samples
 samples = KNTable.read_samples(opts.posterior_samples)
@@ -117,7 +124,7 @@ samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
 samples = samples.calc_baryonic_mass(EOS='H4', TOV='Monica', fit=True)
-#samples = samples.downsample(Nsamples=1000)
+#samples = samples.downsample(Nsamples=100)
 
 #add default values from above to table
 samples['tini'] = tini
@@ -135,6 +142,7 @@ samples['beta'] = beta
 samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['theta_r'] = theta_r
+samples['Ye'] = Ye
 
 # Create dict of tables for the various models, calculating mass ejecta velocity of ejecta and the lightcurve from the model
 model_tables = {}
@@ -166,7 +174,9 @@ for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
         mag_all[model][filt] = np.empty((0,len(tt)))
 
+peak_mags_all = {}
 for model in models:
+    model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model])
     for row in model_tables[model]:
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
 
@@ -222,6 +232,19 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
+plotName = "%s/peaki.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+cnt = 0
+for model in models:
+    plt.scatter(model_tables[model]["peak_tt_i"],model_tables[model]["peak_mag_i"]+np.floor(5*(np.log10(opts.distance*1e6) - 1)),c=np.log10(model_tables[model]["mej"]))
+plt.xlabel(r'$t_{\rm peak}$ [days]')
+plt.ylabel(r'Peak i-band magnitude')
+plt.gca().invert_yaxis()
+cbar = plt.colorbar()
+cbar.set_label(r'Ejecta mass log10($M_{\odot}$)')
+plt.savefig(plotName)
+plt.close()
+
 filts = ["g","r","i","z","y","J","H","K"]
 #filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
@@ -230,7 +253,7 @@ magidxs = [1,2,3,4,5,6,7,8]
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
-plt.figure(figsize=(20,18))
+plt.figure(figsize=(20,28))
 
 cnt = 0
 for filt, color, magidx in zip(filts,colors,magidxs):
@@ -262,50 +285,61 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
         plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
         plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
-    plt.ylabel('%s'%filt,fontsize=24,rotation=0,labelpad=20)
+    plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 14.0])
     plt.ylim([-18.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
+    plt.xticks(fontsize=28)
+    plt.yticks(fontsize=28)
 
     if cnt == 1:
         ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
+        plt.xticks(fontsize=28)
+        plt.yticks(fontsize=28)
+
         ax3 = ax1.twinx()   # mirror them
         ax3.set_yticks([16,12,8,4,0])
         app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         ax3.set_yticklabels(app.astype(int))
+
+        plt.xticks(fontsize=28)
+        plt.yticks(fontsize=28)
     else:
         ax4 = ax2.twinx()   # mirror them
         ax4.set_yticks([16,12,8,4,0])
         app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         ax4.set_yticklabels(app.astype(int))
 
+        plt.xticks(fontsize=28)
+        plt.yticks(fontsize=28)
+
     if (not cnt == len(filts)) and (not cnt == 1):
         plt.setp(ax2.get_xticklabels(), visible=False)
 
 ax1.set_zorder(1)
-ax2.set_xlabel('Time [days]',fontsize=24)
+ax2.set_xlabel('Time [days]',fontsize=48)
 plt.savefig(plotName)
 plt.close()
 
-plotName = "%s/iminusg.pdf"%(plotDir)
+plotName = "%s/gminusi.pdf"%(plotDir)
 plt.figure()
 cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    magmed = np.median(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
-    magmax = np.max(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
-    magmin = np.min(mag_all[model]["i"]-mag_all[model]["g"],axis=0)
+    magmed = np.median(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
+    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
+    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
 
     plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
 
 plt.xlim([0.0, 14.0])
 plt.xlabel('Time [days]')
-plt.ylabel('Absolute AB Magnitude')
+plt.ylabel('Absolute AB Magnitude [g-i]')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
 plt.savefig(plotName)

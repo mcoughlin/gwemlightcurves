@@ -386,7 +386,8 @@ def multinest(opts,plotDir):
             t0_best = data[idx,0]
             mej_best = 10**data[idx,1]
             vej_best = data[idx,2]
-            zp_best = data[idx,4]
+            zp_best = data[idx,3]
+
             tmag, lbol, mag = BaKa2016_model_ejecta(mej_best,vej_best)
 
     elif opts.model == "Ka2017":
@@ -427,7 +428,7 @@ def multinest(opts,plotDir):
                 idx = np.argmax(loglikelihood)
                 mb1, mb2 = lightcurve_utils.EOSfit(m1,c1), lightcurve_utils.EOSfit(m2,c2)
 
-                t0_best, m1_best, c1_best, m2_best, c2_best, Ye_best, zp_best, mb1_best, mb2_best, zp_best = data[idx,0], data[idx,1], data[idx,2], data[idx,3], data[idx,4], data[idx,5], data[idx,6], mb1[idx], mb2[idx]
+                t0_best, m1_best, c1_best, m2_best, c2_best, Ye_best, zp_best, mb1_best, mb2_best = data[idx,0], data[idx,1], data[idx,2], data[idx,3], data[idx,4], data[idx,5], data[idx,6], mb1[idx], mb2[idx]
 
                 data_new = np.zeros(data.shape)
                 parameters = ["t0","m1","c1","m2","c2","ye","zp"]
@@ -834,12 +835,12 @@ def multinest(opts,plotDir):
             filename = os.path.join(plotDir,'samples.dat')
             fid = open(filename,'w+')
             for i, j, k, l, m in zip(t0,mej,vej,Xlan,zp):
-                fid.write('%.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
+                fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
             fid.close()
 
             filename = os.path.join(plotDir,'best.dat')
             fid = open(filename,'w')
-            fid.write('%.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,Xlan_best,zp_best))
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,Xlan_best,zp_best))
             fid.close()
 
     elif opts.model == "Me2017":
@@ -865,7 +866,31 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
             fid.close()
-    
+   
+    elif opts.model == "RoFe2017":
+        if opts.doMasses:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n, o, p in zip(t0,m1,mb1,c1,m2,mb2,c2,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,zp_best))
+            fid.close()
+        elif opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m in zip(t0,mej,vej,Ye,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
+            fid.close()
+ 
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,Ye_best,zp_best))
+            fid.close()
+
     elif opts.model == "WoKo2017":
         if opts.doMasses:
             filename = os.path.join(plotDir,'samples.dat')

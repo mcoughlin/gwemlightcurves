@@ -47,6 +47,7 @@ def parse_commandline():
     parser.add_option("--kappa_r",default=0.1,type=float)
     parser.add_option("--slope_r",default=-1.2,type=float)
     parser.add_option("--Xlan",default=1e-3,type=float)
+    parser.add_option("--Ye",default=0.25,type=float)
     
     opts, args = parser.parse_args()
  
@@ -71,6 +72,7 @@ beta = opts.beta
 kappa_r = opts.kappa_r
 slope_r = opts.slope_r
 Xlan = opts.Xlan
+Ye = opts.Ye
 
 if opts.eos == "APR4":
     c = 0.180
@@ -123,6 +125,7 @@ samples['beta'] = beta
 samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['Xlan'] = Xlan
+samples['Ye'] = Ye
 
 samples['theta_0'] = theta_0
 samples['E'] = E
@@ -208,6 +211,14 @@ elif opts.model == "Ka2017":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
+elif opts.model == "RoFe2017":
+    if opts.doEjecta:
+        name = "FoFe2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Ye))
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0
@@ -228,7 +239,7 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print "Model must be either: BHNS, BNS, Blue, SN, Afterglow"
+   print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, SN, Afterglow"
    exit(0)
 
 if np.sum(lbol) == 0.0:

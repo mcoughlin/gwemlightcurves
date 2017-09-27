@@ -242,18 +242,15 @@ class KNTable(Table):
 
         return self
 
-
     def downsample(self, Nsamples=100):
         """
         randomly down samples the number os posterior samples used for calculating lightcurves
         plotting etc
         """
         print('You are requesting to downsample the number of posterior samples to {0}'.format(Nsamples))
-        Nsamples = 100
         idx = np.random.permutation(len(self["m1"]))
         idx = idx[:Nsamples]
         return self[idx]
-
 
     @classmethod
     def model(cls, format_, *args, **kwargs):
@@ -285,3 +282,4 @@ class KNTable(Table):
         from .io.model import get_model
         model = get_model(format_, cls)
         return model(*args, **kwargs)
+
