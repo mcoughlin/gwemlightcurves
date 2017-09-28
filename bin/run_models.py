@@ -197,19 +197,17 @@ def getMagSpecH5(filename,band,model):
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
         lam  = np.flipud(c/nu*1e8)
-        Llam = Lnu*nu**2.0/c/1e8
+        Llam = Lnu*np.flipud(nu)**2.0/c/1e8
 
         D_cm = 10*3.0857e16*100 # 10 pc in cm
 
-        Llam = Llam / (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
-
-        spec = np.array(zip(lam,Llam))
+        spec = np.array(zip(lam,Llam/(4*np.pi*D_cm**2)))
         spec1 = easyint(spec[:,0],spec[:,1],band[:,0])
 
         conv = spec1*band[:,1]
         flux = np.trapz(conv,x=band[:,0])
         mag = -2.5*np.log10(flux/ZP)
-        Lbol = np.trapz(spec[:,1]*(4*np.pi*D_cm**2),x=spec[:,0])
+        Lbol = np.trapz(Llam,x=lam)
 
         if not np.isfinite(mag):
             mag = np.nan
@@ -388,12 +386,12 @@ opts = parse_commandline()
 baseoutputDir = opts.outputDir
 outputDir = os.path.join(baseoutputDir,opts.model)
 if not os.path.isdir(outputDir):
-    os.makedir(outputDir)
+    os.makedirs(outputDir)
 
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,opts.model)
 if not os.path.isdir(plotDir):
-    os.makedir(plotDir)
+    os.makedirs(plotDir)
 dataDir = opts.dataDir
 
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
