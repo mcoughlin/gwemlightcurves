@@ -124,7 +124,7 @@ samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 samples = samples.calc_compactness()
 # Calc baryonic mass
 samples = samples.calc_baryonic_mass()
-#samples = samples.downsample(Nsamples=100)
+#samples = samples.downsample(Nsamples=10)
 
 #add default values from above to table
 samples['tini'] = tini
@@ -155,6 +155,9 @@ plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.name)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
+datDir = os.path.join(plotDir,"dat")
+if not os.path.isdir(datDir):
+    os.makedirs(datDir)
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
@@ -251,6 +254,17 @@ colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 magidxs = [1,2,3,4,5,6,7,8]
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+
+for model in models:
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        fid = open(os.path.join(datDir,'%s_%s.dat'%(model,filt)),'w')
+        fid.write("t [days] min median max\n")
+        magmed = np.median(mag_all[model][filt],axis=0)
+        magmax = np.max(mag_all[model][filt],axis=0)
+        magmin = np.min(mag_all[model][filt],axis=0)
+        for a,b,c,d in zip(tt,magmin,magmed,magmax):
+            fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
+        fid.close()
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
 plt.figure(figsize=(20,28))

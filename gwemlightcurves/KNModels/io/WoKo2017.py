@@ -92,7 +92,8 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
 
     tmax = (kappa_r/10)**0.35 * (mej/10**-2)**0.318 * (vej/0.1)**-0.60
     Lmax = 2.8*10**40 * (kappa_r/10)**-0.60 * (mej/10**-2)**0.426 * (vej/0.1)**0.776
-    t = t*tmax/t[np.argmax(lbol)]
+
+    tvec_days = tvec_days*tmax/tvec_days[np.argmax(lbol)]
     lbol = lbol*Lmax/np.max(lbol)
 
     wavelengths = [4775.6, 6129.5, 7484.6, 8657.8, 9603.1, 12350, 16620, 21590]

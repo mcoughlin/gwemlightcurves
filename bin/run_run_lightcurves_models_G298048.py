@@ -59,10 +59,10 @@ if opts.doLightcurves:
     os.system(system_command)
 
 if opts.doLuminosity:
-    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 0.0 --tmax 14.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_XSH_PESSTO --tmin 0.0 --tmax 14.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     os.system(system_command)
 
-    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_PS1_GROND_SOFI --tmin 7.0 --tmax 14.0 --errorbudget %.2f %s %s %s"%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_XSH_PESSTO --tmin 7.0 --tmax 14.0 --errorbudget %.2f %s %s %s"%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     os.system(system_command)
 
 
