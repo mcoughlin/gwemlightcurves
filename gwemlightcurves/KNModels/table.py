@@ -123,6 +123,29 @@ class KNTable(Table):
 
         return KNTable(data_out)
 
+
+    def get_eos_list(TOV):
+        """
+        Populates lists of available EOSs for each set of TOV solvers
+        """
+        from os import listdir
+        try:
+        	path=find_executable('ap4_mr.dat')
+		 	path=path[:-10]
+        except:
+           raise ValueError('Check to make sure EOS mass-radius'
+                            'tables have been installed correctly' 
+                            '(try `which ap4_mr.dat`)')
+        if TOV=='Monica':
+        	EOS_List=[file_name[:-7] for file_name in os.listdir(path) if file_name.endswith("_mr.dat") and 'lalsim' not in file_name]       
+		if TOV=='Wolfgang':
+			EOS_List=[file_name[:-10] for file_name in os.listdir(path) if file_name.endswith("seq")]
+		if TOV=='lasim':
+			EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
+
+		return EOS_List
+
+
     def calc_tidal_lambda(self, remove_negative_lambda=False):
         """
         Takes posterior samples and calculates lambda1 and lambda2 from
@@ -140,7 +163,7 @@ class KNTable(Table):
             print "Removing %d/%d due to negative lambdas"%(np.sum(mask),len(mask))
 
         return self
-
+          
 
     def calc_compactness(self, fit=False):
         """
@@ -177,21 +200,26 @@ class KNTable(Table):
             self["mb1"] = EOSfit(self["m1"], self["c1"])
             self["mb2"] = EOSfit(self["m2"], self["c2"])
             return self
-
-        if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
-            raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the Baryonic mass.')
+   
+        #if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
+        #   raise ValueError('You have provided a EOS '
+        #                     'for which we have no data '
+        #                     'and therefore cannot '
+        #                     'calculate the Baryonic mass.')
 
         if TOV not in ['Monica', 'Wolfgang']:
             raise ValueError('You have provided a TOV '
                              'for which we have no data '
                              'and therefore cannot '
                              'calculate the Baryonic mass.')
-
-        
+       
         if TOV == 'Monica':
+           if EOS not in get_eos_list(TOV):
+              raise ValueError('You have provided a EOS '
+                             'for which we have no data '
+                             'and therefore cannot '
+                             'calculate the Baryonic mass.')
+
             import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
             import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
             MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_mr.dat'), format='ascii')
@@ -200,10 +228,17 @@ class KNTable(Table):
             self['mb1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
             self['mb2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
             
-            
-
         if TOV == 'Wolfgang':
-            MassRadiusBaryMassTable = Table.read(EOS + '.tidal.seq')
+        	if EOS not in get_eos_list(TOV):
+           		raise ValueError('You have provided a EOS '
+                                'for which we have no data '
+                                'and therefore cannot '
+                                'calculate the Baryonic mass.')
+			
+			import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+            import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
+            MassRadiusBaryMassTable = Table.read(find_executable(EOS + '.tidal.seq'), format='ascii')
+            
 
         return self
 
@@ -238,7 +273,6 @@ class KNTable(Table):
         elif TOV == 'lalsim':
             import lalsimulation as lalsim
             MassRadiusTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
-
 
         return self
 
