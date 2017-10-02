@@ -3,6 +3,7 @@
 import os, sys
 import numpy as np
 import scipy.interpolate
+from scipy.interpolate import interpolate as interp
 
 from .model import register_model
 from .. import KNTable
@@ -72,18 +73,38 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
 
         t = data_out_slice[:,1]
         data = data_out_slice[:,2:]
+        #idx = np.where((t >= 0) & (t <= 7))[0]
+        #t = t[idx]
+        #data = data[idx,:]
         nt, nbins = data.shape
 
         a_i = (360/(2*np.pi))*np.arccos(1 - np.arange(nbins)*2/float(nbins))
         b_i = (360/(2*np.pi))*np.arccos(1 - (np.arange(nbins)+1)*2/float(nbins)) 
         bins = (a_i + b_i)/2.0
 
-        if ii == 0:
-            f     = scipy.interpolate.interp2d(bins,t,np.log10(data), kind='linear')
+        idx = np.argsort(np.abs(bins-theta_r*2*np.pi))
+        idx1 = idx[0]
+        idx2 = idx[1]
+        weight1 = 1/np.abs(bins[idx1]-theta_r*2*np.pi)
+        weight2 = 1/np.abs(bins[idx1]-theta_r*2*np.pi)
+        if not np.isfinite(weight1):
+            weight1, weight2 = 1.0, 0.0
+        elif not np.isfinite(weight2):
+            weight1, weight2 = 0.0, 1.0
         else:
-            f     = scipy.interpolate.interp2d(bins,t,data, kind='linear')
+            weight1, weight2 = weight1/(weight1+weight2), weight2/(weight1+weight2)
 
-        fam    = f(theta_r*2*np.pi,tvec_days)
+        if ii == 0:
+            #f     = scipy.interpolate.interp2d(bins,t,np.log10(data), kind='cubic')
+            f1 = interp.interp1d(t, np.log10(data[:,idx1]), fill_value='extrapolate')
+            f2 = interp.interp1d(t, np.log10(data[:,idx2]), fill_value='extrapolate')
+        else:
+            #f     = scipy.interpolate.interp2d(bins,t,data, kind='cubic')
+            f1 = interp.interp1d(t,data[:,idx1], fill_value='extrapolate')
+            f2 = interp.interp1d(t,data[:,idx2], fill_value='extrapolate')
+
+        fam1, fam2  = f1(tvec_days), f2(tvec_days)
+        fam = weight1*fam1+weight2*fam2
 
         if ii == 0:
             lbol = 10**fam
