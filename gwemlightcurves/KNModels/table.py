@@ -25,7 +25,7 @@ from astropy.table import (Table, Column, vstack)
 from distutils.spawn import find_executable
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
-__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit']
+__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list']
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
