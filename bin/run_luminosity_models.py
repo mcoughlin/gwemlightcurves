@@ -57,8 +57,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, RoFe2017"
     exit(0)
 
 if opts.doFixZPT0:

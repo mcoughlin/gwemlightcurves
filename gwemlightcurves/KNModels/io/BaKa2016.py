@@ -14,16 +14,19 @@ from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
 def get_BaKa2016_model(table, **kwargs):
 
+    if not 'n_coeff' in table.colnames:
+        table['n_coeff'] = 100
+
     if not Global.svd_mag_model == 0:
         svd_mag_model = Global.svd_mag_model
     else:
-        svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016")
+        svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016", n_coeff = table['n_coeff'][0])
         Global.svd_mag_model = svd_mag_model
 
     if not Global.svd_lbol_model == 0:
         svd_lbol_model = Global.svd_lbol_model
     else:
-        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016")
+        svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "BaKa2016", n_coeff = table['n_coeff'][0])
         Global.svd_lbol_model = svd_lbol_model
 
     if not 'mej' in table.colnames:
