@@ -120,14 +120,14 @@ samples = samples.mass_cut(mass1=3.0,mass2=3.0)
 print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
 print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
 
+# Downsample 
+samples = samples.downsample(Nsamples=100)
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
 samples = samples.calc_compactness()
 # Calc baryonic mass
 samples = samples.calc_baryonic_mass()
-#samples = samples.downsample(Nsamples=10)
-samples = samples.downsample(Nsamples=100)
 
 if (not 'mej' in samples.colnames) and (not 'KaKy2016' in samples.colnames):
     from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
@@ -275,9 +275,9 @@ for model in models:
         #magmed = np.median(mag_all[model][filt],axis=0)
         #magmax = np.max(mag_all[model][filt],axis=0)
         #magmin = np.min(mag_all[model][filt],axis=0)
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0)
+        magmed = np.percentile(mag_all[model][filt], 50, axis=0) + 1.0
         magmax = np.percentile(mag_all[model][filt], 90, axis=0)
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0)
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -314,8 +314,8 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         #magmin = np.min(mag_all[model][filt],axis=0)
 
         magmed = np.percentile(mag_all[model][filt], 50, axis=0)
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0)
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0)
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + 1.0
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
 
         plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
         plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
