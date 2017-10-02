@@ -149,6 +149,11 @@ model_tables = {}
 for model in models:
     model_tables[model] = KNTable.model(model, samples)
 
+# Now we need to do some interpolation
+for model in models:
+    model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
+    model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
+
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")

@@ -522,17 +522,15 @@ def get_macronovae_rosswog(name):
         params = [-1,-1,-1]
     return params
 
-def calc_peak_mags(model_table):
+def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], magidxs=[0,1,2,3,4,5,6,7,8]):
     """
     # Peak magnitudes and times in each band"
     """
 
-    filts = ["u","g","r","i","z","y","J","H","K"]
-    magidxs = [0,1,2,3,4,5,6,7,8]
-
+    # Initiaize peak mag dictionarts
     model_table_tts = {}
     model_table_mags = {}
-    for filt, magidx in zip(filts,magidxs):
+    for filt, magidx in zip(filts, magidxs):
         model_table_tts[filt] = []
         model_table_mags[filt] = []
 
@@ -553,3 +551,31 @@ def calc_peak_mags(model_table):
         model_table["peak_mag_%s"%filt] = model_table_mags[filt]        
 
     return model_table
+
+
+def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K"], magidxs=[0,1,2,3,4,5,6,7,8]):
+    """
+    """
+    for row in model_table:
+        t, lbol, mag = row["t"], row["lbol"], row["mag"]
+
+        if np.sum(lbol) == 0.0:
+            #print "No luminosity..."
+            continue
+
+        allfilts = True
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            if len(idx) == 0:
+                allfilts = False
+                break
+        if not allfilts: continue
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            mag_all[model][filt] = np.append(mag_all[model][filt],[maginterp],axis=0)
+        idx = np.where((~np.isnan(np.log10(lbol))) & ~(lbol==0))[0]
+        f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
+        lbolinterp = 10**f(tt)
+        lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)

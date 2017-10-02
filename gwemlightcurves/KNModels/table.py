@@ -252,6 +252,80 @@ class KNTable(Table):
         idx = idx[:Nsamples]
         return self[idx]
 
+
+    def plot_mag_panels(self, model, color_name='blue', filts=["g","r","i","z","y","J","H","K"], name='mag_panels', figsize=(20, 28)):
+        """
+        This allows us to take the lightcurves from the KNModels samples table and plot it
+        using a supplied set of filters. Default: filts=["g","r","i","z","y","J","H","K"]
+        """
+        # get legend determines the names to add to legend based on KN model
+        def get_legend(model):
+
+            if model == "DiUj2017":
+                legend_name = "Dietrich and Ujevic (2017)"
+            if model == "KaKy2016":
+                legend_name = "Kawaguchi et al. (2016)"
+            elif model == "Me2017":
+                legend_name = "Metzger (2017)"
+            elif model == "SmCh2017":
+                legend_name = "Smartt et al. (2017)"
+            elif model == "WoKo2017":
+                legend_name = "Wollaeger et al. (2017)"
+            elif model == "BaKa2016":
+                legend_name = "Barnes et al. (2016)"
+            elif model == "Ka2017":
+                legend_name = "Kasen (2017)"
+            elif model == "RoFe2017":
+                legend_name = "Rosswog et al. (2017)"
+
+            return legend_name
+
+        import matplotlib
+        matplotlib.use('Agg')
+        matplotlib.rcParams.update({'font.size': 16})
+        import matplotlib.pyplot as plt
+        from matplotlib.pyplot import cm
+
+
+        # Initialize variables and arrays
+        colors = cm.rainbow(np.linspace(0, 1, len(filts)))
+        magidxs, filts  = enumerate(filters)
+        tt = np.arange(self['tini'], self['tmax'] + self['dt'], self['dt'])
+        # Initialize empty arrays for all the mags
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            mag_all[model][filt] = np.empty((0,len(tt)))
+
+        # Initialize plot
+        plotName = "{1}.pdf".format(name)
+        plt.figure(figsize = figsize)
+
+        cnt = 0
+        for filt, color, magidx in zip(filts, colors, magidxs):
+            cnt = cnt + 1
+            vals = "%d%d%d"%(len(filts), 1, cnt)
+            if cnt == 1:
+                ax1 = plt.subplot(eval(vals))
+            else:
+                ax2 = plt.subplot(eval(vals), sharex=ax1, sharey=ax1)
+
+            for ii, model in enumerate(models):
+                legend_name = get_legend(model)
+
+                magmed = np.median(mag_all[model][filt],axis=0)
+                magmax = np.max(mag_all[model][filt],axis=0)
+                magmin = np.min(mag_all[model][filt],axis=0)
+
+                plt.plot(tt, magmed, '--', c=colors_names[ii], linewidth=2, label=legend_name)
+                plt.fill_between(tt, magmin, magmax, facecolor=colors_names[ii], alpha=0.2)
+            plt.ylabel('%s'%filt, fontsize=48, rotation=0, labelpad=40)
+            plt.xlim([0.0, 14.0])
+            plt.ylim([-18.0, -10.0])
+            plt.gca().invert_yaxis()
+            plt.grid()
+            plt.xticks(fontsize=28)
+            plt.yticks(fontsize=28)
+
+
     @classmethod
     def model(cls, format_, *args, **kwargs):
         """Fetch a table of events from a database
