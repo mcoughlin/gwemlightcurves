@@ -142,7 +142,7 @@ def WoKo2017_model(m1,mb1,c1,m2,mb2,c2,theta_r,kappa_r):
     samples['mb2'] = mb2
     samples['c2'] = c2
     samples['theta_r'] = theta_r
-    samples['kappa_r'] = kappa_r
+    samples['kappa'] = kappa_r
 
     model = "WoKo2017"
     t, lbol, mag = generate_lightcurve(model,samples)
@@ -162,7 +162,7 @@ def WoKo2017_model_ejecta(mej,vej,theta_r,kappa_r):
     samples['mej'] = mej
     samples['vej'] = vej
     samples['theta_r'] = theta_r
-    samples['kappa_r'] = kappa_r
+    samples['kappa'] = kappa_r
 
     model = "WoKo2017"
     t, lbol, mag = generate_lightcurve(model,samples)

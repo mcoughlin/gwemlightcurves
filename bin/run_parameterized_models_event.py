@@ -95,19 +95,19 @@ lightcurvesDir = opts.lightcurvesDir
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
 tmax = 50.0
-dt = 0.01
+dt = 0.1
 
 vmin = 0.02
 th = 0.2
 ph = 3.14
-kappa = 1.0
+kappa = 10.0
 eps = 1.58*(10**10)
 alp = 1.2
 eth = 0.5
 flgbct = 1
 
 beta = 3.0
-kappa_r = 10.0
+kappa_r = 0.1
 slope_r = -1.2
 theta_r = 0.0
 Ye = 0.3

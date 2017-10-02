@@ -35,7 +35,7 @@ def get_WoKo2017_model(table, **kwargs):
     for isample in range(len(table)):
         table['t'][isample], table['lbol'][isample], table['mag'][isample] = calc_lc(table['tini'][isample], table['tmax'][isample],
                                                                      table['dt'][isample], table['mej'][isample],
-                                                                     table['vej'][isample], table['theta_r'][isample], table['kappa_r'][isample])
+                                                                     table['vej'][isample], table['theta_r'][isample], table['kappa'][isample])
     return table
 
 def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
