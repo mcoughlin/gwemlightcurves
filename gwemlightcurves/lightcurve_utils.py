@@ -598,3 +598,25 @@ def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K
         model_table["mag_%s"%filt] = mag_all[filt]
 
     return model_table
+
+
+def get_legend(model):
+
+    if model == "DiUj2017":
+        legend_name = "Dietrich and Ujevic (2017)"
+    if model == "KaKy2016":
+        legend_name = "Kawaguchi et al. (2016)"
+    elif model == "Me2017":
+        legend_name = "Metzger (2017)"
+    elif model == "SmCh2017":
+        legend_name = "Smartt et al. (2017)"
+    elif model == "WoKo2017":
+        legend_name = "Wollaeger et al. (2017)"
+    elif model == "BaKa2016":
+        legend_name = "Barnes et al. (2016)"
+    elif model == "Ka2017":
+        legend_name = "Kasen (2017)"
+    elif model == "RoFe2017":
+        legend_name = "Rosswog et al. (2017)"
+
+    return legend_name

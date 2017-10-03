@@ -95,36 +95,50 @@ lightcurvesDir = opts.lightcurvesDir
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
 tmax = 50.0
-dt = 0.01
+dt = 0.1
 
 vmin = 0.02
 th = 0.2
 ph = 3.14
-kappa = 1.0
+kappa = 10.0
 eps = 1.58*(10**10)
 alp = 1.2
 eth = 0.5
 flgbct = 1
 
 beta = 3.0
-kappa_r = 1.0
+kappa_r = 0.1
 slope_r = -1.2
 theta_r = 0.0
 Ye = 0.3
 
 # read in samples
 samples = KNTable.read_samples(opts.posterior_samples)
+# limit masses
+samples = samples.mass_cut(mass1=3.0,mass2=3.0)
 
 print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
 print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
 
+# Downsample 
+samples = samples.downsample(Nsamples=100)
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
 samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
-samples = samples.calc_baryonic_mass(EOS='H4', TOV='Monica', fit=True)
+samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
 #samples = samples.downsample(Nsamples=100)
+
+if (not 'mej' in samples.colnames) and (not 'KaKy2016' in samples.colnames):
+    from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
+    # calc the mass of ejecta
+    samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
+    # calc the velocity of ejecta
+    samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+
+    # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
+    samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),np.log10(1.7)))
 
 #add default values from above to table
 samples['tini'] = tini
@@ -264,9 +278,12 @@ for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
         fid = open(os.path.join(datDir,'%s_%s.dat'%(model,filt)),'w')
         fid.write("t [days] min median max\n")
-        magmed = np.median(mag_all[model][filt],axis=0)
-        magmax = np.max(mag_all[model][filt],axis=0)
-        magmin = np.min(mag_all[model][filt],axis=0)
+        #magmed = np.median(mag_all[model][filt],axis=0)
+        #magmax = np.max(mag_all[model][filt],axis=0)
+        #magmin = np.min(mag_all[model][filt],axis=0)
+        magmed = np.percentile(mag_all[model][filt], 50, axis=0) + 1.0
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0)
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -298,9 +315,13 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
 
-        magmed = np.median(mag_all[model][filt],axis=0)
-        magmax = np.max(mag_all[model][filt],axis=0)
-        magmin = np.min(mag_all[model][filt],axis=0)
+        #magmed = np.median(mag_all[model][filt],axis=0)
+        #magmax = np.max(mag_all[model][filt],axis=0)
+        #magmin = np.min(mag_all[model][filt],axis=0)
+
+        magmed = np.percentile(mag_all[model][filt], 50, axis=0)
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + 1.0
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
 
         plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
         plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
@@ -309,37 +330,37 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.ylim([-18.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
-    plt.xticks(fontsize=28)
-    plt.yticks(fontsize=28)
+    plt.xticks(fontsize=36)
+    plt.yticks(fontsize=36)
 
     if cnt == 1:
         ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
-        l = plt.legend(loc="upper right",prop={'size':24},numpoints=1,shadow=True, fancybox=True)
-        plt.xticks(fontsize=28)
-        plt.yticks(fontsize=28)
+        l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
+        plt.xticks(fontsize=36)
+        plt.yticks(fontsize=36)
 
         ax3 = ax1.twinx()   # mirror them
         ax3.set_yticks([16,12,8,4,0])
         app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         ax3.set_yticklabels(app.astype(int))
 
-        plt.xticks(fontsize=28)
-        plt.yticks(fontsize=28)
+        plt.xticks(fontsize=36)
+        plt.yticks(fontsize=36)
     else:
         ax4 = ax2.twinx()   # mirror them
         ax4.set_yticks([16,12,8,4,0])
         app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         ax4.set_yticklabels(app.astype(int))
 
-        plt.xticks(fontsize=28)
-        plt.yticks(fontsize=28)
+        plt.xticks(fontsize=36)
+        plt.yticks(fontsize=36)
 
     if (not cnt == len(filts)) and (not cnt == 1):
         plt.setp(ax2.get_xticklabels(), visible=False)
 
 ax1.set_zorder(1)
-ax2.set_xlabel('Time [days]',fontsize=48)
+ax2.set_xlabel('Time [days]',fontsize=48,labelpad=30)
 plt.savefig(plotName)
 plt.close()
 
