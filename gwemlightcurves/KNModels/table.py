@@ -308,7 +308,8 @@ class KNTable(Table):
         return self[idx]
 
 
-    def plot_mag_panels(self, model, color_name='blue', filts=["g","r","i","z","y","J","H","K"], name='mag_panels', figsize=(20, 28)):
+    @classmethod
+    def plot_mag_panels(cls, table_dict, distance, filts=["g","r","i","z","y","J","H","K"],  magidxs=[0,1,2,3,4,5,6,7,8], figsize=(20, 28)):
         """
         This allows us to take the lightcurves from the KNModels samples table and plot it
         using a supplied set of filters. Default: filts=["g","r","i","z","y","J","H","K"]
@@ -343,19 +344,15 @@ class KNTable(Table):
 
 
         # Initialize variables and arrays
-        colors = cm.rainbow(np.linspace(0, 1, len(filts)))
-        magidxs, filts  = enumerate(filters)
-        tt = np.arange(self['tini'], self['tmax'] + self['dt'], self['dt'])
-        # Initialize empty arrays for all the mags
-        for filt, color, magidx in zip(filts,colors,magidxs):
-            mag_all[model][filt] = np.empty((0,len(tt)))
+        models = table_dict.keys()
+        colors_names = cm.rainbow(np.linspace(0, 1, len(models)))
+        tt = np.arange(table_dict[models[0]]['tini'][0], table_dict[models[0]]['tmax'][0] + table_dict[models[0]]['dt'][0], table_dict[models[0]]['dt'][0])
 
         # Initialize plot
-        plotName = "{1}.pdf".format(name)
         plt.figure(figsize = figsize)
 
         cnt = 0
-        for filt, color, magidx in zip(filts, colors, magidxs):
+        for filt, magidx in zip(filts, magidxs):
             cnt = cnt + 1
             vals = "%d%d%d"%(len(filts), 1, cnt)
             if cnt == 1:
@@ -366,12 +363,13 @@ class KNTable(Table):
             for ii, model in enumerate(models):
                 legend_name = get_legend(model)
 
-                magmed = np.median(mag_all[model][filt],axis=0)
-                magmax = np.max(mag_all[model][filt],axis=0)
-                magmin = np.min(mag_all[model][filt],axis=0)
+                magmed = np.median(table_dict[model]["mag_%s"%filt], axis=0)
+                magmax = np.max(table_dict[model]["mag_%s"%filt], axis=0)
+                magmin = np.min(table_dict[model]["mag_%s"%filt], axis=0)
 
                 plt.plot(tt, magmed, '--', c=colors_names[ii], linewidth=2, label=legend_name)
                 plt.fill_between(tt, magmin, magmax, facecolor=colors_names[ii], alpha=0.2)
+
             plt.ylabel('%s'%filt, fontsize=48, rotation=0, labelpad=40)
             plt.xlim([0.0, 14.0])
             plt.ylim([-18.0, -10.0])
@@ -379,6 +377,36 @@ class KNTable(Table):
             plt.grid()
             plt.xticks(fontsize=28)
             plt.yticks(fontsize=28)
+
+            if cnt == 1:
+                ax1.set_yticks([-18,-16,-14,-12,-10])
+                plt.setp(ax1.get_xticklabels(), visible=False)
+                l = plt.legend(loc="upper right", prop={'size':24}, numpoints=1, shadow=True, fancybox=True)
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+
+                ax3 = ax1.twinx()   # mirror them
+                ax3.set_yticks([16,12,8,4,0])
+                app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(distance*1e6) - 1))
+                ax3.set_yticklabels(app.astype(int))
+
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+            else:
+                ax4 = ax2.twinx()   # mirror them
+                ax4.set_yticks([16,12,8,4,0])
+                app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(distance*1e6) - 1))
+                ax4.set_yticklabels(app.astype(int))
+
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+
+            if (not cnt == len(filts)) and (not cnt == 1):
+                plt.setp(ax2.get_xticklabels(), visible=False)
+
+        ax1.set_zorder(1)
+        ax2.set_xlabel('Time [days]',fontsize=48)
+        return plt
 
 
     @classmethod

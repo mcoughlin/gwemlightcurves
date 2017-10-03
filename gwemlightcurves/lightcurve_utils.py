@@ -546,7 +546,7 @@ def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], mag
                 model_table_tts[filt].append(t[idx][ii])
                 model_table_mags[filt].append(mag[magidx][idx][ii])
 
-    for filt, magidx in zip(filts,magidxs):
+    for filt, magidx in zip(filts, magidxs):
         model_table["peak_tt_%s"%filt] = model_table_tts[filt]
         model_table["peak_mag_%s"%filt] = model_table_mags[filt]        
 
@@ -556,6 +556,14 @@ def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], mag
 def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K"], magidxs=[0,1,2,3,4,5,6,7,8]):
     """
     """
+    from scipy.interpolate import interpolate as interp
+    tt = np.arange(model_table['tini'][0], model_table['tmax'][0] + model_table['dt'][0], model_table['dt'][0])
+    mag_all = {}
+    lbol_all = np.empty((0, len(tt)), float)
+
+    for filt in filts:
+        mag_all[filt] = np.empty((0,len(tt)))
+
     for row in model_table:
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
 
@@ -564,18 +572,29 @@ def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K
             continue
 
         allfilts = True
-        for filt, color, magidx in zip(filts,colors,magidxs):
+        for filt, magidx in zip(filts, magidxs):
             idx = np.where(~np.isnan(mag[magidx]))[0]
             if len(idx) == 0:
                 allfilts = False
                 break
+
         if not allfilts: continue
-        for filt, color, magidx in zip(filts,colors,magidxs):
+
+        for filt, magidx in zip(filts, magidxs):
             idx = np.where(~np.isnan(mag[magidx]))[0]
             f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
             maginterp = f(tt)
-            mag_all[model][filt] = np.append(mag_all[model][filt],[maginterp],axis=0)
+            mag_all[filt] = np.append(mag_all[filt], [maginterp], axis=0)
+
         idx = np.where((~np.isnan(np.log10(lbol))) & ~(lbol==0))[0]
         f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
-        lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)
+        lbol_all = np.append(lbol_all, [lbolinterp], axis=0)
+
+    # Ad to model table
+    model_table["lbol"] = lbol_all
+    for filt in filts:
+        model_table["lbol"] = lbol
+        model_table["mag_%s"%filt] = mag_all[filt]
+
+    return model_table
