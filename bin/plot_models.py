@@ -32,14 +32,14 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-s","--spectraDir",default="../spectra")
 
-    #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10,SAd_magnitudes_m0.005_v0.2")
-    #parser.add_option("-f","--outputName",default="fiducial")
+    parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
+    parser.add_option("-f","--outputName",default="fiducial")
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
-    parser.add_option("-n","--name",default="rpft_m05_v2,t300A3p15,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2,Blue_H4M050V20")
-    parser.add_option("-f","--outputName",default="G298048_all")
+    #parser.add_option("-n","--name",default="rpft_m05_v2,t300A3p15,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2,Blue_H4M050V20")
+    #parser.add_option("-f","--outputName",default="G298048_all")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
@@ -591,7 +591,7 @@ if opts.doAB:
     plt.close()
   
     colors = ["g","r","c","y","m"]
- 
+
     plotName = "%s/models_gminusi.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     for ii,name in enumerate(names):
@@ -606,10 +606,10 @@ if opts.doAB:
     plt.xlim([10**-2,50])
     #plt.ylim([-15,5])
     plt.xlabel('Time [days]',fontsize=24)
-    plt.ylabel('Absolute Magnitude [g-i]',fontsize=24)
+    plt.ylabel('Color [g-i]',fontsize=24)
     plt.legend(loc="best")
     plt.grid()
-    plt.gca().invert_yaxis()
+    #plt.gca().invert_yaxis()
     plt.savefig(plotName)
     plt.close()
  

@@ -522,17 +522,15 @@ def get_macronovae_rosswog(name):
         params = [-1,-1,-1]
     return params
 
-def calc_peak_mags(model_table):
+def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], magidxs=[0,1,2,3,4,5,6,7,8]):
     """
     # Peak magnitudes and times in each band"
     """
 
-    filts = ["u","g","r","i","z","y","J","H","K"]
-    magidxs = [0,1,2,3,4,5,6,7,8]
-
+    # Initiaize peak mag dictionarts
     model_table_tts = {}
     model_table_mags = {}
-    for filt, magidx in zip(filts,magidxs):
+    for filt, magidx in zip(filts, magidxs):
         model_table_tts[filt] = []
         model_table_mags[filt] = []
 
@@ -548,8 +546,77 @@ def calc_peak_mags(model_table):
                 model_table_tts[filt].append(t[idx][ii])
                 model_table_mags[filt].append(mag[magidx][idx][ii])
 
-    for filt, magidx in zip(filts,magidxs):
+    for filt, magidx in zip(filts, magidxs):
         model_table["peak_tt_%s"%filt] = model_table_tts[filt]
         model_table["peak_mag_%s"%filt] = model_table_mags[filt]        
 
     return model_table
+
+
+def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K"], magidxs=[0,1,2,3,4,5,6,7,8]):
+    """
+    """
+    from scipy.interpolate import interpolate as interp
+    tt = np.arange(model_table['tini'][0], model_table['tmax'][0] + model_table['dt'][0], model_table['dt'][0])
+    mag_all = {}
+    lbol_all = np.empty((0, len(tt)), float)
+
+    for filt in filts:
+        mag_all[filt] = np.empty((0,len(tt)))
+
+    for row in model_table:
+        t, lbol, mag = row["t"], row["lbol"], row["mag"]
+
+        if np.sum(lbol) == 0.0:
+            #print "No luminosity..."
+            continue
+
+        allfilts = True
+        for filt, magidx in zip(filts, magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            if len(idx) == 0:
+                allfilts = False
+                break
+
+        if not allfilts: continue
+
+        for filt, magidx in zip(filts, magidxs):
+            idx = np.where(~np.isnan(mag[magidx]))[0]
+            f = interp.interp1d(t[idx], mag[magidx][idx], fill_value='extrapolate')
+            maginterp = f(tt)
+            mag_all[filt] = np.append(mag_all[filt], [maginterp], axis=0)
+
+        idx = np.where((~np.isnan(np.log10(lbol))) & ~(lbol==0))[0]
+        f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
+        lbolinterp = 10**f(tt)
+        lbol_all = np.append(lbol_all, [lbolinterp], axis=0)
+
+    # Ad to model table
+    model_table["lbol"] = lbol_all
+    for filt in filts:
+        model_table["lbol"] = lbol
+        model_table["mag_%s"%filt] = mag_all[filt]
+
+    return model_table
+
+
+def get_legend(model):
+
+    if model == "DiUj2017":
+        legend_name = "Dietrich and Ujevic (2017)"
+    if model == "KaKy2016":
+        legend_name = "Kawaguchi et al. (2016)"
+    elif model == "Me2017":
+        legend_name = "Metzger (2017)"
+    elif model == "SmCh2017":
+        legend_name = "Smartt et al. (2017)"
+    elif model == "WoKo2017":
+        legend_name = "Wollaeger et al. (2017)"
+    elif model == "BaKa2016":
+        legend_name = "Barnes et al. (2016)"
+    elif model == "Ka2017":
+        legend_name = "Kasen (2017)"
+    elif model == "RoFe2017":
+        legend_name = "Rosswog et al. (2017)"
+
+    return legend_name

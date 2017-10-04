@@ -43,8 +43,9 @@ def parse_commandline():
     parser.add_option("--E",default=1e53,type=float)
     parser.add_option("--n",default=1.0,type=float)
     parser.add_option("--theta_obs",default=0.0,type=float)
+    parser.add_option("--theta_r",default=0.0,type=float)
     parser.add_option("--beta",default=3.0,type=float)
-    parser.add_option("--kappa_r",default=0.1,type=float)
+    parser.add_option("--kappa_r",default=10.0,type=float)
     parser.add_option("--slope_r",default=-1.2,type=float)
     parser.add_option("--Xlan",default=1e-3,type=float)
     parser.add_option("--Ye",default=0.25,type=float)
@@ -65,6 +66,7 @@ chi_eff = opts.chi_eff
 mej = opts.mej
 vej = opts.vej
 theta_0 = opts.theta_0
+theta_r = opts.theta_r
 E = opts.E
 n = opts.n
 theta_obs = opts.theta_obs
@@ -128,6 +130,7 @@ samples['Xlan'] = Xlan
 samples['Ye'] = Ye
 
 samples['theta_0'] = theta_0
+samples['theta_r'] = theta_r
 samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs

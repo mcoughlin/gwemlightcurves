@@ -25,7 +25,7 @@ from astropy.table import (Table, Column, vstack)
 from distutils.spawn import find_executable
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
-__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit']
+__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list']
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
@@ -85,6 +85,32 @@ def EOSfit(mns,c):
     return mb
 
 
+def get_eos_list(TOV):
+    """
+    Populates lists of available EOSs for each set of TOV solvers
+    """
+    import os
+    if TOV not in ['Monica', 'Wolfgang', 'lalsim']:
+        raise ValueError('You have provided a TOV '
+                         'for which we have no data '
+                         'and therefore cannot '
+                         'calculate the radius.')
+    try:
+        path = find_executable('ap4_mr.dat')
+        path = path[:-10]
+    except:
+       raise ValueError('Check to make sure EOS mass-radius '
+                        'tables have been installed correctly '
+                        '(try `which ap4_mr.dat`)')
+    if TOV == 'Monica':
+        EOS_List=[file_name[:-7] for file_name in os.listdir(path) if file_name.endswith("_mr.dat") and 'lalsim' not in file_name]
+    if TOV == 'Wolfgang':
+        EOS_List=[file_name[:-10] for file_name in os.listdir(path) if file_name.endswith("seq")]
+    if TOV == 'lalsim':
+        EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
+    return EOS_List
+
+
 class KNTable(Table):
     """A container for a table of events
 
@@ -104,8 +130,8 @@ class KNTable(Table):
         import os
         if not os.path.isfile(filename_samples):
             raise ValueError("Sample file supplied does not exist")
-
-        data_out = Table.read(filename_samples, format='ascii')
+            
+        data_out = Table.read(filename_samples, format='ascii') 
 
         if 'm1_source' in list(data_out.columns):
             data_out['m1'] = data_out['m1_source']
@@ -122,28 +148,6 @@ class KNTable(Table):
             print 'setting lambdat to lam_tilde'
 
         return KNTable(data_out)
-
-
-    def get_eos_list(TOV):
-        """
-        Populates lists of available EOSs for each set of TOV solvers
-        """
-        from os import listdir
-        try:
-        	path=find_executable('ap4_mr.dat')
-		 	path=path[:-10]
-        except:
-           raise ValueError('Check to make sure EOS mass-radius'
-                            'tables have been installed correctly' 
-                            '(try `which ap4_mr.dat`)')
-        if TOV=='Monica':
-        	EOS_List=[file_name[:-7] for file_name in os.listdir(path) if file_name.endswith("_mr.dat") and 'lalsim' not in file_name]       
-		if TOV=='Wolfgang':
-			EOS_List=[file_name[:-10] for file_name in os.listdir(path) if file_name.endswith("seq")]
-		if TOV=='lasim':
-			EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
-
-		return EOS_List
 
 
     def calc_tidal_lambda(self, remove_negative_lambda=False):
@@ -163,7 +167,7 @@ class KNTable(Table):
             print "Removing %d/%d due to negative lambdas"%(np.sum(mask),len(mask))
 
         return self
-          
+
 
     def calc_compactness(self, fit=False):
         """
@@ -200,26 +204,20 @@ class KNTable(Table):
             self["mb1"] = EOSfit(self["m1"], self["c1"])
             self["mb2"] = EOSfit(self["m2"], self["c2"])
             return self
-   
-        #if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
-        #   raise ValueError('You have provided a EOS '
-        #                     'for which we have no data '
-        #                     'and therefore cannot '
-        #                     'calculate the Baryonic mass.')
 
         if TOV not in ['Monica', 'Wolfgang']:
             raise ValueError('You have provided a TOV '
                              'for which we have no data '
                              'and therefore cannot '
                              'calculate the Baryonic mass.')
-       
-        if TOV == 'Monica':
-           if EOS not in get_eos_list(TOV):
-              raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the Baryonic mass.')
 
+        if EOS not in get_eos_list(TOV):
+            raise ValueError('You have provided a EOS '
+                            'for which we have no data '
+                            'and therefore cannot '
+                            'calculate the Baryonic mass.')
+
+        if TOV == 'Monica':
             import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
             import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
             MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_mr.dat'), format='ascii')
@@ -227,21 +225,16 @@ class KNTable(Table):
             # after obtaining the baryonic_mass_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
             self['mb1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
             self['mb2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['mb'], baryonic_mass_of_mass_const)
-            
+
         if TOV == 'Wolfgang':
-        	if EOS not in get_eos_list(TOV):
-           		raise ValueError('You have provided a EOS '
-                                'for which we have no data '
-                                'and therefore cannot '
-                                'calculate the Baryonic mass.')
-			
-			import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+
+            import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
             import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
             MassRadiusBaryMassTable = Table.read(find_executable(EOS + '.tidal.seq'), format='ascii')
-            baryonic_mass_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'])            
-			# after obtaining the baryonic_mass_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
-			self['mb1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'], baryonic_mass_of_mass_const)
-            self['mb2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'], baryonic_mass_of_mass_const)     
+            baryonic_mass_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'])
+            # after obtaining the baryonic_mass_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
+            self['mb1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'], baryonic_mass_of_mass_const)
+            self['mb2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['baryonic_mass'], baryonic_mass_of_mass_const)
 
         return self
 
@@ -255,20 +248,15 @@ class KNTable(Table):
                              'and therefore cannot '
                              'calculate the radius.')
 
-        #if EOS not in ['H4', 'sly', 'mpa1', 'ms1', 'ms1b', 'alf2']:
-        #    raise ValueError('You have provided a EOS '
-        #                     'for which we have no data '
-        #                     'and therefore cannot '
-        #                     'calculate the radius.')
+        if EOS not in get_eos_list(TOV):
+            raise ValueError('You have provided a EOS '
+                            'for which we have no data '
+                            'and therefore cannot '
+                            'calculate the radius.')
 
         if TOV == 'Monica':
-        	if EOS not in get_eos_list(TOV):
-            	  raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the radius.')
 
-			import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+            import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
             import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
             MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_mr.dat'), format='ascii')
             radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
@@ -278,34 +266,36 @@ class KNTable(Table):
             self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
 
         elif TOV == 'Wolfgang':
-           	if EOS not in get_eos_list(TOV):
-          		raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the radius.')
 
             import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
             import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
-			import lal
-        	MassRadiusBaryMassTable = Table.read(find_executable(EOS + '.tidal.seq'), format='ascii')
-			radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'])
-            self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'], radius_of_mass_const)*(lal.MSUN_SI*lal.G_SI/lal.C_SI**2)
-            self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'], radius_of_mass_const)*(lal.MSUN_SI*lal.G_SI/lal.C_SI**2)
 
-		elif TOV == 'lalsim':
-	    	if EOS not in get_eos_list(TOV):
-            	  raise ValueError('You have provided a EOS '
-                             'for which we have no data '
-                             'and therefore cannot '
-                             'calculate the radius.')
+            try:
+                import lal
+                G = lal.G_SI; c = lal.C_SI; msun = lal.MSUN_SI
+            except:
+                import astropy.units as u
+                import astropy.constants as C
+                G = lal.G_SI; c = C.c.value; msun = u.M_sun.to(u.kg)
+
+            MassRadiusBaryMassTable = Table.read(find_executable(EOS + '.tidal.seq'), format='ascii')
+            radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'])
+            unit_conversion = (msun * G / c**2)
+            self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'], radius_of_mass_const) * unit_conversion
+            self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'], radius_of_mass_const) * unit_conversion
+
+        elif TOV == 'lalsim':
 
             import lalsimulation as lalsim
             MassRadiusiBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
-			radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
+            radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
+            # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
+            # also radius is in km in table. need to convert to SI (i.e. meters)
             self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
             self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
 
         return self
+
 
     def downsample(self, Nsamples=100):
         """
@@ -315,6 +305,115 @@ class KNTable(Table):
         print('You are requesting to downsample the number of posterior samples to {0}'.format(Nsamples))
         idx = np.random.permutation(len(self["m1"]))
         idx = idx[:Nsamples]
+        return self[idx]
+
+
+    @classmethod
+    def plot_mag_panels(cls, table_dict, distance, filts=["g","r","i","z","y","J","H","K"],  magidxs=[0,1,2,3,4,5,6,7,8], figsize=(20, 28)):
+        """
+        This allows us to take the lightcurves from the KNModels samples table and plot it
+        using a supplied set of filters. Default: filts=["g","r","i","z","y","J","H","K"]
+        """
+        # get legend determines the names to add to legend based on KN model
+        def get_legend(model):
+
+            if model == "DiUj2017":
+                legend_name = "Dietrich and Ujevic (2017)"
+            if model == "KaKy2016":
+                legend_name = "Kawaguchi et al. (2016)"
+            elif model == "Me2017":
+                legend_name = "Metzger (2017)"
+            elif model == "SmCh2017":
+                legend_name = "Smartt et al. (2017)"
+            elif model == "WoKo2017":
+                legend_name = "Wollaeger et al. (2017)"
+            elif model == "BaKa2016":
+                legend_name = "Barnes et al. (2016)"
+            elif model == "Ka2017":
+                legend_name = "Kasen (2017)"
+            elif model == "RoFe2017":
+                legend_name = "Rosswog et al. (2017)"
+
+            return legend_name
+
+        import matplotlib
+        matplotlib.use('Agg')
+        matplotlib.rcParams.update({'font.size': 16})
+        import matplotlib.pyplot as plt
+        from matplotlib.pyplot import cm
+
+
+        # Initialize variables and arrays
+        models = table_dict.keys()
+        colors_names = cm.rainbow(np.linspace(0, 1, len(models)))
+        tt = np.arange(table_dict[models[0]]['tini'][0], table_dict[models[0]]['tmax'][0] + table_dict[models[0]]['dt'][0], table_dict[models[0]]['dt'][0])
+
+        # Initialize plot
+        plt.figure(figsize = figsize)
+
+        cnt = 0
+        for filt, magidx in zip(filts, magidxs):
+            cnt = cnt + 1
+            vals = "%d%d%d"%(len(filts), 1, cnt)
+            if cnt == 1:
+                ax1 = plt.subplot(eval(vals))
+            else:
+                ax2 = plt.subplot(eval(vals), sharex=ax1, sharey=ax1)
+
+            for ii, model in enumerate(models):
+                legend_name = get_legend(model)
+
+                magmed = np.median(table_dict[model]["mag_%s"%filt], axis=0)
+                magmax = np.max(table_dict[model]["mag_%s"%filt], axis=0)
+                magmin = np.min(table_dict[model]["mag_%s"%filt], axis=0)
+
+                plt.plot(tt, magmed, '--', c=colors_names[ii], linewidth=2, label=legend_name)
+                plt.fill_between(tt, magmin, magmax, facecolor=colors_names[ii], alpha=0.2)
+
+            plt.ylabel('%s'%filt, fontsize=48, rotation=0, labelpad=40)
+            plt.xlim([0.0, 14.0])
+            plt.ylim([-18.0, -10.0])
+            plt.gca().invert_yaxis()
+            plt.grid()
+            plt.xticks(fontsize=28)
+            plt.yticks(fontsize=28)
+
+            if cnt == 1:
+                ax1.set_yticks([-18,-16,-14,-12,-10])
+                plt.setp(ax1.get_xticklabels(), visible=False)
+                l = plt.legend(loc="upper right", prop={'size':24}, numpoints=1, shadow=True, fancybox=True)
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+
+                ax3 = ax1.twinx()   # mirror them
+                ax3.set_yticks([16,12,8,4,0])
+                app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(distance*1e6) - 1))
+                ax3.set_yticklabels(app.astype(int))
+
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+            else:
+                ax4 = ax2.twinx()   # mirror them
+                ax4.set_yticks([16,12,8,4,0])
+                app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(distance*1e6) - 1))
+                ax4.set_yticklabels(app.astype(int))
+
+                plt.xticks(fontsize=28)
+                plt.yticks(fontsize=28)
+
+            if (not cnt == len(filts)) and (not cnt == 1):
+                plt.setp(ax2.get_xticklabels(), visible=False)
+
+        ax1.set_zorder(1)
+        ax2.set_xlabel('Time [days]',fontsize=48)
+        return plt
+
+    def mass_cut(self, mass1=3.0,mass2=3.0):
+        """
+        Perform mass cut on table.     
+        """
+        print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
+        idx = np.where((self["m1"] <= mass1) & (self["m2"] <= mass2))
         return self[idx]
 
     @classmethod

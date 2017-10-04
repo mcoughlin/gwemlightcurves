@@ -8,7 +8,9 @@ from scipy.interpolate import griddata
 
 from gwemlightcurves import lightcurve_utils, Global
 
-def calc_svd_lbol(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
+from sklearn import gaussian_process
+
+def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
     if model == "BaKa2016":    
         fileDir = "../output/barnes_kilonova_spectra"
@@ -37,6 +39,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
             if len(keySplit) == 6:
                 Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
             elif len(keySplit) == 7:
+                del lbols[key]
+                continue
                 if "Xlan1e" in keySplit[6]:
                     Xlan0 = 10**float(keySplit[6].replace("Xlan1e",""))
                 elif "Xlan1e" in keySplit[5]:
@@ -51,6 +55,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
         lbols[key]["Lbol"]= np.log10(lbolinterp)
+
+    lbolkeys = lbols.keys()
 
     lbol_array = []
     param_array = []
@@ -92,7 +98,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
 
     return svd_model
 
-def calc_svd_mag(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
+def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
     if model == "BaKa2016":
         fileDir = "../output/barnes_kilonova_spectra"
@@ -128,6 +134,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
             if len(keySplit) == 6:
                 Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
             elif len(keySplit) == 7:
+                del mags[key]
+                continue
                 if "Xlan1e" in keySplit[6]:
                     Xlan0 = 10**float(keySplit[6].replace("Xlan1e",""))
                 elif "Xlan1e" in keySplit[5]:
@@ -147,6 +155,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 10, model = "BaKa2016"):
             maginterp = f(tt)
             mags[key]["data"][:,jj] = maginterp
         mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+
+    magkeys = mags.keys()
 
     mag_array = []
     param_array = []
@@ -203,9 +213,15 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     stds = svd_mag_model["stds"]
     means = svd_mag_model["means"]
 
+    gp = gaussian_process.GaussianProcess(theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
     cAproj = np.zeros((n_coeff,))
     for i in range(n_coeff):
-        cAproj[i] = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        gp.fit(param_array, cAmat[i,:])
+        y_pred, sigma2_pred = gp.predict(param_list, eval_MSE=True)
+        #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
+        #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        cAproj[i] = y_pred
+
     mag_back = np.dot(VA[:,:n_coeff],cAproj)
     mag_back = mag_back*stds+means
 
@@ -220,7 +236,13 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
 
     cAproj = np.zeros((n_coeff,))
     for i in range(n_coeff):
-        cAproj[i] = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        gp.fit(param_array, cAmat[i,:])
+        y_pred, sigma2_pred = gp.predict(param_list, eval_MSE=True)
+
+        #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
+        #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        cAproj[i] = y_pred
+
     lbol_back = np.dot(VA[:,:n_coeff],cAproj)
     lbol_back = lbol_back*stds+means
 
