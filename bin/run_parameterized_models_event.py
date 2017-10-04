@@ -42,6 +42,7 @@ def parse_commandline():
     #parser.add_argument("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
     parser.add_argument("--distance",default=40.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
+    parser.add_argument("--errorbudget",default=1.0,type=float)
 
     args = parser.parse_args()
  
@@ -130,7 +131,7 @@ samples = samples.calc_compactness(fit=True)
 samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
 #samples = samples.downsample(Nsamples=100)
 
-if (not 'mej' in samples.colnames) and (not 'KaKy2016' in samples.colnames):
+if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
     # calc the mass of ejecta
     samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
@@ -281,9 +282,9 @@ for model in models:
         #magmed = np.median(mag_all[model][filt],axis=0)
         #magmax = np.max(mag_all[model][filt],axis=0)
         #magmin = np.min(mag_all[model][filt],axis=0)
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0) + 1.0
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0)
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
+        magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -320,11 +321,13 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         #magmin = np.min(mag_all[model][filt],axis=0)
 
         magmed = np.percentile(mag_all[model][filt], 50, axis=0)
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + 1.0
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
-        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
-        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
+        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
+        plt.plot(tt,magmin,'-',c=colors_names[ii],linewidth=4)
+        plt.plot(tt,magmax,'-',c=colors_names[ii],linewidth=4)
+        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],edgecolor=colors_names[ii],alpha=0.2,linewidth=3)
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 14.0])
     plt.ylim([-18.0,-10.0])
@@ -371,15 +374,15 @@ for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
     magmed = np.median(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
-    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
-    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
+    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0) + opts.errorbudget
+    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0) - opts.errorbudget
 
     plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
 
 plt.xlim([0.0, 14.0])
 plt.xlabel('Time [days]')
-plt.ylabel('Absolute AB Magnitude [g-i]')
+plt.ylabel('Color [g-i]')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
@@ -392,8 +395,8 @@ for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
     lbolmed = np.median(lbol_all[model],axis=0)
-    lbolmax = np.max(lbol_all[model],axis=0)
-    lbolmin = np.min(lbol_all[model],axis=0)
+    lbolmax = np.max(lbol_all[model],axis=0) * (2.5 * opts.errorbudget)
+    lbolmin = np.min(lbol_all[model],axis=0) / (2.5 * opts.errorbudget)
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,lbolmin,lbolmax,facecolor=colors_names[ii],alpha=0.2)
 

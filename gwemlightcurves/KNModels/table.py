@@ -130,8 +130,8 @@ class KNTable(Table):
         import os
         if not os.path.isfile(filename_samples):
             raise ValueError("Sample file supplied does not exist")
-
-        data_out = Table.read(filename_samples, format='ascii')
+            
+        data_out = Table.read(filename_samples, format='ascii') 
 
         if 'm1_source' in list(data_out.columns):
             data_out['m1'] = data_out['m1_source']
