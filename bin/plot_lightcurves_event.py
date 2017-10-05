@@ -24,18 +24,20 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../lightcurves")
-    #parser.add_option("-n","--name",default="../plots/gws/DiUj2017_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/KaKy2016_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
+    #parser.add_option("-n","--name",default="../plots/gws/DiUj2017_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00")
     parser.add_option("--outputName",default="G298048_PS1_GROND_SOFI")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
 
-    parser.add_option("-n","--name",default="../plots/gws/DiUj2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/KaKy2016_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00")
+    parser.add_option("-n","--name",default="../plots/gws/DiUj2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/7_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/Me2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/SmCh2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/WoKo2017_EOSFit_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00")
 
     #parser.add_option("-n","--name",default="../plots/gws/Me2017_EOSFit/u_g_r_i_z_y_J_H_K/0_14/masses/G298048_PS1_GROND_SOFI/1.00,../plots/gws/DiUj2017_EOSFit/y_J_H_K/5_14/masses/G298048_PS1_GROND_SOFI/1.00")
 
     parser.add_option("--mchirp",default=1.1973,type=float)
     parser.add_option("--massratio_min",default=1.0,type=float)
     parser.add_option("--massratio_max",default=1.43,type=float)
+    parser.add_option("--mej_min",default=1e-3,type=float)
+    parser.add_option("--mej_max",default=1e-2,type=float)
 
     #parser.add_option("-l","--labelType",default="errorbar")
     parser.add_option("-l","--labelType",default="name")
@@ -368,7 +370,9 @@ if opts.doEjecta:
                 plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
     
             maxhist = np.max([maxhist,np.max(hist1)])
-    
+   
+    plt.fill_between([np.log10(opts.mej_min),np.log10(opts.mej_max)],[1e-3,1e-3],[1e2,1e2],facecolor='k',alpha=0.2)
+ 
     plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
     plt.ylabel('Probability Density Function',fontsize=24)
     plt.legend(loc="best",prop={'size':24})
@@ -519,7 +523,6 @@ elif opts.doMasses:
 
             maxhist = np.max([maxhist,np.max(hist1)])
 
-    print opts.massratio_min,opts.massratio_max
     plt.fill_between([opts.massratio_min,opts.massratio_max],[1e-3,1e-3],[1e2,1e2],facecolor='k',alpha=0.2)
 
     plt.xlabel(r"$q$",fontsize=24)

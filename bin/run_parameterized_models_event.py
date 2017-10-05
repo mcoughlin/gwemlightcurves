@@ -82,6 +82,9 @@ def get_legend(model):
 
     return legend_name
 
+# setting seed
+np.random.seed(0)
+
 # Parse command line
 opts = parse_commandline()
 
@@ -303,9 +306,9 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 
         idx = np.where(np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k',markersize=15)
         idx = np.where(~np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k',markersize=15)
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
