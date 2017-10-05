@@ -169,13 +169,26 @@ class KNTable(Table):
         idx = idx[:Nsamples]
         return self[idx]
 
-    def mass_cut(self, mass1=3.0,mass2=3.0):
+    def mass_cut(self, mass1=None,mass2=None,mtotmin=None,mtotmax=None):
         """
         Perform mass cut on table.     
         """
-        print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
-        idx = np.where((self["m1"] <= mass1) & (self["m2"] <= mass2))
-        return self[idx]
+        #print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
+
+        if not mass1 == None:
+            idx = np.where(self["m1"] <= mass1)
+            self = self[idx]
+        if not mass2 == None:
+            idx = np.where(self["m2"] <= mass2)
+            self = self[idx]
+        if not mtotmin == None:
+            idx = np.where(self["m1"] + self["m2"] >= mtotmin)
+            self = self[idx]
+        if not mtotmax == None:
+            idx = np.where(self["m1"] + self["m2"] <= mtotmax)
+            self = self[idx]
+
+        return self
 
     @classmethod
     def model(cls, format_, *args, **kwargs):

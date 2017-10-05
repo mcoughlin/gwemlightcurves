@@ -119,7 +119,7 @@ Ye = 0.3
 # read in samples
 samples = KNTable.read_samples(opts.posterior_samples)
 # limit masses
-samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+samples = samples.mass_cut(mass1=None,mass2=None,mtotmax=3.0,mtotmin=0.0)
 
 print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
 print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
