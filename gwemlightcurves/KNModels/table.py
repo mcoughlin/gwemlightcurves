@@ -25,7 +25,7 @@ from astropy.table import (Table, Column, vstack)
 from distutils.spawn import find_executable
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
-__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list']
+__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos']
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
@@ -109,6 +109,54 @@ def get_eos_list(TOV):
     if TOV == 'lalsim':
         EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
     return EOS_List
+
+
+def get_lalsim_eos(eos_name):
+    """
+    EOS tables described by Ozel [here](https://arxiv.org/pdf/1603.02698.pdf) and downloadable [here](http://xtreme.as.arizona.edu/NeutronStars/data/eos_tables.tar). LALSim utilizes this tables, but needs some interfacing (i.e. conversion to SI units, and conversion from non monotonic to monotonic pressure density tables)
+    """
+    obs_max_mass = 2.01 - 0.04
+    print "Checking %s" % eos_name
+    eos_fname = ""
+    if os.path.exists(eos_name):
+        # NOTE: Adapted from code by Monica Rizzo
+        print "Loading from %s" % eos_name
+        bdens, press, edens = numpy.loadtxt(eos_name, unpack=True)
+        press *= 7.42591549e-25
+        edens *= 7.42591549e-25
+        eos_name = os.path.basename(eos_name)
+        eos_name = os.path.splitext(eos_name)[0].upper()
+
+        if not numpy.all(numpy.diff(press) > 0):
+            keep_idx = numpy.where(numpy.diff(press) > 0)[0] + 1
+            keep_idx = numpy.concatenate(([0], keep_idx))
+            press = press[keep_idx]
+            edens = edens[keep_idx]
+        assert numpy.all(numpy.diff(press) > 0)
+        if not numpy.all(numpy.diff(edens) > 0):
+            keep_idx = numpy.where(numpy.diff(edens) > 0)[0] + 1
+            keep_idx = numpy.concatenate(([0], keep_idx))
+            press = press[keep_idx]
+            edens = edens[keep_idx]
+        assert numpy.all(numpy.diff(edens) > 0)
+
+        print "Dumping to %s" % eos_fname
+        eos_fname = "./." + eos_name + ".dat"
+        numpy.savetxt(eos_fname, numpy.transpose((press, edens)), delimiter='\t')
+        eos = lalsimulation.SimNeutronStarEOSFromFile(eos_fname)
+        fam = lalsimulation.CreateSimNeutronStarFamily(eos)
+
+    else:
+        eos = lalsimulation.SimNeutronStarEOSByName(eos_name)
+        fam = lalsimulation.CreateSimNeutronStarFamily(eos)
+
+    mmass = lalsimulation.SimNeutronStarMaximumMass(fam) / lal.MSUN_SI
+    print "Family %s, maximum mass: %1.2f" % (eos_name, mmass)
+    if numpy.isnan(mmass) or mmass > 3. or mmass < obs_max_mass:
+        return
+
+    return eos, fam
+
 
 
 class KNTable(Table):
