@@ -66,6 +66,8 @@ install_requires = [
     'numpy',
     'scipy',
     'astropy',
+    'george',
+    'scikit-learn>=0.18',
     'matplotlib',
     'sncosmo',
     'pymultinest',

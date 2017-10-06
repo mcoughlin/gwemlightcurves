@@ -1,20 +1,18 @@
 .. _examples:
 
-######################
-Simulating lightcurves
-######################
+################################
+Simulating a Kilonova Lightcurve
+################################
 
 ============
 Introduction
 ============
-The first thing you will need in order to generate a light curve is a system that is expected to have some mass ejecta. Once you have one of these systems you can calculate the masss ejects if you have information on the mass of the objects and if it is a binary nuetron star the compactness and baryonic masses of both systems. Here we display some ways to get information on the compactness and baryonic mass of neutron stars through using certain Equation of State (EOS)
+When attempting to simulate the lightcurve froma kilonova assosciated with a binary coalesence, a number of parameters must be determine first. First of all, is the system a binary neutron star system or a neutron star black hole system. This determination will effect which fit model you utilize in order to calculate the expected dynamical ejecta mass (and velocity) that arises from the system. For binary neutron stars, one can use `Tim Dietrich and Maximiliano Ujevic <https://arxiv.org/pdf/1612.03665.pdf#equation.3.1>`_, and for a NSBH one can use `Kawaguchi <https://arxiv.org/abs/1601.07711>`_. These fits tie information such as compactness, baryonic mass, and mass of the objects to the expected ejecta. These fits come with uncertainities of ~72% but knowing the ejecta mass is critical when determining the expected lightcurve from the resulting kilonova. We now explain how one can go froma  set of posteriors of the system to generating the expected lightcurve from the kilonova. We consider many important things including whether or not you make Equation of State (EOS) assumptions. Whether or not you use fits for compactness and baryonic mass and how you treat the uncertainity in ejecta that comes with the fit.
 
 Reading and using KNTable
 -------------------------
 
-Say you have run parameter estimation on a BNS signal
-
-The `KNTable` object comes with a :meth:`KNTable.read_samples` method, allowing
+The `KNTable` object comes with a :meth:`~gwemlightcurves.KNModels.table.KNTable.read_samples`, allowing
 trivial reading of samples::
 
     >>> from gwemlightcurves.KNModels import KNTable
@@ -44,12 +42,12 @@ The results should look like this::
 
 
 After loading the table, one can caluclate lambda1 and lambda2 from dtilde if it is not already in the samples.
-:meth:`~KNTable.calc_tidal_lambda`::
+:meth:`~gwemlightcurves.KNModels.table.KNTable.calc_tidal_lambda`::
 
     >>> t = t.calc_tidal_lambda(remove_negative_lambda=True)
 
 After accomplishing the reading of the sample, let's say we want to calculate 
-compactness from radius. This would require calculating the radius from a mass radius curve. We can use :meth:`~KNTable.calc_radius`. In this module we have a number of ways to accomplish this::
+compactness from radius. This would require calculating the radius from a mass radius curve. We can use :meth:`gwemlightcurves.KNModels.KNTable.calc_radius`. In this module we have a number of ways to accomplish this::
 
 
     >>> t_sly_mon = t.calc_radius(EOS='sly', TOV='Monica')
@@ -57,13 +55,13 @@ compactness from radius. This would require calculating the radius from a mass r
     >>> t_sly_lalsim = t.calc_radius(EOS='sly', TOV='lalsim')
 
 
-After this we can now calculate the compactness :meth:`~KNTable.calc_compactness`.::
+After this we can now calculate the compactness :meth:`~gwemlightcurves.KNModels.table.KNTable.calc_compactness`.::
 
     >>> t_sly_mon = t_sly_mon.calc_compactness()
     >>> t_sly_wolf = t_sly_wolf.calc_compactness()
     >>> t_sly_lalsim = t_sly_lalsim.calc_compactness()
 
-After this we can calulcate the baryonic mass. Now we can either use the calculated compactness and have it be EOS dependent of calculate the baryonic mass using a fit using :meth:`~KNTable.calc_baryonic_mass`::
+After this we can calulcate the baryonic mass. Now we can either use the calculated compactness and have it be EOS dependent of calculate the baryonic mass using a fit using :meth:`~gwemlightcurves.KNModels.table.KNTable.calc_baryonic_mass`::
 
     >>> t_sly_mon = t_sly_mon.calc_baryonic_mass(EOS='ap4', TOV='Monica')
     >>> t_sly_wolf = t_sly_wolf.calc_baryonic_mass(EOS='ap4', TOV='Wolfgang')
@@ -168,7 +166,7 @@ and the constants are taken from
 
 https://arxiv.org/pdf/1612.03665.pdf#equation.3.2
 
-:meth:`~EjectaFits.DiUj2017.calc_meje`::
+The method used to calculate in this repo is :meth:`gwemlightcurves.EjectaFits.DiUj2017.calc_meje` and can be used as follows::
 
     >>> from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje
     >>> from gwemlightcurves.KNModels import KNTable
@@ -183,7 +181,7 @@ The velocity of the ejecta mass fit can be found:
 
 https://arxiv.org/pdf/1612.03665.pdf#equation.3.9
 
-:meth:`~EjectaFits.DiUj2017.calc_vej`::
+The method used to calculate in this repo is :meth:`gwemlightcurves.EjectaFits.DiUj2017.calc_vej` and can be used as follows::
 
     >>> from gwemlightcurves.EjectaFits.DiUj2017 import calc_vej
     >>> t_sly_mon['mej'] = calc_vej(t_sly_mon['m1'], t_sly_mon['c1'], t_sly_mon['m2'], t_sly_mon['c2'])
@@ -237,7 +235,7 @@ https://arxiv.org/pdf/1612.03665.pdf#equation.3.9
 Generating Light Curves
 -----------------------
 
-Finally, let's calculate a lightcurve being EOS agnostic. That is, we calculate both the compactness and baryonic masses from fits. Also let us look at a Metzer 2017 and DiUj2017 models.
+Finally, let's calculate a lightcurve being EOS agnostic. That is, we calculate both the compactness and baryonic masses from fits. Also let us look at a Metzer 2017 and DiUj2017 models. In order to take a set of samples and calculate the light curves that would result from a realization of each sample you can you the :class:`~gwemlightcurves.KNModels.table.KNTable.model` which takes as inputs the string name of the model and the table of samples containing at minimum compactness and baryonic mass (it can clauclate mass ejecta and velocity of ejecta on the fly)
 
 
 .. plot::

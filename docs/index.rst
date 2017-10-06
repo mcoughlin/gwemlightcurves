@@ -17,13 +17,14 @@ The easiest method to install gwemlightcurves is using `pip <https://pip.pypa.io
    $ pip install git+https://github.com/mcoughlin/gwemlightcurves
 
 
-Introduction
-------------
+Table of Contents
+-----------------
 
 .. toctree::
    :maxdepth: 3
 
    examples/index
+   examples/lightcurves
 
 How to run gwemlightcurves
 --------------------------

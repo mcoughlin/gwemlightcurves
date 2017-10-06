@@ -113,7 +113,7 @@ def get_eos_list(TOV):
 
 def get_lalsim_eos(eos_name):
     """
-    EOS tables described by Ozel [here](https://arxiv.org/pdf/1603.02698.pdf) and downloadable [here](http://xtreme.as.arizona.edu/NeutronStars/data/eos_tables.tar). LALSim utilizes this tables, but needs some interfacing (i.e. conversion to SI units, and conversion from non monotonic to monotonic pressure density tables)
+    EOS tables described by Ozel `here <https://arxiv.org/pdf/1603.02698.pdf>`_ and downloadable `here <http://xtreme.as.arizona.edu/NeutronStars/data/eos_tables.tar>`_. LALSim utilizes this tables, but needs some interfacing (i.e. conversion to SI units, and conversion from non monotonic to monotonic pressure density tables)
     """
     obs_max_mass = 2.01 - 0.04
     print "Checking %s" % eos_name
@@ -456,13 +456,26 @@ class KNTable(Table):
         ax2.set_xlabel('Time [days]',fontsize=48)
         return plt
 
-    def mass_cut(self, mass1=3.0,mass2=3.0):
+    def mass_cut(self, mass1=None,mass2=None,mtotmin=None,mtotmax=None):
         """
         Perform mass cut on table.     
         """
-        print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
-        idx = np.where((self["m1"] <= mass1) & (self["m2"] <= mass2))
-        return self[idx]
+        #print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
+
+        if not mass1 == None:
+            idx = np.where(self["m1"] <= mass1)
+            self = self[idx]
+        if not mass2 == None:
+            idx = np.where(self["m2"] <= mass2)
+            self = self[idx]
+        if not mtotmin == None:
+            idx = np.where(self["m1"] + self["m2"] >= mtotmin)
+            self = self[idx]
+        if not mtotmax == None:
+            idx = np.where(self["m1"] + self["m2"] <= mtotmax)
+            self = self[idx]
+
+        return self
 
     @classmethod
     def model(cls, format_, *args, **kwargs):
