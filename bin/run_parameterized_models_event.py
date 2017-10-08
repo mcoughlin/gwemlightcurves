@@ -141,7 +141,15 @@ if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
 
     # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
-    samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
+    erroropt = 'lin'
+    if erroropt == 'log':
+        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
+    elif erroropt == 'lin':
+        samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
+        idx = np.where(samples['mej'] > 0)[0]
+        samples = samples[idx]
+    elif erroropt == 'loggauss':
+        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
 
 #add default values from above to table
 samples['tini'] = tini
