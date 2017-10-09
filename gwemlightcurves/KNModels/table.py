@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) Scott Coughlin (2017)
 #
 # This file is part of gwemlightcurves.
@@ -29,60 +28,60 @@ __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_lis
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
-    """
-    Determine physical lambda parameters from effective parameters.
-    See Eqs. 5 and 6 from
-    https://journals.aps.org/prd/pdf/10.1103/PhysRevD.89.103012
-    """
-    mt = mass1 + mass2
-    eta = mass1 * mass2 / mt**2
-    q = np.sqrt(1 - 4*eta)
+	"""
+	Determine physical lambda parameters from effective parameters.
+	See Eqs. 5 and 6 from
+	https://journals.aps.org/prd/pdf/10.1103/PhysRevD.89.103012
+	"""
+	mt = mass1 + mass2
+	eta = mass1 * mass2 / mt**2
+	q = np.sqrt(1 - 4*eta)
 
-    a = (8./13) * (1 + 7*eta - 31*eta**2)
-    b = (8./13) * q * (1 + 9*eta - 11*eta**2)
-    c = 0.5 * q * (1 - 13272*eta/1319 + 8944*eta**2/1319)
-    d = 0.5 * (1 - 15910*eta/1319 + 32850*eta**2/1319 + 3380*eta**3/1319)
+	a = (8./13) * (1 + 7*eta - 31*eta**2)
+	b = (8./13) * q * (1 + 9*eta - 11*eta**2)
+	c = 0.5 * q * (1 - 13272*eta/1319 + 8944*eta**2/1319)
+	d = 0.5 * (1 - 15910*eta/1319 + 32850*eta**2/1319 + 3380*eta**3/1319)
 
-    lambda1 = 0.5 * ((c - d) * lam_til - (a - b) * dlam_til)/(b*c - a*d)
-    lambda2 = 0.5 * ((c + d) * lam_til - (a + b) * dlam_til)/(a*d - b*c)
+	lambda1 = 0.5 * ((c - d) * lam_til - (a - b) * dlam_til)/(b*c - a*d)
+	lambda2 = 0.5 * ((c + d) * lam_til - (a + b) * dlam_til)/(a*d - b*c)
 
-    return lambda1, lambda2
+	return lambda1, lambda2
 
 def CLove(lmbda):
-    """
-    Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
+	"""
+	Compactness-Love relation for neutron stars from Eq. (78) of Yagi and Yunes, Phys. Rep. 681, 1 (2017), using the YY coefficients and capping the compactness at the Buchdahl limit of 4/9 = 0.44... (since the fit diverges as lambda \to 0). We also cap the compactness at zero, since it becomes negative for large lambda, though these lambdas are so large that they are unlikely to be encountered in practice. In both cases, we raise an error if it runs up against either of the bounds.
 
-    Input: Dimensionless quadrupolar tidal deformability lmbda
-    Output: Compactness (mass over radius, in geometrized units, so the result is dimensionless)
-    """
+	Input: Dimensionless quadrupolar tidal deformability lmbda
+	Output: Compactness (mass over radius, in geometrized units, so the result is dimensionless)
+	"""
 
-    # Give coefficients
-    a0 = 0.360
-    a1 = -0.0355
-    a2 = 0.000705
+	# Give coefficients
+	a0 = 0.360
+	a1 = -0.0355
+	a2 = 0.000705
 
-    # Compute fit
-    lmbda = np.atleast_1d(lmbda)
-    ll = np.log(lmbda)
-    cc = a0 + (a1 + a2*ll)*ll
+	# Compute fit
+	lmbda = np.atleast_1d(lmbda)
+	ll = np.log(lmbda)
+	cc = a0 + (a1 + a2*ll)*ll
 
-    if (cc > 4./9.).any():
-        print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
-        print("setting compact value of {0} for lambda {1} to 4/9".format(cc[cc > 4./9.], lmbda[cc > 4./9.]))
-        cc[cc > 4./9.] = 4./9.
-    if (cc < 0.).any():
-        print("Warning: Returned compactnesses < 0 ... setting = 0.")
-        cc[cc < 0.0] = 0.0
+	if (cc > 4./9.).any():
+		print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+		print("setting compact value of {0} for lambda {1} to 4/9".format(cc[cc > 4./9.], lmbda[cc > 4./9.]))
+		cc[cc > 4./9.] = 4./9.
+	if (cc < 0.).any():
+		print("Warning: Returned compactnesses < 0 ... setting = 0.")
+		cc[cc < 0.0] = 0.0
 
-    return cc
+	return cc
 
 def EOSfit(mns,c):
-    """
-    # Equation to relate EOS and neutron star mass to Baryonic mass
-    # Eq 8: https://arxiv.org/pdf/1708.07714.pdf
-    """
-    mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
-    return mb
+	"""
+	# Equation to relate EOS and neutron star mass to Baryonic mass
+	# Eq 8: https://arxiv.org/pdf/1708.07714.pdf
+	"""
+	mb = mns*(1 + 0.8857853174243745*c**1.2082383572002926)
+	return mb
 
 
 def get_eos_list(TOV):
@@ -110,11 +109,33 @@ def get_eos_list(TOV):
         EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
     return EOS_List
 
+def construct_eos_from_polytrope(EOS):
+	"""
+    Uses lalsimulation to read polytrope parameters from table
+	"""
+    import lalsimulation as lalsim
+	from astropy.io import ascii
+	polytrope_table=np.genfromtxt(find_executable('polytrope_table.dat'), dtype=("|S10", '<f8','<f8','<f8','<f8'), names=True)
+	
+	#convert all eos names to lower case
+    for i in range(0,len(polytrope_table['eos'])):
+        polytrope_table['eos'][i]=polytrope_table['eos'][i].lower()    
+
+    #convert logp from cgs to si
+    for i in range(0, len(polytrope_table['logP1'])):
+        polytrope_table['logP1'][i]=np.log10(10**(polytrope_table['logP1'][i])*0.1)
+    
+    eos_indx=np.where(polytrope_table['eos']==eos)[0][0]
+ 
+    eos=lalsim.SimNeutronStarEOS4ParameterPiecewisePolytrope(polytrope_table['logP1'][eos_indx], polytrope_table['gamma1'][eos_indx], polytrope_table['gamma2'][eos_indx], polytrope_table['gamma3'][eos_indx])
+    eos_fam=lalsim.CreateSimNeutronStarFamily(eos)
+  
+    return eos_fam
+
 
 class KNTable(Table):
     """A container for a table of events
 
-    This differs from the basic `~astropy.table.Table` in two ways
 
     See also
     --------
@@ -446,4 +467,3 @@ class KNTable(Table):
         from .io.model import get_model
         model = get_model(format_, cls)
         return model(*args, **kwargs)
-
