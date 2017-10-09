@@ -5,6 +5,7 @@ import numpy as np
 import h5py
 import bisect
 from scipy.interpolate import interpolate as interp
+import statsmodels.api as sm
 
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -187,8 +188,10 @@ def getMagSpecH5(filename,band,model):
     t_d = []
     mag_d = []
     L_d = []
-
+    
     for t in times[:-1]:
+        if (t < 0) or (t > 7): continue
+
         # index corresponding to t
         it = bisect.bisect(times,t)
         # spectrum at this epoch
@@ -217,6 +220,24 @@ def getMagSpecH5(filename,band,model):
         t_d.append(t)
         mag_d.append(mag)
         L_d.append(Lbol)
+
+    t_d = np.array(t_d)
+    mag_d = np.array(mag_d)
+    L_d = np.array(L_d)
+
+    ii = np.where(np.isfinite(np.log10(L_d)))[0]
+    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    L_d = 10**f(t_d)
+
+    ii = np.where(~np.isnan(mag_d))[0]
+    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+    mag_d = f(t_d)
+
+    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1)
+    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1)
+
+    mag_d = mag_d_lowess[:,1]
+    L_d = 10**L_d_lowess[:,1]
 
     return t_d, mag_d, L_d
 
@@ -304,6 +325,8 @@ def getSpecH5(filename,model):
     spec_d = []
 
     for t in times[:-1]:
+        if (t < 0) or (t > 7): continue
+
         # index corresponding to t
         it = bisect.bisect(times,t)
         # spectrum at this epoch
@@ -440,7 +463,11 @@ if opts.doAB:
         else:
             t_d, mag_d, L_d = getMagAB(filename,band,opts.model)
         mag_ds[ii] = mag_d
-    
+
+    if np.any(np.array(L_d) == 0.0):
+        print "0's in bolometric luminosity.... quitting."
+        exit(0)
+
     filename = "%s/%s.dat"%(outputDir,opts.name)
     fid = open(filename,'w')
     fid.write('# t[days] u g r i z y J H K\n')
@@ -497,6 +524,10 @@ elif opts.doSpec:
         t_d, lambda_d, spec_d = getSpecH5(filename,opts.model)
     else:
         t_d, lambda_d, spec_d = getSpec(filename,opts.model)
+
+    if np.any(np.array(L_d) == 0.0):
+        print "0's in bolometric luminosity.... quitting."
+        exit(0)
 
     filename = "%s/%s_spec.dat"%(outputDir,opts.name)
     fid = open(filename,'w')

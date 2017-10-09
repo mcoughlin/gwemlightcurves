@@ -24,7 +24,7 @@ from astropy.table import (Table, Column, vstack)
 from distutils.spawn import find_executable
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
-__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list']
+__all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos']
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
@@ -131,6 +131,54 @@ def construct_eos_from_polytrope(EOS):
     eos_fam=lalsim.CreateSimNeutronStarFamily(eos)
   
     return eos_fam
+
+
+def get_lalsim_eos(eos_name):
+    """
+    EOS tables described by Ozel `here <https://arxiv.org/pdf/1603.02698.pdf>`_ and downloadable `here <http://xtreme.as.arizona.edu/NeutronStars/data/eos_tables.tar>`_. LALSim utilizes this tables, but needs some interfacing (i.e. conversion to SI units, and conversion from non monotonic to monotonic pressure density tables)
+    """
+    obs_max_mass = 2.01 - 0.04
+    print "Checking %s" % eos_name
+    eos_fname = ""
+    if os.path.exists(eos_name):
+        # NOTE: Adapted from code by Monica Rizzo
+        print "Loading from %s" % eos_name
+        bdens, press, edens = numpy.loadtxt(eos_name, unpack=True)
+        press *= 7.42591549e-25
+        edens *= 7.42591549e-25
+        eos_name = os.path.basename(eos_name)
+        eos_name = os.path.splitext(eos_name)[0].upper()
+
+        if not numpy.all(numpy.diff(press) > 0):
+            keep_idx = numpy.where(numpy.diff(press) > 0)[0] + 1
+            keep_idx = numpy.concatenate(([0], keep_idx))
+            press = press[keep_idx]
+            edens = edens[keep_idx]
+        assert numpy.all(numpy.diff(press) > 0)
+        if not numpy.all(numpy.diff(edens) > 0):
+            keep_idx = numpy.where(numpy.diff(edens) > 0)[0] + 1
+            keep_idx = numpy.concatenate(([0], keep_idx))
+            press = press[keep_idx]
+            edens = edens[keep_idx]
+        assert numpy.all(numpy.diff(edens) > 0)
+
+        print "Dumping to %s" % eos_fname
+        eos_fname = "./." + eos_name + ".dat"
+        numpy.savetxt(eos_fname, numpy.transpose((press, edens)), delimiter='\t')
+        eos = lalsimulation.SimNeutronStarEOSFromFile(eos_fname)
+        fam = lalsimulation.CreateSimNeutronStarFamily(eos)
+
+    else:
+        eos = lalsimulation.SimNeutronStarEOSByName(eos_name)
+        fam = lalsimulation.CreateSimNeutronStarFamily(eos)
+
+    mmass = lalsimulation.SimNeutronStarMaximumMass(fam) / lal.MSUN_SI
+    print "Family %s, maximum mass: %1.2f" % (eos_name, mmass)
+    if numpy.isnan(mmass) or mmass > 3. or mmass < obs_max_mass:
+        return
+
+    return eos, fam
+
 
 
 class KNTable(Table):
@@ -429,13 +477,26 @@ class KNTable(Table):
         ax2.set_xlabel('Time [days]',fontsize=48)
         return plt
 
-    def mass_cut(self, mass1=3.0,mass2=3.0):
+    def mass_cut(self, mass1=None,mass2=None,mtotmin=None,mtotmax=None):
         """
         Perform mass cut on table.     
         """
-        print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
-        idx = np.where((self["m1"] <= mass1) & (self["m2"] <= mass2))
-        return self[idx]
+        #print('You are requesting to remove samples with m1 above %.2f solar masses and m2 above %.2f solar masses'%(mass1,mass2))
+
+        if not mass1 == None:
+            idx = np.where(self["m1"] <= mass1)
+            self = self[idx]
+        if not mass2 == None:
+            idx = np.where(self["m2"] <= mass2)
+            self = self[idx]
+        if not mtotmin == None:
+            idx = np.where(self["m1"] + self["m2"] >= mtotmin)
+            self = self[idx]
+        if not mtotmax == None:
+            idx = np.where(self["m1"] + self["m2"] <= mtotmax)
+            self = self[idx]
+
+        return self
 
     @classmethod
     def model(cls, format_, *args, **kwargs):

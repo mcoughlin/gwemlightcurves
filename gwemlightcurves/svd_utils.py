@@ -8,7 +8,11 @@ from scipy.interpolate import griddata
 
 from gwemlightcurves import lightcurve_utils, Global
 
-from sklearn import gaussian_process
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, ConstantKernel as C
+
+import george
+from george import kernels
 
 def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
@@ -83,10 +87,20 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     n, n = UA.shape
     m, m = VA.shape
 
-    #n_coeff = m
     cAmat = np.zeros((n_coeff,n))
     for i in range(n):
         cAmat[:,i] = np.dot(lbol_array_postprocess[i,:],VA[:,:n_coeff])
+
+    nsvds, nparams = param_array.shape
+    #kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+    #gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+    gps = []
+    for i in range(n_coeff):
+        #gp.fit(param_array, cAmat[i,:])
+        kernel = np.var(cAmat[i,:]) * kernels.ExpSquaredKernel(1.0,ndim=nparams)
+        gp_basic = george.GP(kernel, solver=george.HODLRSolver)
+        gp_basic.compute(param_array, cAmat[i,:].T)
+        gps.append(gp_basic)
 
     svd_model = {}
     svd_model["n_coeff"] = n_coeff
@@ -95,6 +109,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     svd_model["VA"] = VA
     svd_model["stds"] = stds
     svd_model["means"] = means
+    svd_model["gps"] = gps
 
     return svd_model
 
@@ -182,10 +197,20 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     n, n = UA.shape
     m, m = VA.shape
 
-    #n_coeff = m
     cAmat = np.zeros((n_coeff,n))
     for i in range(n):
         cAmat[:,i] = np.dot(mag_array_postprocess[i,:],VA[:,:n_coeff])
+
+    nsvds, nparams = param_array.shape
+    #kernel = C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
+    #gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
+    gps = []
+    for i in range(n_coeff):
+        #gp.fit(param_array, cAmat[i,:])
+        kernel = np.var(cAmat[i,:]) * kernels.ExpSquaredKernel(1.0,ndim=nparams)
+        gp_basic = george.GP(kernel, solver=george.HODLRSolver)
+        gp_basic.compute(param_array, cAmat[i,:].T)
+        gps.append(gp_basic)
 
     svd_model = {}
     svd_model["n_coeff"] = n_coeff
@@ -194,6 +219,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     svd_model["VA"] = VA
     svd_model["stds"] = stds
     svd_model["means"] = means
+    svd_model["gps"] = gps
 
     return svd_model
 
@@ -212,14 +238,15 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     VA = svd_mag_model["VA"]
     stds = svd_mag_model["stds"]
     means = svd_mag_model["means"]
+    gps = svd_mag_model["gps"]
 
-    gp = gaussian_process.GaussianProcess(theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
     cAproj = np.zeros((n_coeff,))
     for i in range(n_coeff):
-        gp.fit(param_array, cAmat[i,:])
-        y_pred, sigma2_pred = gp.predict(param_list, eval_MSE=True)
+        gp = gps[i]
+        #y_pred, sigma2_pred = gp.predict(np.atleast_2d(np.array(param_list)), return_std=True)
         #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
         #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        y_pred, sigma2_pred = gp.predict(cAmat[i,:], np.atleast_2d(np.array(param_list)))
         cAproj[i] = y_pred
 
     mag_back = np.dot(VA[:,:n_coeff],cAproj)
@@ -236,11 +263,11 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
 
     cAproj = np.zeros((n_coeff,))
     for i in range(n_coeff):
-        gp.fit(param_array, cAmat[i,:])
-        y_pred, sigma2_pred = gp.predict(param_list, eval_MSE=True)
-
+        gp = gps[i]
+        #y_pred, sigma2_pred = gp.predict(np.atleast_2d(np.array(param_list)), return_std=True)
         #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
         #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
+        y_pred, sigma2_pred = gp.predict(cAmat[i,:], np.atleast_2d(np.array(param_list)))
         cAproj[i] = y_pred
 
     lbol_back = np.dot(VA[:,:n_coeff],cAproj)

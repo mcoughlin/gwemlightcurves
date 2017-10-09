@@ -82,6 +82,9 @@ def get_legend(model):
 
     return legend_name
 
+# setting seed
+np.random.seed(0)
+
 # Parse command line
 opts = parse_commandline()
 
@@ -139,7 +142,7 @@ if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
 
     # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
-    samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),np.log10(1.7)))
+    samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
 
 #add default values from above to table
 samples['tini'] = tini
@@ -309,9 +312,9 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 
         idx = np.where(np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k',markersize=15)
         idx = np.where(~np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k',markersize=15)
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
