@@ -25,6 +25,7 @@ Table of Contents
 
    examples/index
    examples/lightcurves
+   examples/eos
 
 How to run gwemlightcurves
 --------------------------
