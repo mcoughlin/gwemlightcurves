@@ -32,14 +32,14 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-s","--spectraDir",default="../spectra")
 
-    parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
-    parser.add_option("-f","--outputName",default="fiducial")
+    #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
+    #parser.add_option("-f","--outputName",default="fiducial")
 
     #parser.add_option("-n","--name",default="rpft_m005_v2,BHNS_H4M005V20,BNS_H4M005V20,neutron_precursor3,SED_ns12ns12_kappa10")
     #parser.add_option("-n","--name",default="rprocess")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2")
-    #parser.add_option("-n","--name",default="rpft_m05_v2,t300A3p15,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2,Blue_H4M050V20")
-    #parser.add_option("-f","--outputName",default="G298048_all")
+    parser.add_option("-n","--name",default="rpft_m05_v2,t300A3p15,APR4-1215_k1,SAd_magnitudes_m0.005_v0.2,Blue_H4M050V20")
+    parser.add_option("-f","--outputName",default="G298048_all")
     #parser.add_option("-f","--outputName",default="G298048_rprocess")
     #parser.add_option("-f","--outputName",default="G298048_lanthanides")
     #parser.add_option("-n","--name",default="rpft_m005_v2,SED_ns12ns12_kappa10,a80_leak_HR")
@@ -379,8 +379,11 @@ if opts.doAB:
                 elif model == "Blue" and modelType == "ejecta":
                     legend_name = "Metzger (2017)"
 
-                plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=2,label=legend_name)
-                plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2)
+                plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=4,label=legend_name)
+                plt.plot(tt,maginterp+zp_best,'-',c=colors_names[len(names)],linewidth=4,label=legend_name)
+                plt.plot(tt,maginterp-zp_best,'-',c=colors_names[len(names)],linewidth=4,label=legend_name)
+
+                plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2,linewidth=4)
 
         for ii,name in enumerate(names):
             mag_d = mags[name]
@@ -396,8 +399,13 @@ if opts.doAB:
             zp_best_tmp = -7.0
             zp_best_tmp = -1.0
             zp_best_tmp = 0.0
-            plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],linewidth=2,label=legend_names[ii])
-            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],alpha=0.2)
+
+
+            plt.plot(tt,maginterp+zp_best_tmp,'--',c=colors_names[ii],label=legend_names[ii],linewidth=4)
+            plt.plot(tt,maginterp+zp_best_tmp-opts.errorbudget,'-',c=colors_names[ii],linewidth=4)
+            plt.plot(tt,maginterp+zp_best_tmp+opts.errorbudget,'-',c=colors_names[ii],linewidth=4)
+
+            plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=colors_names[ii],edgecolor=colors_names[ii],alpha=0.2,linewidth=4)
     
         plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
         plt.xlim([0.0, 18.0])

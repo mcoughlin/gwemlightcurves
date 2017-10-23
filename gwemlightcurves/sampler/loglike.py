@@ -569,6 +569,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             t = t[idx]
             y = y[idx]
             sigma_y = sigma_y[idx]
+            if len(idx) == 0: continue
             if not key in Global.filters: continue
 
             keyslist = ["u","g","r","i","z","y","J","H","K"]

@@ -42,6 +42,7 @@ def parse_commandline():
     #parser.add_argument("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
     parser.add_argument("--distance",default=40.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
+    parser.add_argument("--errorbudget",default=1.0,type=float)
 
     args = parser.parse_args()
  
@@ -80,6 +81,9 @@ def get_legend(model):
         legend_name = "Rosswog et al. (2017)"
 
     return legend_name
+
+# setting seed
+np.random.seed(0)
 
 # Parse command line
 opts = parse_commandline()
@@ -125,11 +129,12 @@ samples = samples.downsample(Nsamples=100)
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
-samples = samples.calc_compactness()
+samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
-samples = samples.calc_baryonic_mass()
+samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+#samples = samples.downsample(Nsamples=100)
 
-if (not 'mej' in samples.colnames) and (not 'KaKy2016' in samples.colnames):
+if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
     # calc the mass of ejecta
     samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
@@ -137,7 +142,17 @@ if (not 'mej' in samples.colnames) and (not 'KaKy2016' in samples.colnames):
     samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
 
     # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
-    samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),np.log10(1.7)))
+    erroropt = 'none'
+    if erroropt == 'none':
+        print "Not applying an error to mass ejecta"
+    elif erroropt == 'log':
+        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
+    elif erroropt == 'lin':
+        samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
+    elif erroropt == 'loggauss':
+        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
+    idx = np.where(samples['mej'] > 0)[0]
+    samples = samples[idx]
 
 #add default values from above to table
 samples['tini'] = tini
@@ -161,6 +176,11 @@ samples['Ye'] = Ye
 model_tables = {}
 for model in models:
     model_tables[model] = KNTable.model(model, samples)
+
+# Now we need to do some interpolation
+for model in models:
+    model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
+    model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
 
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))
@@ -275,9 +295,9 @@ for model in models:
         #magmed = np.median(mag_all[model][filt],axis=0)
         #magmax = np.max(mag_all[model][filt],axis=0)
         #magmin = np.min(mag_all[model][filt],axis=0)
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0) + 1.0
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0)
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
+        magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -302,9 +322,9 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 
         idx = np.where(np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k',markersize=15)
         idx = np.where(~np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k')
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k',markersize=15)
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
@@ -314,11 +334,13 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         #magmin = np.min(mag_all[model][filt],axis=0)
 
         magmed = np.percentile(mag_all[model][filt], 50, axis=0)
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + 1.0
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - 1.0
+        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
-        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
-        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
+        plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
+        plt.plot(tt,magmin,'-',c=colors_names[ii],linewidth=4)
+        plt.plot(tt,magmax,'-',c=colors_names[ii],linewidth=4)
+        plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],edgecolor=colors_names[ii],alpha=0.2,linewidth=3)
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 14.0])
     plt.ylim([-18.0,-10.0])
@@ -365,15 +387,15 @@ for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
     magmed = np.median(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
-    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
-    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
+    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0) + opts.errorbudget
+    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0) - opts.errorbudget
 
     plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
 
 plt.xlim([0.0, 14.0])
 plt.xlabel('Time [days]')
-plt.ylabel('Absolute AB Magnitude [g-i]')
+plt.ylabel('Color [g-i]')
 plt.legend(loc="best")
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
@@ -386,8 +408,8 @@ for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
     lbolmed = np.median(lbol_all[model],axis=0)
-    lbolmax = np.max(lbol_all[model],axis=0)
-    lbolmin = np.min(lbol_all[model],axis=0)
+    lbolmax = np.max(lbol_all[model],axis=0) * (2.5 * opts.errorbudget)
+    lbolmin = np.min(lbol_all[model],axis=0) / (2.5 * opts.errorbudget)
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,lbolmin,lbolmax,facecolor=colors_names[ii],alpha=0.2)
 

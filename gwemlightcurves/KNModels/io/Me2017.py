@@ -12,6 +12,14 @@ from .. import KNTable
 from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
 def get_Me2017_model(table, **kwargs):
+    """
+.. py:function:: get_Me2017_model(table, **kwargs) 
+
+   :param table table: a table which must at least have columns of solar masses of objects the baryonic masses of the objects and the compactness of the object. The table except m1, mb1, c1, m2, mb2, c2, mej and vej as column names
+   :return: The lbol, mag and sampling times of the KN Metzger 2017
+   :rtype: table
+
+    """
     if not 'mej' in table.colnames:
         # calc the mass of ejecta
         table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
@@ -60,26 +68,26 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     h = 6.63e-27
     arad = 7.56e-15
     Mpc = 3.08e24
-    
+
     # ** define parameters **
-    
+
     # fiducial redshift/distance
     #z = 0.01
     #D = 39.5*Mpc
     z = 0.00
     D = 1e-5*Mpc
-    
-    # define desired observer band wavelengths (nm) 
+
+    # define desired observer band wavelengths (nm)
     # u (0), b (1), v (2), r (3), i (4), z (5), y(6), j (7), k (8), l (9)
     #lambdaobs = np.array([365., 445., 551., 658., 806., 900., 1020., 1220., 2190., 3450.])
-    
+
     # u (0) g (1) r (2) i (3) z (4) y (5) J (6) H (7) K (8)
     lambdaobs = np.array([354.3, 477.56, 612.95, 748.46, 865.78, 960.31, 1235.0, 1662.0, 2159.0])
-    
+
     nuobs = c/(1.0e-7*lambdaobs)
     nuobs = nuobs/(1.0 + z)
-    
-    # total ejecta mass 
+
+    # total ejecta mass
     M0 = mej*Msun
     # minimum initial velocity
     v0 = vej*c
@@ -105,7 +113,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     B = 1.0e15
     # magnetar collapse time (in units of initial spin-down times)
     tcollapse = 10000000.
-    
+
     # ** define time array in seconds **
     #tprec = 10000
     #tmin = np.log(0.1)
@@ -113,23 +121,23 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     #t = np.arange(tprec)*(tmax-tmin)/(tprec-1.0) + tmin
     #t = np.exp(t)
     #tdays = t/(3600.*24.)
-    
+
     tdays = np.arange(tini,tmax+dt,dt)
     t = tdays*(3600.*24.)
     tprec = len(t)
-    
+
     # ** define mass/velocity array of outer ejecta, comprised of half of mass **
     mmin = np.log(1.0e-8)
     mmax = np.log(M0/Msun)
     mprec = 300
     m = np.arange(mprec)*(mmax-mmin)/(mprec-1.0) + mmin
     m = np.exp(m)
-    
+
     #vm(where(m gt 0.5*M0/Msun)) = v0
     #vm(where(m le 0.5*M0/Msun)) = v0*(m(where(m le 0.5*M0/Msun))/(0.5*M0/Msun))^(-1./beta)
     vm = v0*(m/(M0/Msun))**(-1./beta)
     vm[vm > c] = c
-    
+
     # define thermalization efficiency from Barnes+16
     # 1e-2 Msun, 0.2 c
     ca3 = 1.3
@@ -146,7 +154,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     eth = 0.36*(np.exp(-ca*tdays) + np.log(1.0+2*cb*(tdays**(cd)))/(2*cb*tdays**(cd)))
     eth2 = 0.36*(np.exp(-ca2*tdays) + np.log(1.0+2*cb2*(tdays**(cd2)))/(2*cb2*tdays**(cd2)))
     eth3 = 0.36*(np.exp(-ca3*tdays) + np.log(1.0+2*cb3*(tdays**(cd3)))/(2*cb3*tdays**(cd3)))
-    
+
     # ** calculate magnetar power **
     Rns = 12.e5
     # moment of inertia
@@ -166,23 +174,23 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     Lsd = Lsd/1.0e20
     Lsd = Lsd/1.0e20
     Lsd2 = Lsd
-    
+
     if BH_switch:
         #*** calculate BH fall-back power
         Lsd = 2.0e11*(ej/0.1)*(t/0.1)**(-5./3.)
     if not engine_switch:
         Lsd[:] = 0.0
-    
+
     # ** define diffusive mass depth (assumed beta = 3) **
     Mdiff = (4.0*np.pi*(M0)**(1./3.)*(v0*c*t**2.)/(3.0*kappa_r))**(3./4.)
     Mdiff[Mdiff > M0] = M0
     Mdiff = Mdiff/Msun
-    
+
     # ** define radioactive heating rates **
     # neutron and r-process mass fractions
     Xn0 = Xn0max*2*np.arctan((Mn/(m*Msun))**(1.0))/np.pi
     Xr = 1.0-Xn0
-    
+
     # define arrays in mass layer and time
     Xn = np.zeros((mprec,tprec))
     edotn = np.zeros((mprec,tprec))
@@ -208,12 +216,12 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     kappan = 0.4*(1.0-Xn-Xrarray)
     kappar = kappa_r*Xrarray
     kappa = kappan + kappar
-    
+
     # define total r-process heating of inner layer
     Lr = M0*4.0e18*(0.5 - (1./np.pi)*np.arctan((t-t0)/sig))**(1.3)*eth
     Lr = Lr/1.0e20
     Lr = Lr/1.0e20
-    
+
     # *** define arrays by mass layer/time arrays ***
     ene = np.zeros((mprec,tprec))
     lum = np.zeros((mprec,tprec))
@@ -226,7 +234,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     vphoto = np.zeros((tprec,))
     mphoto = np.zeros((tprec,))
     kappaphoto = np.zeros((tprec,))
-    
+
     # *** define arrays for total ejecta (1 zone = deepest layer) ***
     # thermal energy
     E = np.zeros((tprec,))
@@ -246,7 +254,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     v[0] = v0
     R[0] = t[0]*v[0]
 
-    dt = t[1:]-t[:-1]   
+    dt = t[1:]-t[:-1]
     dm = m[1:]-m[:-1]
     marray = np.tile(m,(tprec,1)).T
     dmarray = np.tile(dm,(tprec,1)).T
@@ -269,8 +277,8 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
         E[j+1] = (Lr[j] + Lsd[j]-LPdV-Lrad[j])*(dt[j]) + E[j]
         R[j+1] = v[j+1]*(dt[j]) + R[j]
         taues[j+1] = (M0)*0.4/(4.0*R[j+1]**(2.0))
-   
-        templayer = (3.0*ene[:-1,j]*dm*Msun/(arad*4.0*np.pi*(t[j]*vm[:-1])**(3.0)))**(0.25) 
+
+        templayer = (3.0*ene[:-1,j]*dm*Msun/(arad*4.0*np.pi*(t[j]*vm[:-1])**(3.0)))**(0.25)
         kappa_correction = np.ones(templayer.shape)
         kappa_correction[templayer > 4000.] = 1.0
         kappa_correction[templayer < 4000.] = 1.0*(templayer[templayer < 4000.]/4000.)**(5.5)
@@ -283,18 +291,18 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
         lum[:-1,j] = lum[:-1,j]*(dm)*Msun
 
         tau[mprec-1,j] = tau[mprec-2,j]
-        # photosphere 
+        # photosphere
         pig1 = np.argmin(np.abs(tdiff[:,j]-t[j]))
         pig = np.argmin(np.abs(tau[:,j]-1.0))
         vphoto[j] = vm[pig]
         Rphoto[j] = vphoto[j]*t[j]
         mphoto[j] = m[pig]
         kappaphoto[j] = kappa[pig,j]
-      
+
     Ltotm = np.sum(lum,axis=0)
     Ltotm = Ltotm/1.0e20
     Ltotm = Ltotm/1.0e20
-    
+
     if engine_switch:
         Ltot = Lrad
         Tobs = 1.0e10*(Ltot/(4.0*np.pi*(R)**(2.0)*sigSB))**(0.25)
@@ -302,20 +310,20 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
             tlife = (Lsd/1.0e5)**(0.5)*(v/(0.3*c))**(0.5)*(t/(3600.*24.))**(-0.5)
             Ltot = Ltot/(1.0+tlife)
     if not engine_switch:
-        Ltot = Ltotm  
+        Ltot = Ltotm
         Tobs = 1.0e10*(Ltot/(4.0*np.pi*(Rphoto)**(2.0)*sigSB))**(0.25)
- 
-    nuobsarray = np.tile(nuobs,(tprec,1)).T    
-    expo = np.exp(h*nuobsarray/(kb*Tobs))-1.0 
+
+    nuobsarray = np.tile(nuobs,(tprec,1)).T
+    expo = np.exp(h*nuobsarray/(kb*Tobs))-1.0
     F = (2.0*np.pi*(h*nuobsarray)*((nuobsarray/c)**(2.0))/expo)*(Rphoto/D)*(Rphoto/D)
 
     mAB = -2.5*np.log10(F) - 48.6
-    
+
     # distance modulus
     muD = 5.0*np.log10(D/(3.08e18))-5.
 
     return tdays, Ltotm*1e40, mAB, Tobs
-   
+
 
 register_model('Me2017', KNTable, get_Me2017_model,
                  usage="table")
