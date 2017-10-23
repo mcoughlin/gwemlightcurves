@@ -45,7 +45,7 @@ def parse_commandline():
     parser.add_option("--theta_obs",default=0.0,type=float)
     parser.add_option("--theta_r",default=0.0,type=float)
     parser.add_option("--beta",default=3.0,type=float)
-    parser.add_option("--kappa_r",default=10.0,type=float)
+    parser.add_option("--kappa_r",default=0.1,type=float)
     parser.add_option("--slope_r",default=-1.2,type=float)
     parser.add_option("--Xlan",default=1e-3,type=float)
     parser.add_option("--Ye",default=0.25,type=float)
