@@ -7,8 +7,8 @@ Welcome to gwemlightcurves's documentation!
 ===========================================
 
 
-Installing GravitySpy
----------------------
+Installing gwemlightcurves
+--------------------------
 
 The easiest method to install gwemlightcurves is using `pip <https://pip.pypa.io/en/stable/>`_ directly from the `GitHub repository <https://github.com/mcoughlin/gwemlightcurves>`_:
 
@@ -17,13 +17,15 @@ The easiest method to install gwemlightcurves is using `pip <https://pip.pypa.io
    $ pip install git+https://github.com/mcoughlin/gwemlightcurves
 
 
-Introduction
-------------
+Table of Contents
+-----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    examples/index
+   examples/lightcurves
+   examples/eos
 
 How to run gwemlightcurves
 --------------------------

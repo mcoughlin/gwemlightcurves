@@ -129,9 +129,10 @@ samples = samples.downsample(Nsamples=100)
 # Calc lambdas
 samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 # Calc compactness
-samples = samples.calc_compactness()
+samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
-samples = samples.calc_baryonic_mass()
+samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+#samples = samples.downsample(Nsamples=100)
 
 if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
@@ -175,6 +176,11 @@ samples['Ye'] = Ye
 model_tables = {}
 for model in models:
     model_tables[model] = KNTable.model(model, samples)
+
+# Now we need to do some interpolation
+for model in models:
+    model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
+    model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
 
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))

@@ -66,8 +66,11 @@ install_requires = [
     'numpy',
     'scipy',
     'astropy',
+    'george',
+    'scikit-learn>=0.18',
     'matplotlib',
     'sncosmo',
+    'pymultinest',
 ]
 tests_require = [
     'pytest'
@@ -87,7 +90,7 @@ extras_require = {
 # -- run setup ----------------------------------------------------------------
 
 packagenames = find_packages()
-scripts = glob.glob(os.path.join('bin', '*'))
+scripts = glob.glob(os.path.join('bin', '*')) + glob.glob('input/Monica/*') + glob.glob('input/Wolfgang/*') + glob.glob('input/lalsim/*')
 
 setup(name=DISTNAME,
       provides=[PACKAGENAME],
