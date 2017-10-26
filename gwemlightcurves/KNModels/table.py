@@ -109,7 +109,7 @@ def get_eos_list(TOV):
         EOS_List=[file_name[:-14] for file_name in os.listdir(path) if file_name.endswith("lalsim_mr.dat")]
     return EOS_List
 
-def construct_eos_from_polytrope(EOS):
+def construct_eos_from_polytrope(eos_name):
     """
     Uses lalsimulation to read polytrope parameters from table
     """
@@ -128,9 +128,9 @@ def construct_eos_from_polytrope(EOS):
     eos_indx=np.where(polytrope_table['eos']==eos)[0][0]
 
     eos=lalsim.SimNeutronStarEOS4ParameterPiecewisePolytrope(polytrope_table['logP1'][eos_indx], polytrope_table['gamma1'][eos_indx], polytrope_table['gamma2'][eos_indx], polytrope_table['gamma3'][eos_indx])
-    eos_fam=lalsim.CreateSimNeutronStarFamily(eos)
+    fam=lalsim.CreateSimNeutronStarFamily(eos)
 
-    return eos_fam
+    return eos, fam
 
 
 def get_lalsim_eos(eos_name):
@@ -311,7 +311,7 @@ class KNTable(Table):
         return self
 
 
-    def calc_radius(self, EOS, TOV):
+    def calc_radius(self, EOS, TOV, polytrope=False):
         """
         """
         if TOV not in ['Monica', 'Wolfgang', 'lalsim']:
@@ -348,7 +348,7 @@ class KNTable(Table):
             except:
                 import astropy.units as u
                 import astropy.constants as C
-                G = lal.G_SI; c = C.c.value; msun = u.M_sun.to(u.kg)
+                G = C.G.value; c = C.c.value; msun = u.M_sun.to(u.kg)
 
             MassRadiusBaryMassTable = Table.read(find_executable(EOS + '.tidal.seq'), format='ascii')
             radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'])
@@ -357,14 +357,27 @@ class KNTable(Table):
             self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['grav_mass'], MassRadiusBaryMassTable['Circumferential_radius'], radius_of_mass_const) * unit_conversion
 
         elif TOV == 'lalsim':
-
             import lalsimulation as lalsim
-            MassRadiusiBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
-            radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
-            # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
-            # also radius is in km in table. need to convert to SI (i.e. meters)
-            self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
-            self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
+            if polytrope==True:
+                try:
+                    import lal
+                    G = lal.G_SI; c = lal.C_SI; msun = lal.MSUN_SI
+                except:
+                    import astropy.units as u
+                    import astropy.constants as C
+                    G = C.G.value; c = C.c.value; msun = u.M_sun.to(u.kg)
+
+                ns_eos, eos_fam=construct_eos_from_polytrope(EOS)
+                self['r1']=lalsim.SimNeutronStarRadius(self['m1']*msun, eos_fam)
+                self['r2']=lalsim.SimNeutronStarRadius(self['m2']*msun, eos_fam)
+
+            else:
+                MassRadiusiBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
+                radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
+                # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
+                # also radius is in km in table. need to convert to SI (i.e. meters)
+                self['r1'] = et.values_from_table(self['m1'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
+                self['r2'] = et.values_from_table(self['m2'], MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'], radius_of_mass_const)*10**3
 
         return self
 
