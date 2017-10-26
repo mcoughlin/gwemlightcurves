@@ -66,12 +66,12 @@ def CLove(lmbda):
     cc = a0 + (a1 + a2*ll)*ll
 
     if (cc > 4./9.).any():
-            print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
-            print("setting compact value of {0} for lambda {1} to 4/9".format(cc[cc > 4./9.], lmbda[cc > 4./9.]))
-            cc[cc > 4./9.] = 4./9.
+        print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+        print("setting compact value of {0} for lambda {1} to 4/9".format(cc[cc > 4./9.], lmbda[cc > 4./9.]))
+        cc[cc > 4./9.] = 4./9.
     if (cc < 0.).any():
-            print("Warning: Returned compactnesses < 0 ... setting = 0.")
-            cc[cc < 0.0] = 0.0
+        print("Warning: Returned compactnesses < 0 ... setting = 0.")
+        cc[cc < 0.0] = 0.0
 
     return cc
 
@@ -116,8 +116,8 @@ def construct_eos_from_polytrope(EOS):
     import lalsimulation as lalsim
     from astropy.io import ascii
     polytrope_table=np.genfromtxt(find_executable('polytrope_table.dat'), dtype=("|S10", '<f8','<f8','<f8','<f8'), names=True)
-
-	#convert all eos names to lower case
+  
+    #convert all eos names to lower case
     for i in range(0,len(polytrope_table['eos'])):
         polytrope_table['eos'][i]=polytrope_table['eos'][i].lower()
 
@@ -137,34 +137,37 @@ def get_lalsim_eos(eos_name):
     """
     EOS tables described by Ozel `here <https://arxiv.org/pdf/1603.02698.pdf>`_ and downloadable `here <http://xtreme.as.arizona.edu/NeutronStars/data/eos_tables.tar>`_. LALSim utilizes this tables, but needs some interfacing (i.e. conversion to SI units, and conversion from non monotonic to monotonic pressure density tables)
     """
+    import os
+    import lalsimulation
+    import lal
     obs_max_mass = 2.01 - 0.04
     print "Checking %s" % eos_name
     eos_fname = ""
     if os.path.exists(eos_name):
         # NOTE: Adapted from code by Monica Rizzo
         print "Loading from %s" % eos_name
-        bdens, press, edens = numpy.loadtxt(eos_name, unpack=True)
+        bdens, press, edens = np.loadtxt(eos_name, unpack=True)
         press *= 7.42591549e-25
         edens *= 7.42591549e-25
         eos_name = os.path.basename(eos_name)
         eos_name = os.path.splitext(eos_name)[0].upper()
 
-        if not numpy.all(numpy.diff(press) > 0):
-            keep_idx = numpy.where(numpy.diff(press) > 0)[0] + 1
-            keep_idx = numpy.concatenate(([0], keep_idx))
+        if not np.all(np.diff(press) > 0):
+            keep_idx = np.where(np.diff(press) > 0)[0] + 1
+            keep_idx = np.concatenate(([0], keep_idx))
             press = press[keep_idx]
             edens = edens[keep_idx]
-        assert numpy.all(numpy.diff(press) > 0)
-        if not numpy.all(numpy.diff(edens) > 0):
-            keep_idx = numpy.where(numpy.diff(edens) > 0)[0] + 1
-            keep_idx = numpy.concatenate(([0], keep_idx))
+        assert np.all(np.diff(press) > 0)
+        if not np.all(np.diff(edens) > 0):
+            keep_idx = np.where(np.diff(edens) > 0)[0] + 1
+            keep_idx = np.concatenate(([0], keep_idx))
             press = press[keep_idx]
             edens = edens[keep_idx]
-        assert numpy.all(numpy.diff(edens) > 0)
+        assert np.all(np.diff(edens) > 0)
 
         print "Dumping to %s" % eos_fname
         eos_fname = "./." + eos_name + ".dat"
-        numpy.savetxt(eos_fname, numpy.transpose((press, edens)), delimiter='\t')
+        np.savetxt(eos_fname, np.transpose((press, edens)), delimiter='\t')
         eos = lalsimulation.SimNeutronStarEOSFromFile(eos_fname)
         fam = lalsimulation.CreateSimNeutronStarFamily(eos)
 
@@ -174,7 +177,7 @@ def get_lalsim_eos(eos_name):
 
     mmass = lalsimulation.SimNeutronStarMaximumMass(fam) / lal.MSUN_SI
     print "Family %s, maximum mass: %1.2f" % (eos_name, mmass)
-    if numpy.isnan(mmass) or mmass > 3. or mmass < obs_max_mass:
+    if np.isnan(mmass) or mmass > 3. or mmass < obs_max_mass:
         return
 
     return eos, fam
