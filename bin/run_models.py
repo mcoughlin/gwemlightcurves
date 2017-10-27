@@ -525,9 +525,9 @@ elif opts.doSpec:
     else:
         t_d, lambda_d, spec_d = getSpec(filename,opts.model)
 
-    if np.any(np.array(L_d) == 0.0):
-        print "0's in bolometric luminosity.... quitting."
-        exit(0)
+    #if np.any(np.array(L_d) == 0.0):
+    #    print "0's in bolometric luminosity.... quitting."
+    #    exit(0)
 
     filename = "%s/%s_spec.dat"%(outputDir,opts.name)
     fid = open(filename,'w')

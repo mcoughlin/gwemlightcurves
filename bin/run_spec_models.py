@@ -16,8 +16,11 @@ from matplotlib.pyplot import cm
 import corner
 
 import pymultinest
-from gwemlightcurves import BHNSKilonovaLightcurve, BNSKilonovaLightcurve, SALT2
-from gwemlightcurves import lightcurve_utils
+from gwemlightcurves.sampler import *
+from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.sampler import run
+from gwemlightcurves import __version__
+from gwemlightcurves import lightcurve_utils, Global
 
 from astropy.modeling.models import BlackBody1D
 from astropy.modeling.blackbody import FLAM

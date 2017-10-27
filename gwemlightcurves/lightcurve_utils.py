@@ -16,8 +16,8 @@ from astropy.table import Table
 
 def loadModelsSpec(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Rosswog et al. (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","kasen_kilonova_survey"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Rosswog et al. (2017)","Kasen et al. (2017)"]
 
     filenames = []
     legend_names = []
@@ -110,9 +110,9 @@ def loadEventSpec(filename):
 
     name = filename.split("/")[-1].split(".")[0]
     nameSplit = name.split("_")
-    event = nameSplit[0]
-    instrument = nameSplit[1]
-    specdata = nameSplit[2]    
+    #event = nameSplit[0]
+    #instrument = nameSplit[1]
+    #specdata = nameSplit[2]    
 
     data_out = np.loadtxt(filename)
     spec = {}
