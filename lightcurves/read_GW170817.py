@@ -35,9 +35,11 @@ with open(filename) as json_file:
             else:
                 continue   
 
-        if band not in ["u","g","r","i","z","Y","J","Ks"]: continue  
+        if band not in ["u","g","r","i","z","Y","J","H","Ks"]: continue  
         if band == "Ks": 
-            band = "K"  
+            band = "K"
+        if band == "Y":
+            band = "y"  
  
         ts.append(t)
         bands.append(band)
