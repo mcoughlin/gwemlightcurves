@@ -29,18 +29,23 @@ with open(filename) as json_file:
 
         if 'upperlimit' in dat:
             dmag = np.inf
+            continue
         else:
             if 'e_magnitude' in dat:
                 dmag = float(dat['e_magnitude'])
             else:
                 continue   
 
-        if band not in ["u","g","r","i","z","Y","J","H","Ks"]: continue  
-        if band == "Ks": 
+        if band == "Ks":
             band = "K"
         if band == "Y":
-            band = "y"  
- 
+            band = "y"
+        if band == "U":
+            band = "u"
+  
+        if 'model' in dat: continue
+        if band not in ["u","g","r","i","z","y","J","H","K"]: continue  
+
         ts.append(t)
         bands.append(band)
         tbands.append(t+band)
