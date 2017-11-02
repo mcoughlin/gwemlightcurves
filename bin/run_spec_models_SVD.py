@@ -67,7 +67,7 @@ def spec_model(specs,wavelengths,t0,model):
         znew = f(xnew,ynew)
 
         spec1 = np.squeeze(znew)
-        spec1 = scipy.signal.medfilt(spec1,kernel_size=21)
+        #spec1 = scipy.signal.medfilt(spec1,kernel_size=21)
         spec1 = spec1/np.sum(spec1)
 
         return spec1
@@ -190,7 +190,7 @@ elif opts.doEvent:
     for filename,T0 in zip(filenames,T0s):
         data_out_temp = lightcurve_utils.loadEventSpec(filename)
         data_out[str(T0)] = data_out_temp
-        data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=21)
+        #data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=21)
 
 else:
     print "Must enable --doModels or --doEvent"

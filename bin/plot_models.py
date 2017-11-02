@@ -17,7 +17,9 @@ from matplotlib.pyplot import cm
 
 from scipy.optimize import curve_fit
 
+from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
 from gwemlightcurves import lightcurve_utils, Global
 
@@ -60,8 +62,9 @@ def parse_commandline():
 
     parser.add_option("--doModels",  action="store_true", default=False)
     #parser.add_option("-m","--modelfile",default="gws_luminosity/Arnett_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat")
-    #parser.add_option("-m","--modelfile",default="gws_luminosity/Blue_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat,gws_luminosity/Arnett_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat")
-    parser.add_option("-m","--modelfile",default="gws/Blue_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/G298048_PS1_GROND_SOFI/1.00/best.dat")
+   # parser.add_option("-m","--modelfile",default="gws_luminosity/Blue_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat,gws_luminosity/Arnett_FixZPT0/0_14/ejecta/G298048_XSH_PESSTO/1.00/best.dat")
+    parser.add_option("-m","--modelfile",default="gws/Me2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/best.dat")
+    #parser.add_option("-m","--modelfile",default="gws/Me2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/best.dat")
 
     #parser.add_option("-n","--name",default="H4Q3a0,H4Q3a25,H4Q3a50,H4Q3a75")
     #parser.add_option("-f","--outputName",default="spin")
@@ -129,7 +132,7 @@ outputDir = opts.outputDir
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,opts.outputName)
 if not os.path.isdir(plotDir):
-    os.makedir(plotDir)
+    os.makedirs(plotDir)
 
 models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Afterglow","metzger_rprocess","korobkin_kilonova","Blue"]
 models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2015)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich and Ujevic (2017)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Van Eerten et al. (2012)","Metzger et al. (2010)","Wollaeger et al. (2017)","Metzger (2017)"]
@@ -163,17 +166,36 @@ if opts.doAB:
             modelType = modelfileSplit[-4]
             model = modelfileSplit[-7].split("_")[0]
 
-            if model == "BNS" and modelType == "ejecta":
+            if model == "DiUj2017" and modelType == "ejecta":
                 t0_best, mej_best,vej_best,th_best,ph_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
      
                 tmag, lbol, mag = bns_model_ejecta(mej_best,vej_best,th_best,ph_best)
                 tmag = tmag + t0_best
-            elif model == "Blue" and modelType == "ejecta":   
+            elif model == "Me2017" and modelType == "ejecta":   
                 t0_best, mej_best,vej_best,beta_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
 
-                tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+                print mej_best,vej_best,beta_best,kappa_r_best
+
+                tmag, lbol, mag = Me2017_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+
+                #tmag, lbol, mag, Tobs = blue_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
+                tmag = tmag + t0_best
+            elif model == "Me2017x2" and modelType == "ejecta":
+                t0_best, mej_1_best,vej_1_best,beta_1_best,kappa_r_1_best,mej_2_best,vej_2_best,beta_2_best,kappa_r_2_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5], model_out[6], model_out[7], model_out[8], model_out[9]
+
+                mej_1_best = 0.08329
+                vej_1_best = 0.01252
+                beta_1_best = 1.05949
+                kappa_r_1_best = 0.4391
+                
+                mej_2_best = 1e-5
+                vej_2_best = 0.2
+                beta_2_best = 1.0
+                kappa_r_2_best = 10.0
+
+                tmag, lbol, mag = Me2017x2_model_ejecta(mej_1_best,vej_1_best,beta_1_best,kappa_r_1_best,mej_2_best,vej_2_best,beta_2_best,kappa_r_2_best)
                 tmag = tmag + t0_best 
-            elif model == "Arnett" and modelType == "ejecta":   
+            elif model == "SmCh2017" and modelType == "ejecta":   
                 t0_best, mej_best,vej_best,slope_r_best,kappa_r_best,zp_best  = model_out[0], model_out[1], model_out[2], model_out[3], model_out[4], model_out[5]
                 kappa_r_best = 10**kappa_r_best
 
@@ -187,7 +209,7 @@ if opts.doAB:
             model_data[model]["tmag"] = tmag
             model_data[model]["lbol"] = lbol
             model_data[model]["mag"] = mag
-            model_data[model]["Tobs"] = Tobs 
+            #model_data[model]["Tobs"] = Tobs 
 
     if opts.doEvent:
         filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
@@ -280,7 +302,7 @@ if opts.doAB:
     plotName = "%s/models_zoom.pdf"%(plotDir)
     plt.figure(figsize=(10,8))
     
-    tini, tmax, dt = 0.0, 10.0, 0.1
+    tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
     
     for filt, color, magidx in zip(filts,colors,magidxs):
@@ -319,9 +341,9 @@ if opts.doAB:
             #zp_best_tmp = 0.0
             plt.plot(tt,maginterp+zp_best_tmp,'--',c=color,linewidth=2)
             plt.fill_between(tt,maginterp+zp_best_tmp-opts.errorbudget,maginterp+zp_best_tmp+opts.errorbudget,facecolor=color,alpha=0.2)
-    
-    plt.xlim([0.0, 3.5])
-    plt.ylim([-20.0,-10.0])
+   
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-18.0,-10.0])
     
     plt.xlabel('Time [days]',fontsize=24)
     plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -374,14 +396,16 @@ if opts.doAB:
                 f = interp.interp1d(tmag[idx], mag[magidx][idx], fill_value='extrapolate')
                 maginterp = f(tt)
        
-                if model == "BNS" and modelType == "ejecta":
+                if model == "DiUj2017" and modelType == "ejecta":
                     legend_name = "Dietrich and Ujevic (2017)"
-                elif model == "Blue" and modelType == "ejecta":
+                elif model == "Me2017" and modelType == "ejecta":
+                    legend_name = "Metzger (2017)"
+                elif model == "Me2017x2" and modelType == "ejecta":
                     legend_name = "Metzger (2017)"
 
                 plt.plot(tt,maginterp+zp_best,'--',c=colors_names[len(names)],linewidth=4,label=legend_name)
-                plt.plot(tt,maginterp+zp_best,'-',c=colors_names[len(names)],linewidth=4,label=legend_name)
-                plt.plot(tt,maginterp-zp_best,'-',c=colors_names[len(names)],linewidth=4,label=legend_name)
+                plt.plot(tt,maginterp+zp_best-opts.errorbudget,'-',c=colors_names[len(names)],linewidth=4)
+                plt.plot(tt,maginterp-zp_best+opts.errorbudget,'-',c=colors_names[len(names)],linewidth=4)
 
                 plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=colors_names[len(names)],alpha=0.2,linewidth=4)
 

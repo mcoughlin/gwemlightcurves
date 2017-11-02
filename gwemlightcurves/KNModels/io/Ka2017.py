@@ -15,7 +15,7 @@ from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 def get_Ka2017_model(table, **kwargs):
 
     if not 'n_coeff' in table.colnames:
-        table['n_coeff'] = 100
+        table['n_coeff'] = 500
 
     if not Global.svd_mag_model == 0:
         svd_mag_model = Global.svd_mag_model

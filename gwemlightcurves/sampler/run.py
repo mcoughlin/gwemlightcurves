@@ -9,10 +9,10 @@ def multinest(opts,plotDir):
    
     n_live_points = 1000
     evidence_tolerance = 0.5
-    #evidence_tolerance = 100.0
+    #evidence_tolerance = 10000.0
     max_iter = 0
 
-    if opts.model in ["KaKy2016","DiUj2017","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
     
         if opts.doMasses:
             if opts.model == "KaKy2016":
@@ -124,6 +124,11 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$","Xlan","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Ka2017_ejecta, myprior_Ka2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Ka2017x2":
+                parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$","$Xlan_1$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$","$Xlan_2$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Ka2017x2_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "RoFe2017":
                 parameters = ["t0","mej","vej","xlan","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$","Xlan","ZP"]
@@ -134,6 +139,11 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\alpha$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Me2017_ejecta, myprior_Me2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Me2017x2":
+                parameters = ["t0","mej1","vej1","beta1","kappa_r1","mej2","vej2","beta2","kappa_r2","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"$\alpha_1$",r"${\rm log}_{10} \kappa_{\rm r 1}$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"$\alpha_2$",r"${\rm log}_{10} \kappa_{\rm r 2}$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Me2017x2_ejecta, myprior_Me2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "WoKo2017":
                 parameters = ["t0","mej","vej","beta","kappa_r","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\theta$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
@@ -419,7 +429,12 @@ def multinest(opts,plotDir):
             idx = np.argmax(loglikelihood)
             t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4]
             tmag, lbol, mag = Ka2017_model_ejecta(mej_best,vej_best,Xlan_best)
-
+    elif opts.model == "Ka2017x2":
+        if opts.doEjecta:
+            t0, mej_1, vej_1, Xlan_1, mej_2, vej_2, Xlan_2, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], 10**data[:,4], data[:,5], data[:,6], data[:,7], data[:,8]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_1_best, vej_1_best, Xlan_1_best, mej_2_best, vej_2_best, Xlan_2_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], 10**data[idx,4], data[idx,5], data[idx,6], data[idx,7]
+            tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best)
     elif opts.model == "RoFe2017":
         if opts.doMasses:
             if opts.doEOSFit:
@@ -538,7 +553,35 @@ def multinest(opts,plotDir):
             zp_best = data[idx,5]
     
             tmag, lbol, mag = Me2017_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
-    
+   
+    elif opts.model == "Me2017x2":
+        if opts.doEjecta:
+            t0 = data[:,0]
+            mej_1 = 10**data[:,1]
+            vej_1 = data[:,2]
+            beta_1 = data[:,3]
+            kappa_r_1 = 10**data[:,4]
+            mej_2 = 10**data[:,5]
+            vej_2 = data[:,6]
+            beta_2 = data[:,7]
+            kappa_r_2 = 10**data[:,8]
+            zp = data[:,9]
+            loglikelihood = data[:,10]
+            idx = np.argmax(loglikelihood)
+
+            t0_best = data[idx,0]
+            mej_1_best = 10**data[idx,1]
+            vej_1_best = data[idx,2]
+            beta_1_best = data[idx,3]
+            kappa_r_1_best = 10**data[idx,4]
+            mej_2_best = 10**data[idx,5]
+            vej_2_best = data[idx,6]
+            beta_2_best = data[idx,7]
+            kappa_r_2_best = 10**data[idx,8]
+            zp_best = data[idx,9]
+
+            tmag, lbol, mag = Me2017x2_model_ejecta(mej_1_best,vej_1_best,beta_1_best,kappa_r_1_best,mej_2_best,vej_2_best,beta_2_best,kappa_r_2_best) 
+
     elif opts.model == "WoKo2017":
     
         if opts.doMasses:
@@ -842,7 +885,18 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,Xlan_best,zp_best))
             fid.close()
+    elif opts.model == "Ka2017x2":
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n, o, p in zip(t0,mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+            fid.close()
 
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best,zp_best))
+            fid.close()
     elif opts.model == "Me2017":
         if opts.doMasses:
             filename = os.path.join(plotDir,'samples.dat')
@@ -866,7 +920,18 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
             fid.close()
-   
+    elif opts.model == "Me2017x2": 
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n, o, p, q, r in zip(t0,mej_1,vej_1,beta_1,kappa_r_1,mej_2,vej_2,beta_2,kappa_r_2,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p,q,r))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_1_best,vej_1_best,beta_1_best,kappa_r_1_best,mej_2_best,vej_2_best,beta_2_best,kappa_r_2_best,zp_best))
+            fid.close()
     elif opts.model == "RoFe2017":
         if opts.doMasses:
             filename = os.path.join(plotDir,'samples.dat')

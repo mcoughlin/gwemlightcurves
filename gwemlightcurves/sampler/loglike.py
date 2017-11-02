@@ -104,6 +104,22 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    zp = cube[7]
+
+    tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
 def myloglike_Ka2017_EOSFit(cube, ndim, nparams):
 
     t0 = cube[0]
@@ -201,6 +217,24 @@ def myloglike_Me2017_ejecta(cube, ndim, nparams):
     zp = cube[5]
 
     tmag, lbol, mag = Me2017_model_ejecta(mej,vej,beta,kappa_r)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Me2017x2_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    beta_1 = cube[3]
+    kappa_r_1 = 10**cube[4]
+    mej_2 = 10**cube[5]
+    vej_2 = cube[6]
+    beta_2 = cube[7]
+    kappa_r_2 = 10**cube[8]
+    zp = cube[9]
+
+    tmag, lbol, mag = Me2017x2_model_ejecta(mej_1,vej_1,beta_1,kappa_r_1,mej_2,vej_2,beta_2,kappa_r_2)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
 
@@ -576,19 +610,30 @@ def calc_prob(tmag, lbol, mag, t0, zp):
 
             if key in keyslist:
                 idx = keyslist.index(key)
-                ii = np.where(~np.isnan(mag[idx]))[0]
+                ii = np.where(np.isfinite(mag[idx]))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
                 else:
-                    f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value='extrapolate')
+                    if Global.doWaveformExtrapolate:
+                        f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+                    else:
+                        f = interp.interp1d(tmag[ii], magave[ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
-            elif key == "w":
-                magave = (mag[1]+mag[2]+mag[3])/3.0
-                ii = np.where(~np.isnan(magave))[0]
+            elif key in ["w","c","o"]:
+                if key == "w": 
+                    magave = (mag[1]+mag[2]+mag[3])/3.0
+                elif key == "c":
+                    magave = (mag[1]+mag[2])/2.0
+                elif key == "o":
+                    magave = (mag[2]+mag[3])/2.0
+                ii = np.where(np.isfinite(magave))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
                 else:
-                    f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+                    if Global.doWaveformExtrapolate:                    
+                        f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+                    else:
+                        f = interp.interp1d(tmag[ii], magave[ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
             else:
                 continue
