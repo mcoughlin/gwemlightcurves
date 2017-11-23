@@ -333,7 +333,8 @@ if opts.doEventPhot:
     if opts.model == "BlackBody":
         phases, Ts, Tslow, Tshigh, Fs, Fslow, Fshigh, Rs, Rslow, Rshigh = [], [], [], [], [], [], [], [], [], []
         evidences, evidenceserr = [], []
-        for key in data.iterkeys():
+        keys = sorted(data.iterkeys())
+        for key in keys:
             plotDirPhase=os.path.join(plotDir,'%.5f'%key)
             samplesFile = os.path.join(plotDirPhase,"samples.dat")
             evidenceFile = os.path.join(plotDirPhase,"evidence.dat")
@@ -384,6 +385,13 @@ if opts.doEventPhot:
         plt.ylabel('log(Evidence)')
         plt.savefig(plotName)
         plt.close()
+
+        filename = "%s/combined.dat"%(plotDir)
+        fid = open(filename,'w')
+        fid.write('# Phase (days) T (K) eT (K) R (cm) eR (cm) L (erg/s) eL (erg/s)\n')
+        for phase, T, dT, F, dF, R, dR in zip(phases,Ts,Tshigh,Fs,Fshigh,Rs,Rshigh):
+            fid.write('%.3f %.3f %.3f %.3e %.3e %.3e %.3e\n'%(phase,T,dT,R,dR,F,dF))
+        fid.close()
 
     elif opts.model == "BlackBodyx2":
         phases, T1s, T1slow, T1shigh, F1s, F1slow, F1shigh, R1s, R1slow, R1shigh, T2s, T2slow, T2shigh, F2s, F2slow, F2shigh, R2s, R2slow, R2shigh = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
