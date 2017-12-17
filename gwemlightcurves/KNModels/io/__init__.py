@@ -27,6 +27,7 @@ from . import (  # pylint: disable=unused-import
     WoKo2017, # Wollaeger et al. (2017) Model
     BaKa2016, # Barnes et al. (2016) Model
     Ka2017, # Kasen (2017) Model
+    Ka2017x2, # Kasen (2017) Model (2-component)
     RoFe2017 # Rosswog et al. (2017) Model
 )
 

@@ -233,7 +233,7 @@ if opts.doModels:
         data_out[T0]["data"] = np.squeeze(znew)
 
 elif opts.doEvent:
-    filename = "../spectra/spectra_index.dat"
+    filename = "../spectra/%s_spectra_index.dat"%opts.name
     lines = [line.rstrip('\n') for line in open(filename)]
     filenames = []
     T0s = []
@@ -247,7 +247,6 @@ elif opts.doEvent:
 
     distconv = (opts.distance*1e6/10)**2
 
-    names = opts.name.split(",")
     data_out = {}
     cnt = 0 
     for filename,T0 in zip(filenames,T0s):
@@ -341,9 +340,8 @@ for key in data_out:
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for key in data_out.keys():
-    plt.loglog(data_out[key]["lambda"],data_out[key]["data"],'r-',linewidth=2)
-    plt.loglog(spec_best_dic[key]["lambda"],spec_best_dic[key]["data"],'k--',linewidth=2)
-
+    plt.semilogy(data_out[key]["lambda"],data_out[key]["data"],'r-',linewidth=2)
+    plt.semilogy(spec_best_dic[key]["lambda"],spec_best_dic[key]["data"],'k--',linewidth=2)
 plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
 plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
 #plt.legend(loc="best",prop={'size':16},numpoints=1)
@@ -378,7 +376,7 @@ for key, color in zip(keys,colors):
     plt.plot(lambdas,np.log10(specmed),'--',c=color,linewidth=4)
     plt.plot(lambdas,np.log10(specmin),'-',c=color,linewidth=4)
     plt.plot(lambdas,np.log10(specmax),'-',c=color,linewidth=4)
-    plt.fill_between(np.log10(lambdas),np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
+    plt.fill_between(lambdas,np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
 
     plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
     plt.xlim([4000, 25000])
