@@ -196,12 +196,12 @@ def loadEventLbol(filename):
 
     data = {}
     data["tt"] = data_out[:,0]
-    data["Lbol"] = 10**data_out[:,2]
-    data["Lbol_err"] = np.log(10)*(10**(data_out[:,2]))*data_out[:,3]
-    data["T"] = data_out[:,4]
-    data["T_err"] = data_out[:,5]
-    data["R"] = data_out[:,6]
-    data["R_err"] = data_out[:,7]
+    data["Lbol"] = data_out[:,5]
+    data["Lbol_err"] = data_out[:,6]
+    data["T"] = data_out[:,1]
+    data["T_err"] = data_out[:,2]
+    data["R"] = data_out[:,3]
+    data["R_err"] = data_out[:,4]
 
     return data
 

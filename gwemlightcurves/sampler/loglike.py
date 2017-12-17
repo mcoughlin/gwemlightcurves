@@ -5,6 +5,12 @@ from scipy.interpolate import interpolate as interp
 from gwemlightcurves import lightcurve_utils, Global
 from .model import *
 
+def prior_2Component(Xlan1,Xlan2):
+    if Xlan1 < Xlan2:
+        return 0.0
+    else:
+        return 1.0
+
 def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
     if m1 < m2:
         return 0.0
@@ -115,8 +121,10 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
     zp = cube[7]
 
     tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
-
     prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_2Component(Xlan_1,Xlan_2)
+    if prior == 0.0:
+        prob = -np.inf
 
     return prob
 
@@ -615,9 +623,9 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     maginterp = np.nan*np.ones(t.shape)
                 else:
                     if Global.doWaveformExtrapolate:
-                        f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+                        f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value='extrapolate')
                     else:
-                        f = interp.interp1d(tmag[ii], magave[ii], fill_value=np.nan, bounds_error = False)
+                        f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
             elif key in ["w","c","o"]:
                 if key == "w": 

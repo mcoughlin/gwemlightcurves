@@ -7,10 +7,12 @@ from gwemlightcurves import lightcurve_utils, Global
 
 def multinest(opts,plotDir):
    
-    n_live_points = 1000
+    #n_live_points = 1000
+    n_live_points = 100
     evidence_tolerance = 0.5
     #evidence_tolerance = 10000.0
     max_iter = 0
+    best = []
 
     if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
     
@@ -427,13 +429,13 @@ def multinest(opts,plotDir):
         elif opts.doEjecta:
             t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
             idx = np.argmax(loglikelihood)
-            t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4]
+            t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4]
             tmag, lbol, mag = Ka2017_model_ejecta(mej_best,vej_best,Xlan_best)
     elif opts.model == "Ka2017x2":
         if opts.doEjecta:
             t0, mej_1, vej_1, Xlan_1, mej_2, vej_2, Xlan_2, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], 10**data[:,4], data[:,5], data[:,6], data[:,7], data[:,8]
             idx = np.argmax(loglikelihood)
-            t0_best, mej_1_best, vej_1_best, Xlan_1_best, mej_2_best, vej_2_best, Xlan_2_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], 10**data[idx,4], data[idx,5], data[idx,6], data[idx,7]
+            t0_best, mej_1_best, vej_1_best, Xlan_1_best, mej_2_best, vej_2_best, Xlan_2_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], 10**data[idx,4], data[idx,5], 10**data[idx,6], data[idx,7]
             tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best)
     elif opts.model == "RoFe2017":
         if opts.doMasses:
@@ -744,6 +746,9 @@ def multinest(opts,plotDir):
             tmag, lbol, mag = SmCh2017_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,slope_r_best,kappa_r_best)
     
         elif opts.doEjecta:
+            #idx = np.where((data[:,1]>=-2.0) & (data[:,3]<=0.5))[0]
+            #data = data[idx,:]
+
             t0 = data[:,0]
             mej = 10**data[:,1]
             vej = data[:,2]
@@ -761,11 +766,9 @@ def multinest(opts,plotDir):
             zp_best = data[idx,5]
     
             tmag, lbol, mag = SmCh2017_model_ejecta(mej_best,vej_best,slope_r_best,kappa_r_best)
-    
-        data = np.delete(data,-5,1)
-        labels.pop(-4)
-        #idx = np.where((data[:,1]>=-2.0) & (data[:,3]<=0.5))[0]
-        #data = data[idx,:]
+   
+            data = np.delete(data,-5,1)
+            labels.pop(-4)
     
     elif opts.model == "SN":
     
@@ -920,6 +923,7 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,beta_best,kappa_r_best,zp_best))
             fid.close()
+            best = [t0_best,np.log10(mej_best),vej_best,beta_best,kappa_r_best,zp_best]
     elif opts.model == "Me2017x2": 
         if opts.doEjecta:
             filename = os.path.join(plotDir,'samples.dat')
@@ -1003,7 +1007,7 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,vej_best,slope_r_best,kappa_r_best,zp_best))
             fid.close()
-    
+            best = [t0_best,np.log10(mej_best),slope_r_best,kappa_r_best,zp_best] 
     elif opts.model == "SN":
         filename = os.path.join(plotDir,'samples.dat')
         fid = open(filename,'w+')
@@ -1017,5 +1021,5 @@ def multinest(opts,plotDir):
         fid.close()
 
 
-    return data, tmag, lbol, mag, t0_best, zp_best, n_params, labels    
+    return data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best    
     

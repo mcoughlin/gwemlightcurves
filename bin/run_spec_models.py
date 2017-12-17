@@ -395,10 +395,15 @@ if opts.doEventPhot:
 
     elif opts.model == "BlackBodyx2":
         phases, T1s, T1slow, T1shigh, F1s, F1slow, F1shigh, R1s, R1slow, R1shigh, T2s, T2slow, T2shigh, F2s, F2slow, F2shigh, R2s, R2slow, R2shigh = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
-        for key in data.iterkeys():
+        evidences, evidenceserr = [], []
+        keys = sorted(data.iterkeys())
+        for key in keys:
             plotDirPhase=os.path.join(plotDir,'%.5f'%key)
             samplesFile = os.path.join(plotDirPhase,"samples.dat")
+            evidenceFile = os.path.join(plotDirPhase,"evidence.dat")
             if not os.path.isfile(samplesFile): continue
+            if not os.path.isfile(evidenceFile): continue
+
             data_out = np.loadtxt(samplesFile)
             phases.append(key)
             T1_low, T1_median, T1_high = np.percentile(data_out[:,0], [16, 50, 84])
@@ -427,6 +432,10 @@ if opts.doEventPhot:
             R2slow.append(R2_median-R2_low)
             R2shigh.append(R2_high-R2_median)
 
+            data_out = np.loadtxt(samplesFile)
+            evidences.append(data_out[0,0])
+            evidenceserr.append(data_out[1,0])
+
         plotName = "%s/combined.pdf"%(plotDir)
         f, axarr = plt.subplots(3, sharex=True,figsize=(14,12))
         axarr[0].errorbar(phases, T1s, yerr=[T1slow,T1shigh], fmt='ko')
@@ -454,6 +463,13 @@ if opts.doEventPhot:
         plt.ylabel('log(Evidence)')
         plt.savefig(plotName)
         plt.close()
+
+        filename = "%s/combined.dat"%(plotDir)
+        fid = open(filename,'w')
+        fid.write('# Phase (days) T1 (K) eT1 (K) R1 (cm) eR1 (cm) L1 (erg/s) eL1 (erg/s) T2 (K) eT2 (K) R2 (cm) eR2 (cm) L2 (erg/s) eL2 (erg/s)\n')
+        for phase, T1, dT1, F1, dF1, R1, dR1, T2, dT2, F2, dF2, R2, dR2 in zip(phases,T1s,T1shigh,F1s,F1shigh,R1s,R1shigh,T2s,T2shigh,F2s,F2shigh,R2s,R2shigh):
+            fid.write('%.3f %.3f %.3f %.3e %.3e %.3e %.3e %.3f %.3f %.3e %.3e %.3e %.3e\n'%(phase,T1,dT1,R1,dR1,F1,dF1,T2,dT2,R2,dR2,F2,dF2))
+        fid.close()
 
 else:
     if opts.model == "BlackBody":

@@ -36,92 +36,143 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-s","--spectraDir",default="../spectra")
 
-    parser.add_option("-n","--name",default="rpft_m005_v2")
+    parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     #parser.add_option("--T0",default="1,2,3,4,5,6,7")
     parser.add_option("--T0",default=57982.5285236896,type=float)
     parser.add_option("--doModels",  action="store_true", default=False)
-    parser.add_option("-m","--model",default="barnes_kilonova_spectra")
+    parser.add_option("-m","--model",default="Ka2017")
+    parser.add_option("--doFixZPT0",  action="store_true", default=False)
+    parser.add_option("--errorbudget",default=0.01,type=float)
+    parser.add_option("--lambdamax",default=25000,type=int)
+    parser.add_option("--lambdamin",default=4000,type=int)
 
     opts, args = parser.parse_args()
 
     return opts
 
-def get_post_file(basedir):
-    filenames = glob.glob(os.path.join(basedir,'2-post*'))
-    if len(filenames)>0:
-        filename = filenames[0]
+def generate_spectra(model,samples):
+
+    #kwargs = {'SaveModel':True,'LoadModel':False,'ModelPath':ModelPath}
+    kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
+    kwargs["doAB"] = False
+    kwargs["doSpec"] = True
+
+    t = Table()
+    for key, val in samples.iteritems():
+        t.add_column(Column(data=[val],name=key))
+    samples = t
+    model_table = KNTable.model(model, samples, **kwargs)
+
+    if len(model_table) == 0:
+        return [], [], []
     else:
-        filename = []
-    return filename
+        t, lambdas, spec = model_table["t"][0], model_table["lambda"][0], model_table["spec"][0]
+        return t, lambdas, spec
 
-def spec_model(specs,wavelengths,t0,model):
+def myloglike_Ka2017_spec_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Xlan = 10**cube[3]
+    zp = cube[4]
 
-        spec = specs[speckeys[model]]
+    t, lambdas, spec = Ka2017_model_spec_ejecta(mej,vej,Xlan)
 
-        f = spec["f"]
-        xnew = t0
-        ynew = wavelengths
-        znew = f(xnew,ynew)
+    prob = calc_prob_spec(t, lambdas, spec, t0, zp)
 
-        spec1 = np.squeeze(znew)
-        #spec1 = scipy.signal.medfilt(spec1,kernel_size=21)
-        spec1 = spec1/np.sum(spec1)
+    return prob
 
-        return spec1
+def Ka2017_model_spec_ejecta(mej,vej,Xlan):
 
-def myloglike(cube, ndim, nparams):
+    tini = 0.1
+    tmax = 10.0
+    dt = 1.0
 
-        t0 = cube[0]
-        model = int(np.round(cube[1]))
+    lambdaini = 3700
+    lambdamax = 28000
+    dlambda = 500.0
 
-        nspecs = len(speckeys)
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['lambdaini'] = lambdaini
+    samples['lambdamax'] = lambdamax
+    samples['dlambda'] = dlambda
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['Xlan'] = Xlan
 
-        if model > nspecs-1:
-            prob = -np.inf
-            return prob
+    model = "Ka2017"
+    t, lambdas, spec = generate_spectra(model,samples)
 
-        prob = 0
-        for key in data_out.iterkeys():
-            dt = float(key)
-            spec1 = spec_model(specs,data_out[key]["lambda"],t0+dt,model)
-            spec2 = data_out[key]["data"]/np.sum(data_out[key]["data"])
+    return t, lambdas, spec
 
-            crosscorr = np.abs(np.corrcoef(spec1,spec2)[0,1])
-            #chisquare = 1 - crosscorr
-            chisquare = crosscorr
+def calc_prob_spec(t, lambdas, spec, t0, zp):
 
-            if np.isnan(chisquare):
-                prob = -np.inf
-            else:
-                #prob = prob + scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
-                #prob = prob + 1/chisquare
-                prob = prob + chisquare
+    count = 0
+    chisquare = np.nan
 
-        if np.isnan(prob):
-            prob = -np.inf
+    for key in data_out:
+        wav2, flux2, error = data_out[key]["lambda"], data_out[key]["data"], data_out[key]["error"]
+        ii = np.where(np.not_equal(flux2,0))[0]
+        wav2, flux2, error = wav2[ii], flux2[ii], error[ii]
 
-        if prob == 0.0:
-            prob = -np.inf
+        sigma_y = np.abs(error/(flux2*np.log(10)))
+        sigma = np.sqrt((np.log10(1+opts.errorbudget))**2 + sigma_y**2)
 
-        #if np.isfinite(prob):
-        #    print t0, model, prob
+        f = interp.interp2d(t+t0, lambdas, np.log10(spec), kind='cubic')
+        flux1 = (10**(f(float(key),wav2))).T
 
-        return prob
+        zp_factor = 10**(zp/-2.5)
+        flux1 = flux1*zp_factor
 
-def myprior(cube, ndim, nparams):
+        flux1 = np.log10(np.abs(flux1))
+        flux2 = np.log10(np.abs(flux2))
+        chisquarevals = ((flux1-flux2)/sigma)**2
+        chisquarevals = chisquarevals[0]
 
-        cube[0] = cube[0]*50.0
-        cube[1] = cube[1]*50.0
+        chisquaresum = np.sum(chisquarevals)
+        chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
+
+        if count == 0:
+            chisquare = chisquaresum
+        else:
+            chisquare = chisquare + chisquaresum
+        count = count + 1
+ 
+    if np.isnan(chisquare):
+        prob = -np.inf
+    else:
+        prob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+
+    if np.isnan(prob):
+        prob = -np.inf
+
+    if prob == 0.0:
+        prob = -np.inf
+
+    #if np.isfinite(prob):
+    #    print T, F, prob
+
+    return prob
 
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","kasen_kilonova_survey"]:
-   print "Model must be either: barnes_kilonova_spectra,ns_merger_spectra,kilonova_wind_spectra, kasen_kilonova_survey, or macronovae-rosswog"
+if not opts.model in ["Ka2017"]:
+   print "Model must be either: Ka2017"
    exit(0)
+
+if opts.doFixZPT0:
+    ZPRange = 0.1
+    T0Range = 0.1
+else:
+    ZPRange = 5.0
+    T0Range = 14.0
 
 baseplotDir = opts.plotDir
 if opts.doModels:
@@ -129,7 +180,11 @@ if opts.doModels:
 else:
     basename = 'gws_spec'
 plotDir = os.path.join(baseplotDir,basename)
-plotDir = os.path.join(plotDir,opts.model)
+if opts.doFixZPT0:
+    plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+else:
+    plotDir = os.path.join(plotDir,'%s'%opts.model)
+plotDir = os.path.join(plotDir,"%d_%d"%(opts.lambdamin,opts.lambdamax))
 plotDir = os.path.join(plotDir,opts.name)
 if opts.doModels:
     plotDir = os.path.join(plotDir,"_".join(opts.T0.split(",")))
@@ -140,6 +195,10 @@ dataDir = opts.dataDir
 lightcurvesDir = opts.lightcurvesDir
 spectraDir = opts.spectraDir
 
+ModelPath = '%s/svdmodels'%(opts.outputDir)
+if not os.path.isdir(ModelPath):
+    os.makedirs(ModelPath)
+
 fileDir = os.path.join(opts.outputDir,opts.model)
 filenames = glob.glob('%s/*_spec.dat'%fileDir)
 specs, names = lightcurve_utils.read_files_spec(filenames)
@@ -148,8 +207,9 @@ for key in speckeys:
     f = interp.interp2d(specs[key]["t"],specs[key]["lambda"],specs[key]["data"].T)
     specs[key]["f"] = f
 
-n_live_points = 1000
+n_live_points = 100
 evidence_tolerance = 0.5
+max_iter = 0
 
 if opts.doModels:
     data_out_all = lightcurve_utils.loadModelsSpec(opts.outputDir,opts.name)
@@ -185,34 +245,61 @@ elif opts.doEvent:
         mjd = Time(lineSplit[2], format='isot').mjd
         T0s.append(mjd-opts.T0)
 
+    distconv = (opts.distance*1e6/10)**2
+
     names = opts.name.split(",")
     data_out = {}
+    cnt = 0 
     for filename,T0 in zip(filenames,T0s):
+        cnt = cnt + 1
+        #if cnt > 5: continue
+
         data_out_temp = lightcurve_utils.loadEventSpec(filename)
         data_out[str(T0)] = data_out_temp
-        #data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=21)
+
+        idx = np.where((data_out[str(T0)]["lambda"] >= opts.lambdamin) & (data_out[str(T0)]["lambda"] <= opts.lambdamax))[0]
+        data_out[str(T0)]["lambda"] = data_out[str(T0)]["lambda"][idx]
+        data_out[str(T0)]["data"] = data_out[str(T0)]["data"][idx]
+        data_out[str(T0)]["error"] = data_out[str(T0)]["error"][idx]
+
+        idx = np.where((data_out[str(T0)]["lambda"] >= 13000) & (data_out[str(T0)]["lambda"] <= 14000))[0]
+        data_out[str(T0)]["error"][idx] = np.inf
+        idx = np.where((data_out[str(T0)]["lambda"] >= 16000) & (data_out[str(T0)]["lambda"] <= 18000))[0]
+        data_out[str(T0)]["error"][idx] = np.inf
+
+        data_out[str(T0)]["data"] = data_out[str(T0)]["data"]*distconv
+        data_out[str(T0)]["error"] = data_out[str(T0)]["error"]*distconv
+
+        data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=15)
+        data_out[str(T0)]["error"] = scipy.signal.medfilt(data_out[str(T0)]["error"],kernel_size=15)
 
 else:
     print "Must enable --doModels or --doEvent"
     exit(0)
 
-parameters = ["t0","model"]
-labels = [r"$T_0$",r"Model"]
-n_params = len(parameters)
-pymultinest.run(myloglike, myprior, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+Global.ZPRange = ZPRange
+Global.T0Range = T0Range
+
+if opts.model == "Ka2017":
+    parameters = ["t0","mej","vej","xlan","zp"]
+    labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$","Xlan","ZP"]
+    n_params = len(parameters)
+    pymultinest.run(myloglike_Ka2017_spec_ejecta, myprior_Ka2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+else:
+    print "Not implemented..."
+    exit(0)
 
 #multifile= os.path.join(plotDir,'2-.txt')
 multifile = lightcurve_utils.get_post_file(plotDir)
 data = np.loadtxt(multifile)
 
-t0 = data[:,0]
-model = data[:,1]
-loglikelihood = data[:,2]
-idx = np.argmax(loglikelihood)
+if opts.model == "Ka2017":
+    t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+    idx = np.argmax(loglikelihood)
+    t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4]
+    t_best, lambdas_best, spec_best = Ka2017_model_spec_ejecta(mej_best,vej_best,Xlan_best)
 
-t0_best = data[idx,0]
-model_best = int(np.round(data[idx,1]))
-truths = [np.nan,np.nan]
+truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,True)
 
 if n_params >= 8:
     title_fontsize = 26
@@ -222,11 +309,18 @@ else:
     label_fontsize = 28
 
 plotName = "%s/corner.pdf"%(plotDir)
-figure = corner.corner(data[:,:-1], labels=labels,
-                   quantiles=[0.16, 0.5, 0.84],
-                   show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                   label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                   truths=truths)
+if opts.doFixZPT0:
+    figure = corner.corner(data[:,1:-2], labels=labels[1:-1],
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       truths=truths[1:-1], smooth=3)
+else:
+    figure = corner.corner(data[:,:-1], labels=labels,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       truths=truths, smooth=3)
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
 else:
@@ -234,22 +328,21 @@ else:
 plt.savefig(plotName)
 plt.close()
 
-spec_best = {}
-for key in data_out.keys():
-    dt = float(key)
-    znew = spec_model(specs,data_out[key]["lambda"],t0_best+dt,model_best)
-
-    spec_best[key] = {}
-    spec_best[key]["lambda"] = data_out[key]["lambda"]
-    spec_best[key]["data"] = znew
-
-    print "Cross correlation: %s %.5f"%(key,np.corrcoef(data_out[key]["data"],spec_best[key]["data"])[0,1])
+spec_best_dic = {}
+for key in data_out:
+    f = interp.interp2d(t_best+t0_best, lambdas_best, np.log10(spec_best), kind='cubic')
+    flux1 = (10**(f(float(key),data_out[key]["lambda"]))).T
+    zp_factor = 10**(zp_best/-2.5)
+    flux1 = flux1*zp_factor
+    spec_best_dic[key] = {}
+    spec_best_dic[key]["lambda"] = data_out[key]["lambda"]
+    spec_best_dic[key]["data"] = np.squeeze(flux1)
 
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for key in data_out.keys():
     plt.loglog(data_out[key]["lambda"],data_out[key]["data"],'r-',linewidth=2)
-    plt.loglog(spec_best[key]["lambda"],spec_best[key]["data"]*np.max(data_out[key]["data"])/np.max(spec_best[key]["data"]),'k--',linewidth=2)
+    plt.loglog(spec_best_dic[key]["lambda"],spec_best_dic[key]["data"],'k--',linewidth=2)
 
 plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
 plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
@@ -258,14 +351,50 @@ plt.grid()
 plt.savefig(plotName)
 plt.close()
 
-filename = os.path.join(plotDir,'samples.dat')
-fid = open(filename,'w+')
-for i, j in zip(t0,model):
-    fid.write('%.5f %.5f\n'%(i,j))
-fid.close()
+keys = sorted(data_out.keys())
+colors=cm.rainbow(np.linspace(0,1,len(keys)))
 
-filename = os.path.join(plotDir,'best.dat')
-fid = open(filename,'w')
-fid.write('%.5f %.5f\n'%(t0_best,model_best))
-fid.close()
+plotName = "%s/spec_panels.pdf"%(plotDir)
+fig = plt.figure(figsize=(22,28))
+
+cnt = 0
+for key, color in zip(keys,colors):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(keys),1,cnt)
+    if cnt == 1:
+        #ax1 = plt.subplot(eval(vals))
+        ax1 = plt.subplot(len(keys),1,cnt)
+    else:
+        #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+        ax2 = plt.subplot(len(keys),1,cnt,sharex=ax1,sharey=ax1)
+
+    plt.plot(data_out[key]["lambda"],np.log10(data_out[key]["data"]),'k--',linewidth=2)
+
+    lambdas = spec_best_dic[key]["lambda"]
+    specmed = spec_best_dic[key]["data"]
+    specmin = spec_best_dic[key]["data"]*(1-opts.errorbudget)
+    specmax = spec_best_dic[key]["data"]*(1+opts.errorbudget)
+
+    plt.plot(lambdas,np.log10(specmed),'--',c=color,linewidth=4)
+    plt.plot(lambdas,np.log10(specmin),'-',c=color,linewidth=4)
+    plt.plot(lambdas,np.log10(specmax),'-',c=color,linewidth=4)
+    plt.fill_between(np.log10(lambdas),np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
+
+    plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
+    plt.xlim([4000, 25000])
+    plt.ylim([-4.5,-2.5])
+    plt.grid()
+    plt.yticks(fontsize=36)
+  
+    if (not cnt == len(keys)) and (not cnt == 1):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+    elif cnt == 1:
+        plt.setp(ax1.get_xticklabels(), visible=False)
+    else:
+        plt.xticks(fontsize=36)
+
+ax1.set_zorder(1)
+ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
+plt.savefig(plotName)
+plt.close()
 
