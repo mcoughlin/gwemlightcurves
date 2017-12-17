@@ -250,10 +250,6 @@ def Ka2017_model_ejecta(mej,vej,Xlan):
     tmax = 50.0
     dt = 0.1
 
-    mej = 0.04
-    vej = 0.10
-    Xlan = 0.01
-
     samples = {}
     samples['tini'] = tini
     samples['tmax'] = tmax
