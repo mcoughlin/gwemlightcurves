@@ -110,19 +110,12 @@ def loadEventSpec(filename):
 
     name = filename.split("/")[-1].split(".")[0]
     nameSplit = name.split("_")
-    #event = nameSplit[0]
-    #instrument = nameSplit[1]
-    #specdata = nameSplit[2]    
 
     data_out = np.loadtxt(filename)
     spec = {}
 
     spec["lambda"] = data_out[:,0] # Angstroms
     spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs 
-    #if instrument == "XSH":
-    #    spec["data"] = np.abs(data_out[:,1])*1e-17 # ergs/s/cm2./Angs 
-    #else:
-    #    spec["data"] = np.abs(data_out[:,1]) # ergs/s/cm2./Angs
     spec["error"] = np.zeros(spec["data"].shape) # ergs/s/cm2./Angs
     spec["error"][:-1] = np.abs(np.diff(spec["data"]))
     spec["error"][-1] = spec["error"][-2]
@@ -131,18 +124,84 @@ def loadEventSpec(filename):
 
     return spec
 
+def loadEventPhot(filename):
+
+    cspeed = 2.99792458*10**18 # in AA/sec
+
+    central_filters = {'SWIFT_V':5468,
+               'SWIFT_B':4392,
+               'SWIFT_U':3465,
+               'SWIFT_UVW1':2600,
+               'SWIFT_UVM2':2246,
+               'SWIFT_UVW2':1928,
+               'SDSS_u':3543,
+               'PS1_g':4775.6,
+               'PS1_r':6129.5,
+               'PS1_i':7484.6,
+               'PS1_z':8657.8,
+               'PS1_y':9603.1,
+               'GROND_g':4504.5,
+               'GROND_r':6098.0,
+               'GROND_i':7604.7,
+               'GROND_z':8929.3,
+               'GROND_J':12246.5,
+               'GROND_H':16330.2,
+               'GROND_K':21550.4,
+              }
+
+    filters = ['SDSS_u','PS1_g','PS1_r','PS1_i','PS1_z','PS1_y',
+               'GROND_J','GROND_H','GROND_K']
+    reddening = [0.523,0.39,0.28,0.21,0.16,0.13,0.09,0.06,0.04]
+    indexes = [2,4,6,8,10,12,14,16,18]
+
+    data_out = np.loadtxt(filename)
+    data = {}
+    for row in data_out:
+        mjd, phase = row[0], row[1]
+        wavelengths, mags, dmags, limits = [], [], [], []
+        for filt,red,idx in zip(filters,reddening,indexes):
+            if np.isnan(row[idx]): continue
+            if row[idx+1] == 9999:
+                continue
+                dmags.append(np.inf)
+                limits.append(1)
+            else:
+                wavelengths.append(central_filters[filt])
+                mags.append(row[idx]-red)
+                dmags.append(row[idx+1])  
+                limits.append(0)  
+        if len(wavelengths) < 2: continue
+        wavelengths = np.array(wavelengths)
+        mags = np.array(mags)
+        dmags = np.array(dmags) 
+        limits = np.array(limits)
+
+        data[phase] = {}
+        data[phase]["mjd"] = mjd
+        data[phase]["phase"] = phase
+        data[phase]["wavelengths"] = wavelengths
+        data[phase]["mags"] = mags
+        data[phase]["dmags"] = dmags
+        data[phase]["limits"] = limits
+        data[phase]["fnu"] = 10**(-0.4*(data[phase]["mags"]+48.6))
+        data[phase]["flam"] = data[phase]["fnu"] * cspeed / data[phase]["wavelengths"]**2
+        data[phase]["fnuerr"] = 0.921*data[phase]["fnu"]*data[phase]["dmags"]
+        data[phase]["flamerr"] = data[phase]["fnuerr"] * cspeed / data[phase]["wavelengths"]**2
+
+    return data
+
 def loadEventLbol(filename):
 
     data_out = np.loadtxt(filename)
 
     data = {}
     data["tt"] = data_out[:,0]
-    data["Lbol"] = 10**data_out[:,2]
-    data["Lbol_err"] = np.log(10)*(10**(data_out[:,2]))*data_out[:,3]
-    data["T"] = data_out[:,4]
-    data["T_err"] = data_out[:,5]
-    data["R"] = data_out[:,6]
-    data["R_err"] = data_out[:,7]
+    data["Lbol"] = data_out[:,5]
+    data["Lbol_err"] = data_out[:,6]
+    data["T"] = data_out[:,1]
+    data["T_err"] = data_out[:,2]
+    data["R"] = data_out[:,3]
+    data["R_err"] = data_out[:,4]
 
     return data
 

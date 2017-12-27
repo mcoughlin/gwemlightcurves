@@ -5,6 +5,7 @@ import numpy as np
 import h5py
 import bisect
 from scipy.interpolate import interpolate as interp
+import scipy.signal
 import statsmodels.api as sm
 
 import matplotlib
@@ -190,7 +191,8 @@ def getMagSpecH5(filename,band,model):
     L_d = []
     
     for t in times[:-1]:
-        if (t < 0) or (t > 7): continue
+        #if (t < 0) or (t > 7): continue
+        if (t < 0) or (t > 14): continue
 
         # index corresponding to t
         it = bisect.bisect(times,t)
@@ -325,7 +327,8 @@ def getSpecH5(filename,model):
     spec_d = []
 
     for t in times[:-1]:
-        if (t < 0) or (t > 7): continue
+        #if (t < 0) or (t > 7): continue
+        if (t < 0) or (t > 14): continue
 
         # index corresponding to t
         it = bisect.bisect(times,t)
@@ -418,7 +421,7 @@ if not os.path.isdir(plotDir):
 dataDir = opts.dataDir
 
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
-spech5models = ["kasen_kilonova_survey"]
+spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
 absABmodels = ["tanaka_compactmergers","korobkin_kilonova"]
@@ -430,7 +433,7 @@ elif opts.model == "macronovae-rosswog":
 elif opts.model == "korobkin_kilonova":
     filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
     filename_bol = []
-elif opts.model == "kasen_kilonova_survey":
+elif opts.model in spech5models:
     filename = "%s/%s/%s.h5"%(dataDir,opts.model,opts.name)
 elif opts.model in specmodels:
     filename = "%s/%s/%s.spec"%(dataDir,opts.model,opts.name)
@@ -456,8 +459,9 @@ if opts.doAB:
             t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
-        elif opts.model == "kasen_kilonova_survey":
+        elif opts.model in spech5models:
             t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model)
+            L_d = scipy.signal.medfilt(L_d,kernel_size=5)         
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
         else:
@@ -520,7 +524,7 @@ if opts.doAB:
     plt.close()
 elif opts.doSpec:
 
-    if opts.model == "kasen_kilonova_survey":
+    if opts.model in spech5models:
         t_d, lambda_d, spec_d = getSpecH5(filename,opts.model)
     else:
         t_d, lambda_d, spec_d = getSpec(filename,opts.model)

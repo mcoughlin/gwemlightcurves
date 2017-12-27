@@ -8,5 +8,6 @@ doLightcurves = 0
 filters = 0
 svd_mag_model = 0
 svd_lbol_model = 0
+svd_spec_model = 0 
 doWaveformExtrapolate = 0
 

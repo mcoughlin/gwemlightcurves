@@ -1,5 +1,5 @@
 
-import os, sys, glob
+import os, sys, glob, pickle
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
@@ -97,7 +97,7 @@ else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -331,7 +331,20 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-data, tmag, lbol, mag, t0_best, zp_best, n_params, labels = run.multinest(opts,plotDir)
+if opts.model == "Ka2017" or opts.model == "Ka2017x2":
+    ModelPath = '%s/svdmodels'%(opts.outputDir)
+
+    modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_mag_model = pickle.load(handle)
+    Global.svd_mag_model = svd_mag_model    
+
+    modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_lbol_model = pickle.load(handle)
+    Global.svd_lbol_model = svd_lbol_model
+
+data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
 if n_params >= 8:
