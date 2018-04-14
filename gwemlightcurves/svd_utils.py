@@ -86,6 +86,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     lbol_array_postprocess[np.isnan(lbol_array_postprocess)]=0.0
 
     UA, sA, VA = np.linalg.svd(lbol_array_postprocess, full_matrices=True)
+    VA = VA.T
 
     n, n = UA.shape
     m, m = VA.shape
