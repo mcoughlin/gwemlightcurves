@@ -16,8 +16,8 @@ from astropy.table import Table
 
 def loadModelsSpec(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","kasen_kilonova_survey"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Rosswog et al. (2017)","Kasen et al. (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","kasen_kilonova_grid","Ka2017"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Rosswog et al. (2017)","Kasen et al. (2017)","Kasen et al. (2017)"]
 
     filenames = []
     legend_names = []
@@ -531,6 +531,8 @@ def get_truths(name,model,n_params,doEjecta):
         truths = [0,np.log10(0.04),0.2,False,False,0.0]
     elif name == "SED_ns12ns12_kappa10":
         truths = [0,np.log10(0.0079), 0.12,False,False,False]
+    elif name == "Ka2017_H4M005V20X-3":
+        truths = [0,np.log10(0.005),0.2,-3.0,0.0]
     return truths
 
 def get_macronovae_rosswog(name):

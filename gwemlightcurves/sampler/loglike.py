@@ -128,6 +128,43 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Ka2017x3_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    mej_3 = 10**cube[7]
+    vej_3 = cube[8]
+    Xlan_3 = 10**cube[9]
+    zp = cube[10]
+
+    tmag, lbol, mag = Ka2017x3_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3)
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Ka2017_BNSFit(cube, ndim, nparams):
+
+    t0 = cube[0]
+    m1 = cube[1]
+    c1 = cube[2]
+    m2 = cube[3]
+    c2 = cube[4]
+    Xlan = 10**cube[5]
+    zp = cube[6]
+
+    tmag, lbol, mag = Ka2017_model_BNS(m1,c1,m2,c2,Xlan)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prior = prior_DiUj2017(m1,m1,c1,m2,m2,c2)
+    if prior == 0.0:
+        prob = -np.inf
+
+    return prob
+
 def myloglike_Ka2017_EOSFit(cube, ndim, nparams):
 
     t0 = cube[0]

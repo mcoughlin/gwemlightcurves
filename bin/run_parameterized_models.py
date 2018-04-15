@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
@@ -51,6 +52,7 @@ def parse_commandline():
     parser.add_option("--Ye",default=0.25,type=float)
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
+    parser.add_option("--doSaveModel",  action="store_true", default=False)
     
     opts, args = parser.parse_args()
  
@@ -94,15 +96,15 @@ elif opts.eos == "MS1":
 mns = 1.35
 
 tini = 0.1
-tmax = 7.0
-tmax = 14.0
+tmax = 10.0
+#tmax = 21.0
 #dt = 0.1
 #dt = 0.25
 dt = 0.5
 
 lambdaini = 3700
 lambdamax = 28000
-dlambda = 50.0 
+#dlambda = 50.0 
 dlambda = 500.0
 
 vave = 0.267
@@ -167,8 +169,11 @@ else:
 ModelPath = '%s/svdmodels'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
-kwargs = {'SaveModel':True,'LoadModel':False,'ModelPath':ModelPath}
-kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
+
+if opts.doSaveModel:
+    kwargs = {'SaveModel':True,'LoadModel':False,'ModelPath':ModelPath}
+else:
+    kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
 kwargs["doAB"] = opts.doAB
 kwargs["doSpec"] = opts.doSpec
 
@@ -305,20 +310,22 @@ if opts.doAB:
         fid.write("\n")
     fid.close()
     
+    filts = ["u","g","r","i","z","y","J","H","K"]
+    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    magidxs = [0,1,2,3,4,5,6,7,8]
+
     plotName = "%s/%s.pdf"%(plotDir,name)
-    plt.figure(figsize=(12,8))
-    plt.plot(t,mag[0],'r',label='u-band')
-    plt.plot(t,mag[1],'y',label='g-band')
-    plt.plot(t,mag[2],'g',label='r-band')
-    plt.plot(t,mag[3],'b',label='i-band')
-    plt.plot(t,mag[4],'c',label='z-band')
+    plt.figure(figsize=(10,12))
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
-    plt.legend(loc="best")
+    plt.ylim([-16,0])
+    plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
-    plt.close()
-    
+    plt.close()   
+ 
     filename = "%s/%s_Lbol.dat"%(outputDir,name)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
@@ -355,12 +362,18 @@ elif opts.doSpec:
 
     data_out = np.loadtxt(filename)
     t_d, lambda_d, spec_d = data_out[1:,0], data_out[0,1:], data_out[1:,1:]
+    vmin, vmax = np.nanmin(np.log10(spec_d)), np.nanmax(np.log10(spec_d))
+    vmin = vmax - 4.0
+    spec_d_log10 = np.log10(spec_d)
+    spec_d_log10[~np.isfinite(spec_d_log10)] = -100.0
+
     TGRID,LAMBDAGRID = np.meshgrid(t_d,lambda_d)
     plotName = "%s/%s_spec.pdf"%(plotDir,name)
     plt.figure(figsize=(12,10))
-    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d.T,vmin=np.min(spec_d),vmax=np.max(spec_d))
+    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d_log10.T,vmin=vmin,vmax=vmax)
     plt.xlabel('Time [days]')
     plt.ylabel(r'$\lambda [\AA]$')
+    plt.colorbar()
     plt.savefig(plotName)
     plt.close()
 

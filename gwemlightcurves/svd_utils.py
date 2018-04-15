@@ -215,6 +215,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mag_array_postprocess[:,i] = (mag_array_postprocess[:,i]-mins[i])/(maxs[i]-mins[i])
         mag_array_postprocess[np.isnan(mag_array_postprocess)]=0.0
         UA, sA, VA = np.linalg.svd(mag_array_postprocess, full_matrices=True)
+        VA = VA.T
 
         n, n = UA.shape
         m, m = VA.shape
@@ -322,6 +323,9 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
 
     svd_model = {}
     for jj,lambda_d in enumerate(lambdas):
+        if np.mod(jj,1) == 0:
+            print("%d / %d"%(jj,len(lambdas)))
+
         spec_array = []
         for key in speckeys:
             spec_array.append(specs[key]["data"][:,jj])
@@ -332,6 +336,7 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
             spec_array_postprocess[:,i] = (spec_array_postprocess[:,i]-mins[i])/(maxs[i]-mins[i])
         spec_array_postprocess[np.isnan(spec_array_postprocess)]=0.0
         UA, sA, VA = np.linalg.svd(spec_array_postprocess, full_matrices=True)
+        VA = VA.T
 
         n, n = UA.shape
         m, m = VA.shape

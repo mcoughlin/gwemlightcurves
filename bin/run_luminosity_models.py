@@ -12,6 +12,8 @@ matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 20})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm 
+plt.rcParams['xtick.labelsize']=30
+plt.rcParams['ytick.labelsize']=30
 
 import corner
 
@@ -49,6 +51,7 @@ def parse_commandline():
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
+    parser.add_option("--n_live_points",default=100,type=int)
 
     opts, args = parser.parse_args()
 
@@ -260,8 +263,8 @@ if n_params >= 8:
     title_fontsize = 26
     label_fontsize = 30
 else:
-    title_fontsize = 24
-    label_fontsize = 28
+    title_fontsize = 30
+    label_fontsize = 30
 
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
@@ -269,13 +272,13 @@ if opts.doFixZPT0:
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
-                       truths=truths[1:-1], smooth=0.75, levels=[0.68, 0.95, 0.997])
+                       truths=truths[1:-1], smooth=3, levels=[0.68, 0.95, 0.997])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths, smooth=0.75, levels=[0.68, 0.95, 0.997])
+                       truths=truths, smooth=3, levels=[0.68, 0.95, 0.997])
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
 else:
@@ -291,14 +294,15 @@ colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
 plotName = "%s/lbol.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
+fig = plt.figure(figsize=(10,8))
+fig.set_size_inches(14.0,14.0)
 
 t, y, sigma_y = data_out["tt"], data_out["Lbol"], data_out["Lbol_err"]
 idx = np.where(~np.isnan(y))[0]
 t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 idx = np.where(sigma_y > y)[0]
 sigma_y[idx] = 0.99*y[idx]
-plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+plt.errorbar(t,y,sigma_y,fmt='o',c='b')
 
 t, y, sigma_y = data_out_exclude["tt"], data_out_exclude["Lbol"], data_out_exclude["Lbol_err"]
 idx = np.where(~np.isnan(y))[0]
@@ -319,10 +323,10 @@ plt.fill_between(tt,zp_factor*lbolinterp/(1+errorbudget),zp_factor*lbolinterp*(1
 
 #plt.xlim([10**-2,50])
 #plt.ylim([10.0**39,10.0**45])
-plt.xlim([10**-1,50])
-plt.ylim([2*10.0**39,3*10.0**42])
-plt.xlabel('Time [days]',fontsize=24)
-plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=24)
+plt.xlim([4*10**-1,14])
+plt.ylim([10.0**40,2*10.0**42])
+plt.xlabel('Time [days]',fontsize=30)
+plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=30)
 plt.legend(loc="best",prop={'size':16},numpoints=1)
 plt.grid()
 

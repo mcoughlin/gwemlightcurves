@@ -38,7 +38,10 @@ def get_Ka2017_model(table, **kwargs):
         doSpec = False
 
     if not 'n_coeff' in table.colnames:
-        table['n_coeff'] = 29
+        if doAB:
+            table['n_coeff'] = 43
+        elif doSpec:
+            table['n_coeff'] = 21
 
     if doAB:
         if not Global.svd_mag_model == 0:
