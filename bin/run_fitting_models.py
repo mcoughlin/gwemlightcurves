@@ -26,6 +26,7 @@ from gwemlightcurves import lightcurve_utils, Global
 
 from gwemlightcurves.EjectaFits import KaKy2016
 from gwemlightcurves.EjectaFits import DiUj2017 
+from gwemlightcurves.EjectaFits import Di2018
 
 def parse_commandline():
     """
@@ -45,6 +46,7 @@ def parse_commandline():
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
+    parser.add_option("--doBNSFit",  action="store_true", default=False)
     parser.add_option("--doSimulation",  action="store_true", default=False)
     parser.add_option("--doFixMChirp",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
@@ -53,6 +55,8 @@ def parse_commandline():
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
+    parser.add_option("--doJoint",  action="store_true", default=False)
+    parser.add_option("--doJointLambda",  action="store_true", default=False)
     parser.add_option("--doLoveC",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
     parser.add_option("--doLuminosity",  action="store_true", default=False)
@@ -60,6 +64,8 @@ def parse_commandline():
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
+    parser.add_option("--lambdamax",default=400.0,type=float)
+    parser.add_option("--lambdamin",default=800.0,type=float)
 
     opts, args = parser.parse_args()
 
@@ -153,17 +159,13 @@ def bns_model(m1,mb1,c1,m2,mb2,c2):
 
     return mej, vej
 
-def blue_model(m1,mb1,c1,m2,mb2,c2):
+def bns2_model(m1,c1,m2,c2):
 
-    mej = DiUj2017.calc_meje(m1,mb1,c1,m2,mb2,c2)
-    vej = DiUj2017.calc_vej(m1,c1,m2,c2)
+    #mej = DiUj2017.calc_meje(m1,m1,c1,m2,m2,c2)
+    #vej = DiUj2017.calc_vej(m1,c1,m2,c2)
 
-    return mej, vej
-
-def arnett_model(m1,mb1,c1,m2,mb2,c2):
-
-    mej = DiUj2017.calc_meje(m1,mb1,c1,m2,mb2,c2)
-    vej = DiUj2017.calc_vej(m1,c1,m2,c2)
+    mej = Di2018.calc_meje(m1,c1,m2,c2)
+    vej = Di2018.calc_vej(m1,c1,m2,c2)
 
     return mej, vej
 
@@ -189,10 +191,24 @@ def myprior_bhns_EOSFit(cube, ndim, nparams):
         cube[3] = cube[3]*0.1 + 0.1
 
 def myprior_bns_EOSFit(cube, ndim, nparams):
-        cube[0] = cube[0]*2.0 + 1.0
+        cube[0] = cube[0]*2.5 + 0.5
         cube[1] = cube[1]*0.16 + 0.08
-        cube[2] = cube[2]*2.0 + 1.0
+        cube[2] = cube[2]*2.5 + 0.5
         cube[3] = cube[3]*0.16 + 0.08
+
+def myprior_bns_BNSFit(cube, ndim, nparams):
+        #cube[0] = cube[0]*2.0 + 1.0
+        cube[0] = cube[0]*2.5 + 0.5
+        cube[1] = cube[1]*0.16 + 0.08
+        #cube[2] = cube[2]*2.0 + 1.0
+        cube[2] = cube[2]*2.5 + 0.5
+        cube[3] = cube[3]*0.16 + 0.08
+
+def myprior_bns_JointFit(cube, ndim, nparams):
+        cube[0] = cube[0]*2.0 + 1.0
+        cube[1] = cube[1]*4900.0 + 10.0
+        #cube[2] = cube[2]*5.0
+        cube[2] = cube[2]*100.0
 
 def myprior_combined_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*5.0 - 5.0
@@ -252,6 +268,39 @@ def myloglike_bns_gw(cube, ndim, nparams):
 
         return prob
 
+def myloglike_bns2(cube, ndim, nparams):
+        m1 = cube[0]
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
+
+        mej, vej = bns2_model(m1,c1,m2,c2)
+
+        prob = calc_prob(mej, vej)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
+        if prior == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns2_gw(cube, ndim, nparams):
+        m1 = cube[0]
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
+
+        mej, vej = bns2_model(m1,c1,m2,c2)
+
+        prob = calc_prob_gw(m1,m2)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
 def myloglike_bns_EOSFit(cube, ndim, nparams):
         m1 = cube[0]
         c1 = cube[1]
@@ -283,7 +332,7 @@ def myloglike_bns_EOSFit_FixMChirp(cube, ndim, nparams):
         prob1 = calc_prob(mej, vej)
         prob2 = calc_prob_mchirp(m1, m2)
         prob = prob1+prob2
-        prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
 
         if prior == 0.0:
             prob = -np.inf
@@ -302,6 +351,98 @@ def myloglike_bns_gw_EOSFit(cube, ndim, nparams):
 
         prob = calc_prob_gw(m1, m2)
         prior = prior_bns(m1,mb1,c1,m2,mb2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_gw_BNSFit(cube, ndim, nparams):
+        m1 = cube[0]
+        c1 = cube[1]
+        m2 = cube[2]
+        c2 = cube[3]
+
+        mej, vej = bns2_model(m1,c1,m2,c2)
+
+        prob = calc_prob_gw(m1, m2)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_JointFit(cube, ndim, nparams):
+        q = cube[0]
+        lambda1 = cube[1]
+        A = cube[2]
+
+        lambda_coeff = np.array([374839, -1.06499e7, 1.27306e8, -8.14721e8, 2.93183e9, -5.60839e9, 4.44638e9])
+
+        c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+        c2 = c1/q
+        coeff = lambda_coeff[::-1]
+        p = np.poly1d(coeff)
+        lambda2 = p(c2)
+
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+        if (lambdatilde<lambdamin) or (lambdatilde>lambdamax):
+            prob = -np.inf
+            return prob
+
+        #if (lambdatilde<400.0) or (lambdatilde>800.0):
+        #    prob = -np.inf
+        #    return prob
+
+        mc = 1.188
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+        mej, vej = bns2_model(m1,c1,m2,c2)
+
+        mej = mej*A
+
+        prob = calc_prob(mej,vej)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_JointFitLambda(cube, ndim, nparams):
+        q = cube[0]
+        lambda1 = cube[1]
+        A = cube[2]
+
+        lambda_coeff = np.array([374839, -1.06499e7, 1.27306e8, -8.14721e8, 2.93183e9, -5.60839e9, 4.44638e9])
+
+        c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)  
+        c2 = c1/q
+        coeff = lambda_coeff[::-1]
+        p = np.poly1d(coeff)
+        lambda2 = p(c2)
+
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+        #if (lambdatilde<400.0) or (lambdatilde>800.0):
+        #    prob = -np.inf
+        #    return prob
+
+        mc = 1.188
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+        mej, vej = bns2_model(m1,c1,m2,c2)
+
+        mej = mej*A
+
+        prob = calc_prob(mej,vej)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
 
         if prior == 0.0:
             prob = -np.inf
@@ -427,8 +568,8 @@ def calc_prob(mej, vej):
         if np.isnan(prob):
             prob = -np.inf
 
-        if np.isfinite(prob):
-            print mej, vej, prob
+        #if np.isfinite(prob):
+        #    print mej, vej, prob
         return prob
 
 def calc_prob_gw(m1, m2):
@@ -458,22 +599,21 @@ def calc_prob_mchirp(m1, m2):
             mchirp,eta,q = lightcurve_utils.ms2mc(m1,m2)
             prob = np.log(Gaussian(mchirp, mchirp_mu, mchirp_sigma))
 
-        print mchirp, mchirp_mu, mchirp_sigma
         if (mchirp < mchirp_mu-2*mchirp_sigma) or (mchirp > mchirp_mu+2*mchirp_sigma):
             prob = np.nan 
 
         if np.isnan(prob):
             prob = -np.inf
 
-        if np.isfinite(prob):
-            print mej, vej, prob
         return prob
 
 # Parse command line
 opts = parse_commandline()
+lambdamin = opts.lambdamin
+lambdamax = opts.lambdamax
 
-if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017"]:
-   print "Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017"
+if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017","Ka2017","Ka2017x2"]:
+   print "Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017, Ka2017, Ka2017x2"
    exit(0)
 
 filters = opts.filters.split(",")
@@ -511,6 +651,11 @@ if opts.doEOSFit:
         plotDir = os.path.join(plotDir,'%s_EOSFit_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+elif opts.doBNSFit:
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_BNSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_BNSFit'%opts.model)
 else:
     if opts.doFixZPT0:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
@@ -526,7 +671,7 @@ if opts.doModels:
         plotDir = os.path.join(plotDir,'ejecta')
     plotDir = os.path.join(plotDir,opts.name)
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
-    dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","")
+    dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","").replace("_BNSFit","")
 elif opts.doSimulation:
     plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
     plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
@@ -538,13 +683,23 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
         plotDir = os.path.join(plotDir,'ejecta')
+    elif opts.doJoint:
+        plotDir = os.path.join(plotDir,'joint')
+    elif opts.doJointLambda:
+        plotDir = os.path.join(plotDir,'jointlambda')
     plotDir = os.path.join(plotDir,opts.name)
     #dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
     dataDir = plotDir.replace("fitting_","").replace("fit_","")
     if opts.doEjecta:
-        dataDir = dataDir.replace("_EOSFit","")
+        dataDir = dataDir.replace("_EOSFit","").replace("_BNSFit","")
+    elif opts.doJoint:
+        dataDir = dataDir.replace("joint","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+    elif opts.doJointLambda:
+        dataDir = dataDir.replace("jointlambda","ejecta").replace("_EOSFit","").replace("_BNSFit","")
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+    if opts.doJoint:
+        plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.lambdamin,opts.lambdamax))    
 
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
@@ -587,11 +742,21 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     elif opts.doEvent:
         data_out = lightcurve_utils.event(opts.dataDir,opts.name)
         m1, m2 = data_out["m1"], data_out["m2"]
-
-    pts = np.vstack((m1,m2)).T
+        mchirp, q = data_out["mc"], data_out["q"]
 
     multifile = lightcurve_utils.get_post_file(dataDir)
     data = np.loadtxt(multifile)
+
+    if opts.doJoint or opts.doJointLambda:
+        if opts.model == "Ka2017x2":
+            mej = 10**data[:,1]
+            vej = data[:,2]
+        else:
+            mej = 10**data[:,1]
+            vej = data[:,2]
+        pts = np.vstack((mej,vej)).T
+    else:
+        pts = np.vstack((m1,m2)).T
 
     filename = os.path.join(dataDir,"truth_mej_vej.dat")
     truths_mej_vej = np.loadtxt(filename)
@@ -600,28 +765,47 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     filename = os.path.join(dataDir,"truth.dat")
     truths = np.loadtxt(filename)
 
-    if opts.doEjecta:
-        mej_em = data[:,1]
-        vej_em = data[:,2]
+    if opts.doEjecta or opts.doJoint or opts.doJointLambda:
+        if opts.model == "Ka2017x2":
+            mej_em = data[:,1]
+            vej_em = data[:,2]
+        else:
+            mej_em = data[:,1]
+            vej_em = data[:,2]
 
         mej_true = truths_mej_vej[0]
         vej_true = truths_mej_vej[1]
 
     elif opts.doMasses:
         if opts.model == "DiUj2017":
-            if opts.doEOSFit:
+            if opts.doEOSFit or opts.doBNSFit:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
             else:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
         elif opts.model == "KaKy2016":
-            if opts.doEOSFit:
+            if opts.doEOSFit or opts.doBNSFit:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0]*truths[4],truths[4])
             else:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1]*data[:,3],data[:,3])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0]*truths[4],truths[4])
+        elif opts.model == "Ka2017":
+            if opts.doEOSFit or opts.doBNSFit:
+                mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
+                mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
+            else:
+                mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
+                mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
+        elif opts.model == "Ka2017x2":
+            if opts.doEOSFit or opts.doBNSFit:
+                mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
+                mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
+            else:
+                mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
+                mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
+
         q_em = 1/q_em  
         q_true = 1/q_true
 
@@ -630,7 +814,7 @@ kdedir_pts = copy.deepcopy(kdedir)
 
 if opts.doModels or opts.doSimulation:
     if opts.model == "KaKy2016":
-        if opts.doEOSFit:
+        if opts.doEOSFit or opts.doBNSFit:
             parameters = ["q","chi_eff","mns","c"]
             labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$C$"]
             n_params = len(parameters)        
@@ -641,7 +825,7 @@ if opts.doModels or opts.doSimulation:
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.model == "DiUj2017":
-        if opts.doEOSFit:
+        if opts.doEOSFit or opts.doBNSFit:
             parameters = ["m1","c1","m2","c2"]
             labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
             n_params = len(parameters)
@@ -653,7 +837,7 @@ if opts.doModels or opts.doSimulation:
             pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     if opts.model == "KaKy2016":
-        if opts.doEOSFit:
+        if opts.doEOSFit or opts.doBNSFit:
             parameters = ["q","chi_eff","mns","c"]
             labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$C$"]
             n_params = len(parameters)
@@ -664,7 +848,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             n_params = len(parameters)
             pymultinest.run(myloglike_bhns_gw, myprior_bhns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
     elif opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017":
-        if opts.doEOSFit:
+        if opts.doEOSFit or opts.doBNSFit:
             parameters = ["m1","c1","m2","c2"]
             labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
             n_params = len(parameters)
@@ -673,6 +857,34 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             parameters = ["m1","mb1","c1","m2","mb2","c2"]
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
             n_params = len(parameters)
+            pymultinest.run(myloglike_bns_gw, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+    elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+        if opts.doEOSFit:
+            parameters = ["m1","c1","m2","c2"]
+            labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_gw_EOSFit, myprior_bns_EOSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.doBNSFit:
+            parameters = ["m1","c1","m2","c2"]
+            labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_gw_BNSFit, myprior_bns_BNSFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.doJoint:
+            #parameters = ["q","lambda1","log10A"]
+            #labels = [r"q",r"$\Lambda_1$",r"$\log_{10} (A)$"]
+            parameters = ["q","lambda1","A"]
+            labels = [r"q",r"$\Lambda_1$",r"A"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_JointFit, myprior_bns_JointFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.doJointLambda:
+            parameters = ["q","lambda1","A"]
+            labels = [r"q",r"$\Lambda_1$",r"A"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_JointFitLambda, myprior_bns_JointFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        else:
+            parameters = ["m1","mb1","c1","m2","mb2","c2"]
+            labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
+            n_params = len(parameters)   
             pymultinest.run(myloglike_bns_gw, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
 
 # lets analyse the results
@@ -730,6 +942,15 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 mb2 = lightcurve_utils.EOSfit(m2,c2)
                 mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
                 ii = ii + 1
+        elif opts.doBNSFit: 
+            mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,2])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,c1,m2,c2 in data[:,:-1]:  
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
+                mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                ii = ii + 1
         else:
             mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,3])
             mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
@@ -739,6 +960,90 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 ii = ii + 1
         q_gw = 1/q_gw 
         mej_gw = np.log10(mej_gw)
+    elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+
+        if opts.doEOSFit:
+            m1 = data[:,0]
+            m2 = data[:,2]
+            m1_m2_gw = np.vstack((m1,m2)).T
+
+            mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,2])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,c1,m2,c2 in data[:,:-1]:  
+                mb1 = lightcurve_utils.EOSfit(m1,c1)
+                mb2 = lightcurve_utils.EOSfit(m2,c2)
+                mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                ii = ii + 1
+        elif opts.doBNSFit: 
+            m1 = data[:,0]
+            m2 = data[:,2]
+            m1_m2_gw = np.vstack((m1,m2)).T
+
+            mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,2])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,c1,m2,c2 in data[:,:-1]:
+                mej_gw[ii], vej_gw[ii] = bns2_model(m1,c1,m2,c2)
+                ii = ii + 1
+        elif opts.doJoint or opts.doJointLambda:
+            q_gw = data[:,0]
+            lambda1_gw = data[:,1]
+            A_gw = data[:,2]
+            mchirp_gw = 1.188
+
+            eta = lightcurve_utils.q2eta(q_gw)
+            (m1,m2) = lightcurve_utils.mc2ms(mchirp_gw,eta)
+            m1_m2_gw = np.vstack((m1,m2)).T
+
+            lambda_coeff = np.array([374839, -1.06499e7, 1.27306e8, -8.14721e8, 2.93183e9, -5.60839e9, 4.44638e9])
+
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            lambdatilde_gw = np.zeros(data[:,0].shape)
+ 
+            filename = os.path.join(plotDir,'q_lambdatilde.dat')
+            fid = open(filename,'w')
+            ii = 0
+            for q,lambda1,A in data[:,:-1]:
+                c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+                c2 = c1/q
+
+                coeff = lambda_coeff[::-1]
+                p = np.poly1d(coeff)
+                lambda2 = p(c2)
+
+                lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+
+                eta = lightcurve_utils.q2eta(q)
+                (m1,m2) = lightcurve_utils.mc2ms(mchirp_gw,eta)
+
+                mej_gw[ii], vej_gw[ii] = bns2_model(m1,c1,m2,c2)
+                mej_gw[ii] = mej_gw[ii]*A
+                lambdatilde_gw[ii] = lambdatilde
+                ii = ii + 1
+
+                fid.write('%.10f %.10f\n'%(q,lambdatilde))
+            fid.close()
+
+            labels = [r"q",r"$\tilde{\Lambda}$",r"A"]
+            data[:,1] = lambdatilde_gw
+
+            print "Q bounds: [1,%.2f]"%(np.percentile(q_gw,90))
+
+        else:
+            m1 = data[:,0]
+            m2 = data[:,3]
+            m1_m2_gw = np.vstack((m1,m2)).T
+
+            mchirp_gw,eta_gw,q_gw = lightcurve_utils.ms2mc(data[:,0],data[:,3])
+            mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+            ii = 0
+            for m1,mb1,c1,m2,mb2,c2 in data[:,:-1]:
+                mej_gw[ii], vej_gw[ii] = bns_model(m1,mb1,c1,m2,mb2,c2)
+                ii = ii + 1
+
+        q_gw = 1/q_gw
+        mej_gw = np.log10(mej_gw) 
     elif opts.model == "KaKy2016":
         m1 = data[:,0]*data[:,2]
         m2 = data[:,2]
@@ -762,13 +1067,14 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         mej_gw = np.log10(mej_gw)
 
     if opts.doFixMChirp:
-        mchirp_mu, mchirp_sigma = np.mean(mchirp_gw), 0.01*np.mean(mchirp_gw)
+        #mchirp_mu, mchirp_sigma = np.mean(mchirp_gw), 0.01*np.mean(mchirp_gw)
+        mchirp_mu, mchirp_sigma = np.mean(mchirp), np.std(mchirp)
 
     combinedDir = os.path.join(plotDir,"com")
     if not os.path.isdir(combinedDir):
         os.makedirs(combinedDir)       
 
-    if opts.doEjecta:
+    if opts.doEjecta or opts.doJoint or opts.doJointLambda:
         pts_em = np.vstack((mej_em,vej_em)).T
         pts_gw = np.vstack((mej_gw,vej_gw)).T
         kdedir_em = greedy_kde_areas_2d(pts_em)
@@ -803,7 +1109,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
         parameters = ["q","mchirp"]
         n_params = len(parameters)
-        if opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017":
+        if opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017" or opts.model == "Ka2017" or opts.model == "Ka2017x2":
             if opts.doFixMChirp:
                 pymultinest.run(myloglike_combined_MChirp, myprior_combined_masses_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
@@ -854,13 +1160,13 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     colors = ['b','g','r','m','c']
     linestyles = ['-', '-.', ':','--']
 
-    if opts.doEjecta:
+    if opts.doEjecta or opts.doJoint or opts.doJointLambda:
         if opts.doEvent:
             if opts.model == "KaKy2016":
                 bounds = [-3.0,0.0]
                 xlims = [-3.0,0.0]
                 ylims = [1e-1,10]
-            elif opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017":
+            elif opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017" or opts.model == "Ka2017" or opts.model == "Ka2017x2":
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.0]
                 ylims = [1e-1,10]
@@ -873,15 +1179,19 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
+            elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+                bounds = [-3.0,-1.0]
+                xlims = [-3.0,-1.3]
+                ylims = [1e-1,10]
 
         plotName = "%s/mej.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         bins, hist1 = hist_results(mej_gw,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        plt.semilogy(bins,hist1,'b-',linewidth=3,drawstyle='steps-mid',label="GW")
         bins, hist1 = hist_results(mej_em,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,drawstyle='steps-mid',label="EM")
         bins, hist1 = hist_results(mej_combined,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
+        plt.semilogy(bins,hist1,'r:',linewidth=3,drawstyle='steps-mid',label="GW-EM")
         plt.semilogy([mej_true,mej_true],[1e-3,10],'k--',linewidth=3,label="True")
         plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
         plt.ylabel('Probability Density Function',fontsize=24)
@@ -894,23 +1204,27 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plt.close()
    
         if opts.model == "KaKy2016":
-            bounds = [0.0,1.0]
-            xlims = [0.0,1.0]
+            bounds = [0.0,0.3]
+            xlims = [0.0,0.3]
             ylims = [1e-1,20]
         elif opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017":
-            bounds = [0.0,1.0]
-            xlims = [0.0,1.0]
+            bounds = [0.0,0.3]
+            xlims = [0.0,0.3]
             ylims = [1e-1,10]
- 
+        elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+            bounds = [0.0,0.3]
+            xlims = [0.0,0.3]
+            ylims = [1e-1,40] 
+
         plotName = "%s/vej.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         bins, hist1 = hist_results(vej_gw,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        plt.semilogy(bins,hist1,'b-',linewidth=3,drawstyle='steps-mid',label="GW")
         bins, hist1 = hist_results(vej_em,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,drawstyle='steps-mid',label="EM")
         bins, hist1 = hist_results(vej_combined,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-        plt.semilogy([vej_true,vej_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.semilogy(bins,hist1,'r:',linewidth=3,drawstyle='steps-mid',label="GW-EM")
+        #plt.semilogy([vej_true,vej_true],[1e-3,10],'k--',linewidth=3,label="True")
         plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
         plt.ylabel('Probability Density Function',fontsize=24)
         plt.legend(loc="best",prop={'size':24})
@@ -922,7 +1236,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plt.close()
    
         plotName = "%s/combined.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         h = pu.plot_kde_posterior_2d(data_combined,cmap='viridis')
         #pu.plot_greedy_kde_interval_2d(pts_em,np.array([0.5]),colors='b')
         #pu.plot_greedy_kde_interval_2d(pts_gw,np.array([0.5]),colors='g')
@@ -930,6 +1244,18 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plt.plot(mej_true,vej_true,'kx',markersize=20)
         plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$")
         plt.ylabel(r"${v}_{\rm ej}$")
+        plt.savefig(plotName)
+        plt.close('all')
+
+        m1_m2_em = np.vstack((data[:,0],data[:,2])).T
+
+        plotName = "%s/combined_m1_m2.pdf"%(plotDir)
+        plt.figure(figsize=(12,8))
+        h = pu.plot_kde_posterior_2d(m1_m2_em,cmap='viridis')
+        pu.plot_greedy_kde_interval_2d(m1_m2_em,np.array([0.5]),colors='r')
+        pu.plot_greedy_kde_interval_2d(m1_m2_gw,np.array([0.5]),colors='k') 
+        plt.xlabel(r"$m_1$")
+        plt.ylabel(r"$m_2$")
         plt.savefig(plotName)
         plt.close('all')
 
@@ -942,16 +1268,20 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,10]
+        elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+            bounds = [0.8,2.0]
+            xlims = [0.8,2.0]
+            ylims = [1e-1,40]
 
         plotName = "%s/mchirp.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         bins, hist1 = hist_results(mchirp_gw,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        plt.semilogy(bins,hist1,'b-',linewidth=3,drawstyle='steps-mid',label="GW")
         bins, hist1 = hist_results(mchirp_em,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,drawstyle='steps-mid',label="EM")
         bins, hist1 = hist_results(mchirp_combined,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-        plt.semilogy([mchirp_true,mchirp_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.semilogy(bins,hist1,'r:',drawstyle='steps-mid',linewidth=3,label="GW-EM")
+        #plt.semilogy([mchirp_true,mchirp_true],[1e-3,10],'k--',linewidth=3,label="True")
         plt.xlabel(r"${\rm M}_{\rm c}$",fontsize=24)
         plt.ylabel('Probability Density Function',fontsize=24)
         plt.legend(loc="best",prop={'size':24})
@@ -970,16 +1300,20 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]
+        elif opts.model == "Ka2017" or opts.model == "Ka2017x2":
+            bounds = [0.0,2.0]
+            xlims = [0.9,2.0]
+            ylims = [1e-1,10]
 
         plotName = "%s/q.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         bins, hist1 = hist_results(q_gw,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'b-',linewidth=3,label="GW")
+        plt.semilogy(bins,hist1,'b-',linewidth=3,drawstyle='steps-mid',label="GW")
         bins, hist1 = hist_results(q_em,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'g-.',linewidth=3,label="EM")
+        plt.semilogy(bins,hist1,'g-.',linewidth=3,drawstyle='steps-mid',label="EM")
         bins, hist1 = hist_results(q_combined,Nbins=25,bounds=bounds)
-        plt.semilogy(bins,hist1,'r:',linewidth=3,label="GW-EM")
-        plt.semilogy([q_true,q_true],[1e-3,10],'k--',linewidth=3,label="True")
+        plt.semilogy(bins,hist1,'r:',linewidth=3,drawstyle='steps-mid',label="GW-EM")
+        #plt.semilogy([q_true,q_true],[1e-3,10],'k--',linewidth=3,label="True")
         plt.xlabel(r"$q$",fontsize=24)
         plt.ylabel('Probability Density Function',fontsize=24)
         plt.legend(loc="best",prop={'size':24})
@@ -991,7 +1325,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plt.close()
 
         plotName = "%s/combined.pdf"%(plotDir)
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=(12,8))
         h = pu.plot_kde_posterior_2d(data_combined,cmap='viridis')
         #pu.plot_greedy_kde_interval_2d(pts_em,np.array([0.5]),colors='b')
         #pu.plot_greedy_kde_interval_2d(pts_gw,np.array([0.5]),colors='g')

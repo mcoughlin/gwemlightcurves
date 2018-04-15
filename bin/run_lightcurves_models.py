@@ -13,6 +13,8 @@ matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 20})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm 
+plt.rcParams['xtick.labelsize']=30
+plt.rcParams['ytick.labelsize']=30
 
 import corner
 
@@ -46,6 +48,7 @@ def parse_commandline():
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
     parser.add_option("--doWaveformExtrapolate",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
+    parser.add_option("--doBNSFit",  action="store_true", default=False)
     parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
@@ -54,6 +57,7 @@ def parse_commandline():
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
+    parser.add_option("--n_live_points",default=100,type=int)
 
     opts, args = parser.parse_args()
 
@@ -62,8 +66,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, RoFe2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, Ka2017x3, RoFe2017"
     exit(0)
 
 if opts.doFixZPT0:
@@ -90,6 +94,11 @@ if opts.doEOSFit:
         plotDir = os.path.join(plotDir,'%s_EOSFit_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+elif opts.doBNSFit:
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_BNSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_BNSFit'%opts.model)
 else:
     if opts.doFixZPT0:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
@@ -97,7 +106,7 @@ else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -331,7 +340,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model == "Ka2017x2":
+if opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
@@ -347,12 +356,17 @@ if opts.model == "Ka2017" or opts.model == "Ka2017x2":
 data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
-if n_params >= 8:
-    title_fontsize = 26
-    label_fontsize = 30
+pcklFile = os.path.join(plotDir,"data.pkl")
+f = open(pcklFile, 'wb')
+pickle.dump((data_out, data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best,truths), f)
+f.close()
+
+if n_params >= 6:
+    title_fontsize = 36
+    label_fontsize = 36
 else:
-    title_fontsize = 24
-    label_fontsize = 28
+    title_fontsize = 30
+    label_fontsize = 30
 
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doFixZPT0:
@@ -367,8 +381,8 @@ else:
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
                        truths=truths, smooth=3)
-if n_params >= 8:
-    figure.set_size_inches(18.0,18.0)
+if n_params >= 6:
+    figure.set_size_inches(22.0,22.0)
 else:
     figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
@@ -387,7 +401,9 @@ else:
     filts = ["u","g","r","i","z","y","J","H","K"]
     #colors = ["y","g","b","c","k","pink","orange","purple"]
     #colors = ["purple","y","g","b","c","k","pink","orange"]
-    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    #colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    #colors=cm.viridis(np.linspace(0,1,len(filts)))
+    colors=cm.jet(np.linspace(0,1,len(filts)))
     magidxs = [0,1,2,3,4,5,6,7,8]
     tini, tmax, dt = 0.0, 21.0, 0.1    
 tt = np.arange(tini,tmax,dt)
@@ -522,3 +538,66 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
+plotName = "%s/models_panels.pdf"%(plotDir)
+#plt.figure(figsize=(20,18))
+plt.figure(figsize=(20,28))
+
+tini, tmax, dt = 0.0, 21.0, 0.1
+tt = np.arange(tini,tmax,dt)
+
+cnt = 0
+for filt, color, magidx in zip(filts,colors,magidxs):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(filts),1,cnt)
+    if cnt == 1:
+        ax1 = plt.subplot(eval(vals))
+    else:
+        ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+    if not filt in data_out: continue
+    samples = data_out[filt]
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    idx = np.where(~np.isnan(y))[0]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
+
+    idx = np.where(np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,label='%s-band'%filt)
+
+    idx = np.where(~np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
+
+    if filt == "w":
+        magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif filt == "c":
+        magave = (mag[1]+mag[2])/2.0
+    elif filt == "o":
+        magave = (mag[2]+mag[3])/2.0
+    else:
+        magave = mag[magidx]
+
+    ii = np.where(~np.isnan(magave))[0]
+    f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
+    maginterp = f(tt)
+    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
+    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+
+    plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-18.0,-10.0])
+    plt.gca().invert_yaxis()
+    plt.grid()
+
+    if cnt == 1:
+        ax1.set_yticks([-18,-16,-14,-12,-10])
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
+    elif not cnt == len(filts):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+    plt.xticks(fontsize=30)
+    plt.yticks(fontsize=30)
+
+ax1.set_zorder(1)
+plt.xlabel('Time [days]',fontsize=48)
+plt.savefig(plotName)
+plt.close()

@@ -244,6 +244,30 @@ def Ka2017_model(m1,mb1,c1,m2,mb2,c2,Xlan):
 
     return t, lbol, mag
 
+def Ka2017_model_BNS(m1,c1,m2,c2,Xlan):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['m1'] = m1
+    samples['c1'] = c1
+    samples['m2'] = m2
+    samples['c2'] = c2
+    samples['Xlan'] = Xlan
+
+    samples['mej'] = gwemlightcurves.EjectaFits.Di2018(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
+    samples['vej'] = calc_vej(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
+
+    model = "Ka2017"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Ka2017_model_ejecta(mej,vej,Xlan):
 
     tini = 0.1
@@ -271,6 +295,18 @@ def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
     tmag = tmag_1
     lbol = lbol_1 + lbol_2
     mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
+
+def Ka2017x3_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3):
+
+    tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej_1,vej_1,Xlan_1)
+    tmag_2, lbol_2, mag_2 = Ka2017_model_ejecta(mej_2,vej_2,Xlan_2)
+    tmag_3, lbol_3, mag_3 = Ka2017_model_ejecta(mej_3,vej_3,Xlan_3)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2 + lbol_3
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4) + 10**(-mag_3*0.4))
 
     return tmag, lbol, mag
 

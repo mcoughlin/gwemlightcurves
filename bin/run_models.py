@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 
 def parse_commandline():
     """
@@ -189,15 +190,20 @@ def getMagSpecH5(filename,band,model):
     t_d = []
     mag_d = []
     L_d = []
-    
+
+    Lnu_all_max = np.max(Lnu_all,axis=1)
+    Lnu_all_thresh = np.max(Lnu_all_max)/100.0
+
     for t in times[:-1]:
         #if (t < 0) or (t > 7): continue
-        if (t < 0) or (t > 14): continue
+        if (t < 0) or (t > 21): continue
 
         # index corresponding to t
         it = bisect.bisect(times,t)
         # spectrum at this epoch
         Lnu = np.flipud(Lnu_all[it,:])
+
+        if np.max(Lnu) < Lnu_all_thresh: continue
 
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
@@ -227,6 +233,66 @@ def getMagSpecH5(filename,band,model):
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
 
+    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1)
+    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1)
+
+    mag_d = mag_d_lowess[:,1]
+    L_d = 10**L_d_lowess[:,1]
+
+    #ii = np.where(mag_d>0)[0]
+    #if len(ii) > 0:
+    #    ii = np.arange(ii[0]+1).astype(int)
+    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+    #    mag_d = f(t_d)
+    #else:
+    #    peakmag = np.min(mag_d)
+    #    ii = np.where(mag_d<=peakmag+5.0)[0]
+    #    ii = np.arange(ii[-1]-1).astype(int)
+    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+    #    mag_d = f(t_d)
+
+    ii = np.where(mag_d<0)[0]
+    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+    mag_d = f(t_d)
+
+    peakmag = np.min(mag_d)
+    ii = np.where(mag_d<=peakmag+3.0)[0]
+    ii = np.arange(ii[-1]-1).astype(int)
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+ 
+    L_d_diff = np.diff(np.log10(L_d))
+    ii = np.where(L_d_diff < -0.5)[0]
+    if len(L_d[0:-1:2]) > len(L_d[1:-1:2]):
+        L_d_diff = np.log10(L_d[0:-2:2]) - np.log10(L_d[1:-1:2])
+    else:
+        L_d_diff = np.log10(L_d[0:-1:2]) - np.log10(L_d[1:-1:2])
+    ii = np.where(L_d_diff > 0.2)[0]
+    ii = ii*2
+
+    if len(ii) > 0 and (not ii[0] < 10):
+        ii = np.arange(ii[0]).astype(int)
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
+        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+        L_d = 10**f(t_d)
+
+    mag_d_diff = np.diff(mag_d)
+    ii = np.where(mag_d_diff<-1)[0]
+    if len(ii) > 0 and (not ii[0] < 10):
+        ii = np.arange(ii[0]-1).astype(int)
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
+    mag_d_diff = np.diff(mag_d)
+    ii = np.where(mag_d_diff>1)[0]
+    if len(ii) > 0 and (not ii[0] < 10):
+        ii = np.arange(ii[0]-1).astype(int)
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
     ii = np.where(np.isfinite(np.log10(L_d)))[0]
     f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
     L_d = 10**f(t_d)
@@ -235,11 +301,10 @@ def getMagSpecH5(filename,band,model):
     f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
     mag_d = f(t_d)
 
-    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1)
-    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1)
-
-    mag_d = mag_d_lowess[:,1]
-    L_d = 10**L_d_lowess[:,1]
+    #peakL = np.max(L_d)
+    #ii = np.where(L_d>=peakL/100.0)[0]
+    #f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    #L_d = 10**f(t_d)
 
     return t_d, mag_d, L_d
 
@@ -326,14 +391,19 @@ def getSpecH5(filename,model):
     lambda_d = []
     spec_d = []
 
+    Lnu_all_max = np.max(Lnu_all,axis=1)
+    Lnu_all_thresh = np.max(Lnu_all_max)/100.0
+
     for t in times[:-1]:
-        #if (t < 0) or (t > 7): continue
-        if (t < 0) or (t > 14): continue
+        if (t < 0) or (t > 10): continue
+        #if (t < 0) or (t > 21): continue
 
         # index corresponding to t
         it = bisect.bisect(times,t)
         # spectrum at this epoch
         Lnu = Lnu_all[it,:]
+
+        #if np.max(Lnu) < Lnu_all_thresh: continue
 
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
@@ -342,7 +412,7 @@ def getSpecH5(filename,model):
 
         D_cm = 10*3.0857e16*100 # 10 pc in cm
 
-        Llam = Llam / (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+        #Llam = Llam / (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
 
         t_d.append(t)
         lambda_d = lam
@@ -351,6 +421,40 @@ def getSpecH5(filename,model):
     t_d = np.array(t_d)
     lambda_d = np.array(lambda_d)
     spec_d = np.array(spec_d)
+
+    lambdaini = 3000
+    lambdamax = 30000
+    #dlambda = 50.0 
+    dlambda = 10.0
+   
+    lambdas = np.arange(lambdaini,lambdamax,dlambda) 
+    spec_d[spec_d==0.0] = 1e-20
+
+    vmin, vmax = np.nanmin(np.log10(spec_d)), np.nanmax(np.log10(spec_d))
+
+    spec_new = np.zeros((len(t_d),len(lambdas)))
+    for jj in xrange(len(t_d)):
+        ii = np.where(np.isfinite(np.log10(spec_d[jj,:])))[0]
+        #ii = np.where(np.log10(spec_d[jj,:]) >= vmax-4)[0]
+        if len(ii) == 0:
+            spec_new[jj,:] = 0.0
+            continue
+        
+        f = interp.interp1d(lambda_d[ii], np.log10(spec_d[jj,ii]), fill_value='extrapolate')
+        spec_new[jj,:] = 10**f(lambdas)
+
+    #    spec_d_lowess = sm.nonparametric.lowess(np.log10(spec_d[:,jj]), t_d, frac=0.05)
+    #    spec_d[:,jj] = 10**spec_d_lowess[:,1]
+
+    lambda_d = lambdas
+    spec_d = spec_new
+
+    downsize = 50
+    spec_d_reshape = spec_d.reshape(len(t_d),len(lambdas)/downsize,downsize)
+    spec_d_downsize = np.median(spec_d_reshape,axis=2)
+
+    lambda_d = lambda_d[::downsize]
+    spec_d = spec_d_downsize
 
     return t_d, lambda_d, spec_d
 
@@ -454,6 +558,7 @@ if opts.doAB:
     filts = np.genfromtxt('../input/filters.dat')
     filtnames = ["u","g","r","i","z","y","J","H","K"]
     for ii in xrange(9):
+    #for ii in [6]:
         band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
         if opts.model in specmodels:
             t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
@@ -489,18 +594,22 @@ if opts.doAB:
     index2 = indexes[-1]
     mag_ds = mag_ds[index1:index2,:]
     t = mag_ds[:,0]
-    
+
+    filts = ["u","g","r","i","z","y","J","H","K"]
+    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    magidxs = [1,2,3,4,5,6,7,8,9]
+
     plotName = "%s/%s.pdf"%(plotDir,opts.name)
-    plt.figure()
-    plt.plot(t,mag_ds[:,2],'y',label='g-band')
-    plt.plot(t,mag_ds[:,3],'g',label='r-band')
-    plt.plot(t,mag_ds[:,4],'b',label='i-band')
-    plt.plot(t,mag_ds[:,5],'c',label='z-band')
-    plt.plot(t,mag_ds[:,6],'k',label='y-band')
+    plt.figure(figsize=(10,12))
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
-    plt.legend(loc="best")
+    plt.ylim([-16,0])
+    plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
+    plt.savefig(plotName)
+    plotName = "%s/%s.png"%(plotDir,opts.name)
     plt.savefig(plotName)
     plt.close()
     
@@ -516,12 +625,15 @@ if opts.doAB:
     Lbol = Lbol_ds[:,1]
     
     plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
-    plt.figure()
+    plt.figure(figsize=(10,12))
     plt.semilogy(t,Lbol,'k--')
     plt.xlabel('Time [days]')
     plt.ylabel('Bolometric Luminosity [erg/s]')
     plt.savefig(plotName)
+    plotName = "%s/%s_Lbol.png"%(plotDir,opts.name)
+    plt.savefig(plotName)
     plt.close()
+
 elif opts.doSpec:
 
     if opts.model in spech5models:
@@ -548,13 +660,19 @@ elif opts.doSpec:
 
     data_out = np.loadtxt(filename) 
     t_d, lambda_d, spec_d = data_out[1:,0], data_out[0,1:], data_out[1:,1:]
+    vmin, vmax = np.nanmin(np.log10(spec_d)), np.nanmax(np.log10(spec_d))
+    vmin = vmax - 4.0
+    spec_d_log10 = np.log10(spec_d)
+    spec_d_log10[~np.isfinite(spec_d_log10)] = -100.0
 
     TGRID,LAMBDAGRID = np.meshgrid(t_d,lambda_d)
-    plotName = "%s/%s_spec.pdf"%(plotDir,opts.name)
+    plotName = "%s/%s_spec.png"%(plotDir,opts.name)
     plt.figure(figsize=(12,10))
-    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d.T,vmin=np.min(spec_d),vmax=np.max(spec_d))
+    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d_log10.T,vmin=vmin,vmax=vmax)
     plt.xlabel('Time [days]')
     plt.ylabel(r'$\lambda [\AA]$')
+    plt.ylim([3700,28000])
+    plt.colorbar()
     plt.savefig(plotName)
     plt.close()
 
