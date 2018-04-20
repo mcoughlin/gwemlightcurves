@@ -19,6 +19,9 @@ plt.rcParams['ytick.labelsize']=30
 
 import corner
 
+#import seaborn as sns
+#sns.set()
+
 import pymultinest
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
@@ -34,13 +37,22 @@ if not os.path.isdir(plotDir):
 filename = '../plots/fitting_gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/joint/GW170817/1.00/0_640/q_lambdatilde.dat' 
 data = np.loadtxt(filename)
 
+q_percentiles = np.percentile(data[:,0],[10,50,90])
+lambdatilde_percentiles = np.percentile(data[:,1],[10,50,90]) 
+
+print q_percentiles
+print lambdatilde_percentiles
+
 eosfilename = '../input/lalsim/polytrope_table.dat'
 df = pandas.read_table(eosfilename, skiprows=1, delim_whitespace=True, names=['eos','logP1','gamma1','gamma2','gamma3'])
 
-labels = [r"q",r"$\tilde{\Lambda}$"]
+color1 = 'coral'
+color2 = 'cornflowerblue'
+
+labels = [r"$q$",r"$\tilde{\Lambda}$"]
 plotName = "%s/q_lambda_corner.pdf"%(plotDir)
 figure, axes = plt.subplots(2, 2, figsize=(20, 20))
-corner.corner(data, labels=labels,fig=figure,smooth=3,color="k",
+corner.corner(data, labels=labels,fig=figure,smooth=3,color=color2,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": 30},
                        label_kwargs={"fontsize": 30}, title_fmt=".2f")
@@ -67,10 +79,10 @@ for ii,eosname in enumerate(eosnames):
             plotline = False
             lambdatildes.append(0)
     if plotline:
-        axes[1][0].plot(qs,lambdatildes,'b--')
+        axes[1][0].plot(qs,lambdatildes,'--',c=color1)
         axes[1][0].text(qs[-1],lambdatildes[-1],eosname,fontsize=24)
 
-        axes[1][1].fill_between([np.min(lambdatildes),np.max(lambdatildes)],[-1000,-1000],[1000,1000],facecolor='gray',alpha=0.5)
+        axes[1][1].fill_between([np.min(lambdatildes),np.max(lambdatildes)],[-1000,-1000],[1000,1000],facecolor=color1,alpha=0.5)
         axes[1][1].text(np.min(lambdatildes),5+31*ii,eosname,fontsize=24)
 
 axes[1][0].set_xlim([1,1.6])
@@ -79,3 +91,11 @@ axes[1][0].set_ylim([0,640])
 figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
+
+#plotName = "%s/q_lambda_corner_sns.pdf"%(plotDir)
+#figure = plt.figure(figsize=(20,20))
+#with sns.axes_style('white'):
+#    sns.jointplot("x", "y", data.T, kind='hex')
+#figure.set_size_inches(14.0,14.0)
+#plt.savefig(plotName, bbox_inches='tight')
+#plt.close()

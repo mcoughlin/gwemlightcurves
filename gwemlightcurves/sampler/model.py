@@ -2,6 +2,7 @@
 import numpy as np
 from gwemlightcurves.KNModels import KNTable
 from astropy.table import Table, Column
+from gwemlightcurves import SALT2, BOXFit, TrPi2018
 
 def generate_lightcurve(model,samples):
 
@@ -482,3 +483,35 @@ def sn_model(z,t0,x0,x1,c):
     t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,z,t0,x0,x1,c)
 
     return t, lbol, mag
+
+def boxfit_model(theta_0, E, n, theta_obs, p, epsilon_B, epsilon_E, ksi_N):
+
+    boxfitDir = '../boxfit'
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = BOXFit.lightcurve(boxfitDir,tini,tmax,dt,theta_0, E, n, theta_obs, p, epsilon_B, epsilon_E, ksi_N)
+
+    return t, lbol, mag
+
+def TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    t, lbol, mag = TrPi2018.lightcurve(tini,tmax,dt,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    return t, lbol, mag
+
+def Ka2017_TrPi2018_model(mej,vej,Xlan,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B):
+
+    tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej,vej,Xlan)
+    tmag_2, lbol_2, mag_2 = TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag

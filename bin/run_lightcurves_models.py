@@ -66,8 +66,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, Ka2017x3, RoFe2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018"
     exit(0)
 
 if opts.doFixZPT0:
@@ -340,7 +340,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3":
+if opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
@@ -373,15 +373,17 @@ if opts.doFixZPT0:
     figure = corner.corner(data[:,1:-2], labels=labels[1:-1],
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths[1:-1], smooth=3)
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths, smooth=3)
-if n_params >= 6:
+if n_params >= 10:
+    figure.set_size_inches(40.0,40.0)
+elif n_params >= 6:
     figure.set_size_inches(22.0,22.0)
 else:
     figure.set_size_inches(14.0,14.0)
@@ -397,14 +399,25 @@ if opts.filters == "c,o":
     colors=cm.rainbow(np.linspace(0,1,len(filts)))
     magidxs = [9,10]
     tini, tmax, dt = opts.tmin, opts.tmax, 0.1
+elif opts.filters == "r,i,z":
+    filts = filters
+    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
+    magidxs = [2,3,4]
+    tini, tmax, dt = 0.0, 21.0, 0.1  
+elif opts.filters == "g,V,F606W,r,i,z,J,F160W,K":
+    filts = filters
+    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
+    magidxs = [1,2,2,2,3,4,6,8,7]
+    tini, tmax, dt = 0.0, 21.0, 0.1
 else:
     filts = ["u","g","r","i","z","y","J","H","K"]
     #colors = ["y","g","b","c","k","pink","orange","purple"]
     #colors = ["purple","y","g","b","c","k","pink","orange"]
     #colors=cm.rainbow(np.linspace(0,1,len(filts)))
     #colors=cm.viridis(np.linspace(0,1,len(filts)))
-    colors=cm.jet(np.linspace(0,1,len(filts)))
-    magidxs = [0,1,2,3,4,5,6,7,8]
+    filts = filters
+    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
+    magidxs = [2,3,4]
     tini, tmax, dt = 0.0, 21.0, 0.1    
 tt = np.arange(tini,tmax,dt)
 
@@ -459,6 +472,9 @@ elif opts.model == "KaKy2016":
 elif opts.model == "WoKo2016":
     plt.xlim([0.0, 18.0])
     plt.ylim([-20.0,-5.0])
+elif opts.model == "TrPi2018":
+    plt.xlim([0.0, 5.0])
+    plt.ylim([-40.0,-10.0])
 else:
     plt.xlim([1.0, 18.0])
     plt.ylim([-20.0,-5.0])
@@ -526,6 +542,9 @@ elif opts.model == "KaKy2016":
 elif opts.model == "WoKo2016":
     plt.xlim([0.0, 18.0])
     plt.ylim([-20.0,-5.0])
+elif opts.model == "TrPi2018":
+    plt.xlim([0.0, 5.0])
+    plt.ylim([-40.0,-10.0])
 else:
     plt.xlim([1.0, 18.0])
     plt.ylim([-20.0,-5.0])
@@ -545,6 +564,7 @@ plt.figure(figsize=(20,28))
 tini, tmax, dt = 0.0, 21.0, 0.1
 tt = np.arange(tini,tmax,dt)
 
+print(len(filts))
 cnt = 0
 for filt, color, magidx in zip(filts,colors,magidxs):
     cnt = cnt+1
@@ -567,12 +587,8 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    if filt == "w":
-        magave = (mag[1]+mag[2]+mag[3])/3.0
-    elif filt == "c":
-        magave = (mag[1]+mag[2])/2.0
-    elif filt == "o":
-        magave = (mag[2]+mag[3])/2.0
+    if filt in ["w","c","o","V","B","R","I","F606W","F160W","F814W"]:
+        magave = lightcurve_utils.get_mag(mag,filt)
     else:
         magave = mag[magidx]
 
@@ -583,8 +599,12 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-    plt.xlim([0.0, 18.0])
-    plt.ylim([-18.0,-10.0])
+    if opts.name == "GRB051221A":
+        plt.xlim([0.0, 7.0])
+        plt.ylim([-20.0,-10.0])
+    else:
+        plt.xlim([0.0, 18.0])
+        plt.ylim([-18.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
 

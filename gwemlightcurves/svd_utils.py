@@ -92,30 +92,27 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     m, m = VA.shape
 
     cAmat = np.zeros((n_coeff,n))
+    cAvar = np.zeros((n_coeff,n))
     for i in range(n):
         cAmat[:,i] = np.dot(lbol_array_postprocess[i,:],VA[:,:n_coeff])
+        ErrorLevel = 2.0
+        errors = ErrorLevel*lbol_array_postprocess[i,:]
+        cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
+    cAstd = np.sqrt(cAvar)
 
     nsvds, nparams = param_array_postprocess.shape
-    #kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e2))
     kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-    #kernel = C(1.0, (0.0, 10)) * RBF(0.1, (1e-4, 1e0))
-    #kernel = ConstantKernel(0.1, (0.01, 10.0)) * (DotProduct(sigma_0=1.0, sigma_0_bounds=(0.0, 10.0)) ** 2)
-    #kernel = 1.0 * Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0),nu=1.5)
-    #gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=9)
-    #gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=1)
     gps = []
     for i in range(n_coeff):
-        gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+        gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0,alpha=cAstd[i,:])
         gp.fit(param_array_postprocess, cAmat[i,:])
-        #kernel = np.var(cAmat[i,:]) * kernels.ExpSquaredKernel(1.0,ndim=nparams)
-        #gp_basic = george.GP(kernel, solver=george.HODLRSolver)
-        #gp_basic.compute(param_array, cAmat[i,:].T)
         gps.append(gp)
 
     svd_model = {}
     svd_model["n_coeff"] = n_coeff
     svd_model["param_array"] = param_array
     svd_model["cAmat"] = cAmat
+    svd_model["cAstd"] = cAstd
     svd_model["VA"] = VA
     svd_model["param_mins"] = param_mins
     svd_model["param_maxs"] = param_maxs
@@ -221,28 +218,27 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         m, m = VA.shape
 
         cAmat = np.zeros((n_coeff,n))
+        cAvar = np.zeros((n_coeff,n))
         for i in range(n):
+            ErrorLevel = 1.0
             cAmat[:,i] = np.dot(mag_array_postprocess[i,:],VA[:,:n_coeff])
+            errors = ErrorLevel*np.ones_like(mag_array_postprocess[i,:])
+            cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
+        cAstd = np.sqrt(cAvar)
 
         nsvds, nparams = param_array_postprocess.shape
-        #kernel = C(1.0, (0.0, 10)) * RBF(0.1, (1e-4, 1e0))
-        #kernel = ConstantKernel(0.1, (0.01, 10.0)) * (DotProduct(sigma_0=1.0, sigma_0_bounds=(0.0, 10.0)) ** 2)
-        #kernel = 1.0 * Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0),nu=1.5)
         kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-
         gps = []
         for i in range(n_coeff):
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0,alpha=cAvar[i,:])
             gp.fit(param_array_postprocess, cAmat[i,:])
-            #kernel = np.var(cAmat[i,:]) * kernels.ExpSquaredKernel(1.0,ndim=nparams)
-            #gp_basic = george.GP(kernel, solver=george.HODLRSolver)
-            #gp_basic.compute(param_array, cAmat[i,:].T)
             gps.append(gp)
 
         svd_model[filt] = {}
         svd_model[filt]["n_coeff"] = n_coeff
         svd_model[filt]["param_array"] = param_array
         svd_model[filt]["cAmat"] = cAmat
+        svd_model[filt]["cAstd"] = cAstd
         svd_model[filt]["VA"] = VA
         svd_model[filt]["param_mins"] = param_mins
         svd_model[filt]["param_maxs"] = param_maxs
@@ -342,28 +338,28 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
         m, m = VA.shape
 
         cAmat = np.zeros((n_coeff,n))
+        cAvar = np.zeros((n_coeff,n))
+        ErrorLevel=2
         for i in range(n):
             cAmat[:,i] = np.dot(spec_array_postprocess[i,:],VA[:,:n_coeff])
+            errors = ErrorLevel*lbol_array_postprocess[i,:]
+            cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
+        cAstd = np.sqrt(cAvar)
 
         nsvds, nparams = param_array_postprocess.shape
-        #kernel = C(1.0, (0.0, 10)) * RBF(0.1, (1e-4, 1e0))
-        #kernel = ConstantKernel(0.1, (0.01, 10.0)) * (DotProduct(sigma_0=1.0, sigma_0_bounds=(0.0, 10.0)) ** 2)
-        #kernel = 1.0 * Matern(length_scale=1.0, length_scale_bounds=(1e-1, 10.0),nu=1.5)
         kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
 
         gps = []
         for i in range(n_coeff):
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0,alpha=cAstd[i,:])
             gp.fit(param_array_postprocess, cAmat[i,:])
-            #kernel = np.var(cAmat[i,:]) * kernels.ExpSquaredKernel(1.0,ndim=nparams)
-            #gp_basic = george.GP(kernel, solver=george.HODLRSolver)
-            #gp_basic.compute(param_array, cAmat[i,:].T)
             gps.append(gp)
 
         svd_model[lambda_d] = {}
         svd_model[lambda_d]["n_coeff"] = n_coeff
         svd_model[lambda_d]["param_array"] = param_array
         svd_model[lambda_d]["cAmat"] = cAmat
+        svd_model[lambda_d]["cAstd"] = cAstd
         svd_model[lambda_d]["VA"] = VA
         svd_model[lambda_d]["param_mins"] = param_mins
         svd_model[lambda_d]["param_maxs"] = param_maxs
@@ -391,6 +387,7 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
         n_coeff = svd_mag_model[filt]["n_coeff"]
         param_array = svd_mag_model[filt]["param_array"]
         cAmat = svd_mag_model[filt]["cAmat"]
+        cAstd = svd_mag_model[filt]["cAstd"]
         VA = svd_mag_model[filt]["VA"]
         param_mins = svd_mag_model[filt]["param_mins"]
         param_maxs = svd_mag_model[filt]["param_maxs"]
@@ -404,13 +401,15 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
             param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
 
         cAproj = np.zeros((n_coeff,))
+        cAstd = np.zeros((n_coeff,))
         for i in range(n_coeff):
             gp = gps[i]
             y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
-            #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
-            #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
-            #y_pred, sigma2_pred = gp.predict(cAmat[i,:], np.atleast_2d(np.array(param_list)))
             cAproj[i] = y_pred
+            cAstd[i] = sigma2_pred
+
+        coverrors = np.dot(VA[:,:n_coeff],np.dot(np.power(np.diag(cAstd[:n_coeff]),2),VA[:,:n_coeff].T))
+        errors = np.diag(coverrors)
 
         mag_back = np.dot(VA[:,:n_coeff],cAproj)
         mag_back = mag_back*(maxs-mins)+mins
@@ -427,6 +426,7 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     n_coeff = svd_lbol_model["n_coeff"]
     param_array = svd_lbol_model["param_array"]
     cAmat = svd_lbol_model["cAmat"]
+    cAstd = svd_lbol_model["cAstd"]
     VA = svd_lbol_model["VA"]
     param_mins = svd_lbol_model["param_mins"]
     param_maxs = svd_lbol_model["param_maxs"]
@@ -443,9 +443,6 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     for i in range(n_coeff):
         gp = gps[i]
         y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
-        #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
-        #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
-        #y_pred, sigma2_pred = gp.predict(cAmat[i,:], np.atleast_2d(np.array(param_list)))
         cAproj[i] = y_pred
 
     lbol_back = np.dot(VA[:,:n_coeff],cAproj)
@@ -477,6 +474,7 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
         n_coeff = svd_spec_model[lambda_d]["n_coeff"]
         param_array = svd_spec_model[lambda_d]["param_array"]
         cAmat = svd_spec_model[lambda_d]["cAmat"]
+        cAstd = svd_spec_model[lambda_d]["cAstd"]
         VA = svd_spec_model[lambda_d]["VA"]
         param_mins = svd_spec_model[lambda_d]["param_mins"]
         param_maxs = svd_spec_model[lambda_d]["param_maxs"]
@@ -493,9 +491,6 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
         for i in range(n_coeff):
             gp = gps[i]
             y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
-            #grid_z0 = griddata(param_array,cAmat[i,:],param_list, method='nearest')
-            #grid_z1 = griddata(param_array,cAmat[i,:],param_list, method='linear')
-            #y_pred, sigma2_pred = gp.predict(cAmat[i,:], np.atleast_2d(np.array(param_list)))
             cAproj[i] = y_pred
 
         spectra_back = np.dot(VA[:,:n_coeff],cAproj)

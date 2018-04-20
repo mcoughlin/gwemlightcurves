@@ -26,7 +26,7 @@ def parse_commandline():
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots") 
     parser.add_option("-b","--boxfitDir",default="../boxfit")
-    parser.add_option("-m","--model",default="KaKy2016")
+    parser.add_option("-m","--model",default="Ka2017")
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=3.0,type=float)
     parser.add_option("-a","--chi_eff",default=0.1,type=float) 
@@ -96,11 +96,12 @@ elif opts.eos == "MS1":
 mns = 1.35
 
 tini = 0.1
-tmax = 10.0
-#tmax = 21.0
-#dt = 0.1
-#dt = 0.25
 dt = 0.5
+
+if opts.doAB:
+    tmax = 21.0
+elif opts.doSpec:
+    tmax = 10.0
 
 lambdaini = 3700
 lambdamax = 28000

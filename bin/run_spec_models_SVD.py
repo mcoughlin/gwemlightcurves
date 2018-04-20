@@ -398,13 +398,13 @@ if opts.doFixZPT0:
     figure = corner.corner(data[:,1:-2], labels=labels[1:-1],
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
                        truths=truths[1:-1], smooth=3)
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
                        truths=truths, smooth=3)
 if n_params >= 8:
     figure.set_size_inches(18.0,18.0)
