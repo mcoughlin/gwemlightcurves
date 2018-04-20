@@ -681,3 +681,20 @@ def get_legend(model):
         legend_name = "Rosswog et al. (2017)"
 
     return legend_name
+
+def get_mag(mag,key):
+    if key == "w": 
+        magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif key == "B":
+        magave = 1.0*mag[1]
+    elif key in ["c","V","F606W"]:
+        magave = (mag[1]+mag[2])/2.0
+    elif key == "o":
+        magave = (mag[2]+mag[3])/2.0
+    elif key == "R":
+        magave = 1.0*mag[4]
+    elif key in ["I","F814W"]:
+        magave = (mag[4]+mag[5])/2.0
+    elif key == "F160W":
+        magave = 1.0*mag[7]
+    return magave

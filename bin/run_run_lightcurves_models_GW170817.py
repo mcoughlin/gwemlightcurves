@@ -28,8 +28,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017x2,Ka2017x3,RoFe2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017x2,Ka2017x3,RoFe2017,BoxFit,TrPi2018"
     exit(0)
 
 if opts.doEOSFit:
@@ -61,20 +61,18 @@ if not (opts.doLuminosity or opts.doLightcurves):
     exit(0)
 
 if opts.doLightcurves:
-    system_command = "python run_lightcurves_models.py --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 6.0 --filters %s --errorbudget %.2f %s %s %s "%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
-    #os.system(system_command)
-
     system_command = "python run_lightcurves_models.py --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     #os.system(system_command)
+    print(system_command)
 
     lambdamin, lambdamax = 0, 640
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
-    print system_command 
-    os.system(system_command)
+    #print system_command 
+    #os.system(system_command)
 
     lambdamin, lambdamax = 0, 1500
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
-    os.system(system_command)
+    #os.system(system_command)
 
 if opts.doLuminosity:
     system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_XSH_PESSTO_redo --tmin 0.0 --tmax 6.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)

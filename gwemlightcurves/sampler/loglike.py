@@ -563,6 +563,68 @@ def myloglike_sn(cube, ndim, nparams):
 
     return prob
 
+def myloglike_boxfit(cube, ndim, nparams):
+    t0 = cube[0]
+    theta_0 = cube[1]
+    E = 10**cube[2]
+    n = 10**cube[3]
+    theta_obs = cube[4]
+    p = cube[5]
+    epsilon_B = 10**cube[6]
+    epsilon_E = 10**cube[7]
+    ksi_N = 10**cube[8]
+    zp = cube[9]
+
+    if theta_0 > theta_obs:
+       prob = -np.inf
+    else:
+        tmag, lbol, mag = boxfit_model(theta_0, E, n, theta_obs, p, epsilon_B, epsilon_E, ksi_N)
+
+        prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_TrPi2018(cube, ndim, nparams):
+
+    t0 = cube[0]
+    theta_v = cube[1]
+    E0 = 10**cube[2]
+    theta_c = cube[3]
+    theta_w = cube[4]
+    n = 10**cube[5]
+    p = cube[6]
+    epsilon_E = 10**cube[7]
+    epsilon_B = 10**cube[8]
+    zp = cube[9]
+
+    tmag, lbol, mag = TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
+
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Xlan = 10**cube[3]
+    theta_v = cube[4]
+    E0 = 10**cube[5]
+    theta_c = cube[6]
+    theta_w = cube[7]
+    n = 10**cube[8]
+    p = cube[9]
+    epsilon_E = 10**cube[10]
+    epsilon_B = 10**cube[11]
+    zp = cube[12]
+
+    tmag, lbol, mag = Ka2017_TrPi2018_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
 def calc_prob(tmag, lbol, mag, t0, zp):
 
     if Global.doLuminosity:
@@ -664,13 +726,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     else:
                         f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
-            elif key in ["w","c","o"]:
-                if key == "w": 
-                    magave = (mag[1]+mag[2]+mag[3])/3.0
-                elif key == "c":
-                    magave = (mag[1]+mag[2])/2.0
-                elif key == "o":
-                    magave = (mag[2]+mag[3])/2.0
+            elif key in ["w","c","o","V","B","R","I","F606W","F160W","F814W"]:
+                magave = lightcurve_utils.get_mag(mag,key)
                 ii = np.where(np.isfinite(magave))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)

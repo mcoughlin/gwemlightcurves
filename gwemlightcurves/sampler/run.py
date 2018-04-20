@@ -178,6 +178,30 @@ def multinest(opts,plotDir):
     
         pymultinest.run(myloglike_sn, myprior_sn, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
     
+    elif opts.model in ["BoxFit"]:
+
+        parameters = ["t0","theta_0","E","n","theta_obs","p","epsilon_B","epsilon_E","ksi_N","zp"]
+        labels = [r"$T_0$", r"$theta_0$", r"$E$", r"$n$",r"$theta_{\rm obs}$","$p$","$epsilon_B$","$epsilon_E$","$ksi_N$","ZP"]
+        n_params = len(parameters)
+
+        pymultinest.run(myloglike_boxfit, myprior_boxfit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+
+    elif opts.model in ["TrPi2018"]:
+
+        parameters = ["t0","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp"]
+        labels = [r"$T_0$", r"$\theta_v$", r"$E_0$", r"$\theta_c$", r"$\theta_w$", r"$n$",r"$p$", "$\epsilon_E$","$\epsilon_B$","ZP"]
+        n_params = len(parameters)
+
+        pymultinest.run(myloglike_TrPi2018, myprior_TrPi2018, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+
+    elif opts.model in ["Ka2017_TrPi2018"]:
+
+        parameters = ["t0","mej","vej","xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp"]
+        labels = [r"$T_0$", r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"${\rm log}_{10} (X_{\rm lan})$", r"$\theta_v$", r"$E_0$", r"$\theta_c$", r"$\theta_w$", r"$n$",r"$p$", "$\epsilon_E$","$\epsilon_B$","ZP"]
+        n_params = len(parameters)
+
+        pymultinest.run(myloglike_Ka2017_TrPi2018, myprior_Ka2017_TrPi2018, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+
     #multifile= os.path.join(plotDir,'2-.txt')
     multifile = lightcurve_utils.get_post_file(plotDir)
     data = np.loadtxt(multifile)
@@ -807,6 +831,43 @@ def multinest(opts,plotDir):
     
         tmag, lbol, mag = sn_model(z_best,0.0,x0_best,x1_best,c_best)
 
+    elif opts.model == "TrPi2018":
+
+        t0 = data[:,0]
+        theta_v = data[:,1]
+        E0 = 10**data[:,2]
+        theta_c = data[:,3]
+        theta_w = data[:,4]
+        n = 10**data[:,5]
+        p = data[:,6]
+        epsilon_E = 10**data[:,7]
+        epsilon_B = 10**data[:,8]
+        zp = data[:,9]
+        loglikelihood = data[:,10]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        theta_v_best = data[idx,1]
+        E0_best = 10**data[idx,2]
+        theta_c_best = data[idx,3]
+        theta_w_best = data[idx,4]
+        n_best = 10**data[idx,5]
+        p_best = data[idx,6]
+        epsilon_E_best = 10**data[idx,7]
+        epsilon_B_best = 10**data[idx,8]
+        zp_best = data[idx,9]
+
+        tmag, lbol, mag = TrPi2018_model(theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best)
+
+    elif opts.model == "Ka2017_TrPi2018":
+
+        t0, mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], 10**data[:,5], data[:,6], data[:,7], 10**data[:,8], data[:,9], 10**data[:,10], 10**data[:,11], data[:,12], data[:,13]
+        idx = np.argmax(loglikelihood)
+
+        t0_best, mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4], 10**data[idx,5], data[idx,6], data[idx,7], 10**data[idx,8], data[idx,9], 10**data[idx,10], 10**data[idx,11], data[idx,12]
+
+        tmag, lbol, mag = Ka2017_TrPi2018_model(mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best)
+
     if opts.model == "KaKy2016":
         if opts.doMasses:
             filename = os.path.join(plotDir,'samples.dat')
@@ -1049,6 +1110,17 @@ def multinest(opts,plotDir):
         fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,z_best,x0_best,x1_best,c_best,zp_best))
         fid.close()
 
+    elif opts.model == "TrPi2018":
+        filename = os.path.join(plotDir,'samples.dat')
+        fid = open(filename,'w+')
+        for i, j, k, l,m,n,o,p,q,r in zip(t0,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B,zp):
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p,q,r))
+        fid.close()
+
+        filename = os.path.join(plotDir,'best.dat')
+        fid = open(filename,'w')
+        fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best,zp_best))
+        fid.close()
 
     return data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best    
     

@@ -43,11 +43,13 @@ def lightcurve(boxfitDir,tini,tmax,dt,theta_0,E,n,theta_obs,p,epsilon_B,epsilon_
         mag_d = -48.6 + -1*np.log10(Jy/1e23)*2.5
 
         ii = np.where(np.isfinite(mag_d))[0]
-        f = interp.interp1d(t[ii], mag_d[ii], fill_value='extrapolate')
-        maginterp = f(tt)
+        if len(ii) >= 2:
+            f = interp.interp1d(t[ii], mag_d[ii], fill_value='extrapolate')
+            maginterp = f(tt)
+        else:
+            maginterp = np.nan*np.ones(tt.shape)
 
         mag.append(maginterp)
 
     return tt, lbol, mag
-
 

@@ -259,6 +259,11 @@ if opts.model == "Ka2017" or opts.model == "Ka2017x2":
 data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
+pcklFile = os.path.join(plotDir,"data.pkl")
+f = open(pcklFile, 'wb')
+pickle.dump((data_out, data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best,truths), f)
+f.close()
+
 if n_params >= 8:
     title_fontsize = 26
     label_fontsize = 30
@@ -271,7 +276,7 @@ if opts.doFixZPT0:
     figure = corner.corner(data[:,1:-2], labels=labels[1:-1],
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".1f",
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths[1:-1], smooth=3, levels=[0.68, 0.95, 0.997])
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
@@ -287,11 +292,6 @@ plt.savefig(plotName)
 plt.close()
 
 tmag = tmag + t0_best
-
-filts = ["u","g","r","i","z","y","J","H","K"]
-#colors = ["y","g","b","c","k","pink","orange","purple"]
-colors=cm.rainbow(np.linspace(0,1,len(filts)))
-magidxs = [0,1,2,3,4,5,6,7,8]
 
 plotName = "%s/lbol.pdf"%(plotDir)
 fig = plt.figure(figsize=(10,8))
