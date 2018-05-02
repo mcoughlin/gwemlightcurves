@@ -19,7 +19,6 @@ from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves import __version__
 
-
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -43,6 +42,7 @@ def parse_commandline():
     parser.add_argument("--distance",default=40.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
+    parser.add_argument("--nsamples",default=-1,type=int)
 
     args = parser.parse_args()
  
@@ -132,7 +132,6 @@ samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 samples = samples.calc_compactness(fit=True)
 # Calc baryonic mass
 samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
-#samples = samples.downsample(Nsamples=100)
 
 if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
     from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
@@ -153,6 +152,9 @@ if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
         samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
     idx = np.where(samples['mej'] > 0)[0]
     samples = samples[idx]
+
+if opts.nsamples > 0:
+    samples = samples.downsample(Nsamples=opts.nsamples)
 
 #add default values from above to table
 samples['tini'] = tini
@@ -180,7 +182,7 @@ for model in models:
 # Now we need to do some interpolation
 for model in models:
     model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
-    model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
+    #model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
 
 baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))

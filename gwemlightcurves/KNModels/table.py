@@ -221,6 +221,33 @@ class KNTable(Table):
 
         return KNTable(data_out)
 
+    @classmethod
+    def read_multinest_samples(cls, filename_samples, model):
+        """
+        Read LALinference posterior_samples
+        """
+        import os
+        if not os.path.isfile(filename_samples):
+            raise ValueError("Sample file supplied does not exist")
+
+        if model == "Ka2017":
+            names=['t0', 'mej', 'vej', 'Xlan', 'zp', 'loglikelihood']
+        elif model == "Ka2017x2":
+            names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'zp', 'loglikelihood']
+        else:
+            print("Model not implemented...")
+            exit(0)
+        data_out = Table.read(filename_samples, format='ascii', names = names)
+        if model == "Ka2017":
+            data_out['mej'] = 10**data_out['mej']
+            data_out['Xlan'] = 10**data_out['Xlan']
+        elif model == "Ka2017x2":
+            data_out['mej_1'] = 10**data_out['mej_1']
+            data_out['Xlan_1'] = 10**data_out['Xlan_1']
+            data_out['mej_2'] = 10**data_out['mej_2']
+            data_out['Xlan_2'] = 10**data_out['Xlan_2']
+
+        return KNTable(data_out)
 
     def calc_tidal_lambda(self, remove_negative_lambda=False):
         """
@@ -388,10 +415,9 @@ class KNTable(Table):
         plotting etc
         """
         print('You are requesting to downsample the number of posterior samples to {0}'.format(Nsamples))
-        idx = np.random.permutation(len(self["m1"]))
+        idx = np.random.permutation(len(self))
         idx = idx[:Nsamples]
         return self[idx]
-
 
     @classmethod
     def plot_mag_panels(cls, table_dict, distance, filts=["g","r","i","z","y","J","H","K"],  magidxs=[0,1,2,3,4,5,6,7,8], figsize=(20, 28)):

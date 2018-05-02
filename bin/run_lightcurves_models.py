@@ -1,5 +1,5 @@
 
-import os, sys, glob
+import os, sys, glob, pickle
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
@@ -44,6 +44,7 @@ def parse_commandline():
     parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
+    parser.add_option("--doWaveformExtrapolate",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--doMasses",  action="store_true", default=False)
@@ -61,16 +62,16 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, RoFe2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, RoFe2017"
     exit(0)
 
 if opts.doFixZPT0:
     ZPRange = 0.1
     T0Range = 0.1
 else:
-    ZPRange = 50.0
-    T0Range = 5.0
+    ZPRange = 5.0
+    T0Range = 14.0
 
 filters = opts.filters.split(",")
 
@@ -96,7 +97,7 @@ else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -328,8 +329,22 @@ Global.ZPRange = ZPRange
 Global.T0Range = T0Range
 Global.doLightcurves = 1
 Global.filters = filters
+Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-data, tmag, lbol, mag, t0_best, zp_best, n_params, labels = run.multinest(opts,plotDir)
+if opts.model == "Ka2017" or opts.model == "Ka2017x2":
+    ModelPath = '%s/svdmodels'%(opts.outputDir)
+
+    modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_mag_model = pickle.load(handle)
+    Global.svd_mag_model = svd_mag_model    
+
+    modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_lbol_model = pickle.load(handle)
+    Global.svd_lbol_model = svd_lbol_model
+
+data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
 if n_params >= 8:
@@ -361,12 +376,21 @@ plt.close()
 
 tmag = tmag + t0_best
 
-filts = ["u","g","r","i","z","y","J","H","K"]
-colors = ["y","g","b","c","k","pink","orange","purple"]
-colors = ["purple","y","g","b","c","k","pink","orange"]
-
-#colors=cm.rainbow(np.linspace(0,1,len(filts)))
-magidxs = [0,1,2,3,4,5,6,7,8]
+if opts.filters == "c,o":
+    filts = ["c","o"]
+    #colors = ["y","g","b","c","k","pink","orange","purple"]
+    #colors = ["purple","y","g","b","c","k","pink","orange"]
+    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    magidxs = [9,10]
+    tini, tmax, dt = opts.tmin, opts.tmax, 0.1
+else:
+    filts = ["u","g","r","i","z","y","J","H","K"]
+    #colors = ["y","g","b","c","k","pink","orange","purple"]
+    #colors = ["purple","y","g","b","c","k","pink","orange"]
+    colors=cm.rainbow(np.linspace(0,1,len(filts)))
+    magidxs = [0,1,2,3,4,5,6,7,8]
+    tini, tmax, dt = 0.0, 21.0, 0.1    
+tt = np.arange(tini,tmax,dt)
 
 plotName = "%s/lightcurve.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
@@ -381,19 +405,47 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
 
-    #tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini, tmax, dt = 0.0, 21.0, 0.1
-    tt = np.arange(tini,tmax,dt)
+    if filt == "w":
+        magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif filt == "c":
+        magave = (mag[1]+mag[2])/2.0
+    elif filt == "o":
+        magave = (mag[2]+mag[3])/2.0
+    else:
+        magave = mag[magidx]
 
-    ii = np.where(~np.isnan(mag[magidx]))[0]
-    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    ii = np.where(~np.isnan(magave))[0]
+    f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
     maginterp = f(tt)
     plt.plot(tt,maginterp+zp_best,'k--',linewidth=2)
 
-if opts.model == "SN":
+if opts.filters == "c,o":
+    plt.xlim([opts.tmin-2, opts.tmax+2])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "SN":
     plt.xlim([0.0, 10.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "Me2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "Me2017x2":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "SmCh2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "DiUj2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "KaKy2016":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "WoKo2016":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
 else:
-    plt.xlim([1.0, 8.0])
+    plt.xlim([1.0, 18.0])
+    plt.ylim([-20.0,-5.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -412,44 +464,55 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isnan(y))[0]
     t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
     if len(t) == 0: continue
-  
+
     idx = np.where(np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,label='%s-band'%filt)
 
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    #tini, tmax, dt = np.min(t), 14.0, 0.1
-    tini, tmax, dt = 0.0, 21.0, 0.1
-    tt = np.arange(tini,tmax,dt)
+    if filt == "w":
+        magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif filt == "c":
+        magave = (mag[1]+mag[2])/2.0
+    elif filt == "o":
+        magave = (mag[2]+mag[3])/2.0
+    else:
+        magave = mag[magidx]
 
-    ii = np.where(~np.isnan(mag[magidx]))[0]
-    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
+    ii = np.where(~np.isnan(magave))[0]
+    f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
     maginterp = f(tt)
     plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
 
-if opts.model == "SN":
+if opts.filters == "c,o":
+    plt.xlim([opts.tmin-2, opts.tmax+2])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "SN":
     plt.xlim([0.0, 10.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "Me2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "Me2017x2":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "SmCh2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "DiUj2017":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "KaKy2016":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
+elif opts.model == "WoKo2016":
+    plt.xlim([0.0, 18.0])
+    plt.ylim([-20.0,-5.0])
 else:
-    if opts.model == "Me2017":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-20.0,-5.0])
-    elif opts.model == "SmCh2017":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-20.0,-5.0])
-    elif opts.model == "DiUj2017":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-20.0,-5.0])
-    elif opts.model == "KaKy2016":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-20.0,-5.0])
-    elif opts.model == "WoKo2016":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-20.0,-5.0])
-    else:
-        plt.xlim([1.0, 18.0])
-        plt.ylim([-20.0,-5.0])
+    plt.xlim([1.0, 18.0])
+    plt.ylim([-20.0,-5.0])
 
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Absolute Magnitude',fontsize=24)
@@ -458,79 +521,4 @@ plt.grid()
 plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
-
-plotName = "%s/lightcurve_zoom_optical.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for filt, color, magidx in zip(filts,colors,magidxs):
-    if not filt in data_out: continue
-    if not filt in ["u","g","r","i","z","y"]: continue
-    samples = data_out[filt]
-    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
-    idx = np.where(~np.isnan(y))[0]
-    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-    if len(t) == 0: continue
-
-    plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
-
-    #tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini, tmax, dt = 0.0, 21.0, 0.1
-    tt = np.arange(tini,tmax,dt)
-
-    ii = np.where(~np.isnan(mag[magidx]))[0]
-    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
-    maginterp = f(tt)
-    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
-    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
-
-if opts.model == "SN":
-    plt.xlim([0.0, 10.0])
-else:
-    plt.xlim([0.5, 7.0])
-    plt.ylim([-20.0,-10.0])
-
-plt.xlabel('Time [days]',fontsize=24)
-plt.ylabel('Absolute Magnitude',fontsize=24)
-plt.legend(loc="best",prop={'size':16},numpoints=1)
-plt.grid()
-plt.gca().invert_yaxis()
-plt.savefig(plotName)
-plt.close()
-
-plotName = "%s/lightcurve_zoom_nir.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for filt, color, magidx in zip(filts,colors,magidxs):
-    if not filt in data_out: continue
-    if not filt in ["J","H","K"]: continue
-    samples = data_out[filt]
-    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
-    idx = np.where(~np.isnan(y))[0]
-    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-    if len(t) == 0: continue
-
-    plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
-
-    #tini, tmax, dt = np.min(t), 10.0, 0.1
-    tini, tmax, dt = 0.0, 14.0, 0.1
-    tt = np.arange(tini,tmax,dt)
-
-    ii = np.where(~np.isnan(mag[magidx]))[0]
-    f = interp.interp1d(tmag[ii], mag[magidx][ii], fill_value='extrapolate')
-    maginterp = f(tt)
-    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
-    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
-
-if opts.model == "SN":
-    plt.xlim([0.0, 10.0])
-else:
-    plt.xlim([0.5, 7.0])
-    plt.ylim([-20.0,-10.0])
-
-plt.xlabel('Time [days]',fontsize=24)
-plt.ylabel('Absolute Magnitude',fontsize=24)
-plt.legend(loc="best",prop={'size':16},numpoints=1)
-plt.grid()
-plt.gca().invert_yaxis()
-plt.savefig(plotName)
-plt.close()
-
 

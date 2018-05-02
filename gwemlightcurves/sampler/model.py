@@ -1,4 +1,5 @@
 
+import numpy as np
 from gwemlightcurves.KNModels import KNTable
 from astropy.table import Table, Column
 
@@ -125,6 +126,17 @@ def Me2017_model_ejecta(mej,vej,beta,kappa_r):
 
     return t, lbol, mag
 
+def Me2017x2_model_ejecta(mej_1,vej_1,beta_1,kappa_r_1,mej_2,vej_2,beta_2,kappa_r_2):
+
+    tmag_1, lbol_1, mag_1 = Me2017_model_ejecta(mej_1,vej_1,beta_1,kappa_r_1)
+    tmag_2, lbol_2, mag_2 = Me2017_model_ejecta(mej_2,vej_2,beta_2,kappa_r_2)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
+
 def WoKo2017_model(m1,mb1,c1,m2,mb2,c2,theta_r,kappa_r):
 
     tini = 0.1
@@ -238,10 +250,6 @@ def Ka2017_model_ejecta(mej,vej,Xlan):
     tmax = 50.0
     dt = 0.1
 
-    mej = 0.04
-    vej = 0.10
-    Xlan = 0.01
-
     samples = {}
     samples['tini'] = tini
     samples['tmax'] = tmax
@@ -254,6 +262,17 @@ def Ka2017_model_ejecta(mej,vej,Xlan):
     t, lbol, mag = generate_lightcurve(model,samples)
 
     return t, lbol, mag
+
+def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
+
+    tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej_1,vej_1,Xlan_1)
+    tmag_2, lbol_2, mag_2 = Ka2017_model_ejecta(mej_2,vej_2,Xlan_2)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
 
 def RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye):
 

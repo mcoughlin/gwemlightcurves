@@ -1,5 +1,5 @@
 
-import os, sys, glob
+import os, sys, glob, copy, pickle
 import optparse
 import numpy as np
 
@@ -57,8 +57,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, RoFe2017"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","RoFe2017"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, RoFe2017"
     exit(0)
 
 if opts.doFixZPT0:
@@ -209,11 +209,14 @@ else:
     else:
         print "Not implemented..."
 
-    data_out["tt"] = data_out["tt"] - opts.T0
+    #data_out["tt"] = data_out["tt"] - opts.T0
+    data_out_exclude = copy.deepcopy(data_out)
 
     idxs = np.intersect1d(np.where(data_out["tt"]>=mint)[0],np.where(data_out["tt"]<=maxt)[0])
+    idxs_exclude = np.union1d(np.where(data_out["tt"]<mint)[0],np.where(data_out["tt"]>maxt)[0])
     for ii,key in enumerate(data_out.iterkeys()):
         data_out[key] = data_out[key][idxs]
+        data_out_exclude[key] = data_out_exclude[key][idxs_exclude]
 
     filename = os.path.join(plotDir,'truth_mej_vej.dat')
     fid = open(filename,'w+')
@@ -237,7 +240,20 @@ Global.ZPRange = ZPRange
 Global.T0Range = T0Range
 Global.doLuminosity = 1
 
-data, tmag, lbol, mag, t0_best, zp_best, n_params, labels = run.multinest(opts,plotDir)
+if opts.model == "Ka2017" or opts.model == "Ka2017x2":
+    ModelPath = '%s/svdmodels'%(opts.outputDir)
+
+    modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_mag_model = pickle.load(handle)
+    Global.svd_mag_model = svd_mag_model
+
+    modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
+    with open(modelfile, 'rb') as handle:
+        svd_lbol_model = pickle.load(handle)
+    Global.svd_lbol_model = svd_lbol_model
+
+data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
 
 if n_params >= 8:
@@ -276,10 +292,20 @@ magidxs = [0,1,2,3,4,5,6,7,8]
 
 plotName = "%s/lbol.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
+
 t, y, sigma_y = data_out["tt"], data_out["Lbol"], data_out["Lbol_err"]
 idx = np.where(~np.isnan(y))[0]
 t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+idx = np.where(sigma_y > y)[0]
+sigma_y[idx] = 0.99*y[idx]
 plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+
+t, y, sigma_y = data_out_exclude["tt"], data_out_exclude["Lbol"], data_out_exclude["Lbol_err"]
+idx = np.where(~np.isnan(y))[0]
+t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+idx = np.where(sigma_y > y)[0]
+sigma_y[idx] = 0.99*y[idx]
+plt.errorbar(t,y,sigma_y,fmt='x',c='b')
 
 tini, tmax, dt = 0.0, 14.0, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -291,17 +317,20 @@ zp_factor = 10**(zp_best/-2.5)
 plt.loglog(tt,zp_factor*lbolinterp,'k--',linewidth=2)
 plt.fill_between(tt,zp_factor*lbolinterp/(1+errorbudget),zp_factor*lbolinterp*(1+errorbudget),facecolor='k',alpha=0.2)
 
-if opts.model == "SN":
-    plt.xlim([0.0, 10.0])
-else:
-    plt.xlim([1.0, 8.0])
-
-plt.xlim([10**-2,50])
-plt.ylim([10.0**39,10.0**45])
+#plt.xlim([10**-2,50])
+#plt.ylim([10.0**39,10.0**45])
+plt.xlim([10**-1,50])
+plt.ylim([2*10.0**39,3*10.0**42])
 plt.xlabel('Time [days]',fontsize=24)
 plt.ylabel('Bolometric Luminosity [erg/s]',fontsize=24)
 plt.legend(loc="best",prop={'size':16},numpoints=1)
 plt.grid()
+
+if opts.doFixZPT0:
+    yvals = np.logspace(np.log10(3*10.0**39),np.log10(10.0**40),len(labels[1:-1]))
+    for label, best_value, yval in zip(labels[1:-1],best[1:-1],yvals):
+        plt.text(2*10**-1, yval, r'%s = %.3f'%(label,best_value), fontsize=15)
+
 plt.savefig(plotName)
 plt.close()
 

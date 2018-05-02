@@ -45,10 +45,12 @@ def parse_commandline():
     parser.add_option("--theta_obs",default=0.0,type=float)
     parser.add_option("--theta_r",default=0.0,type=float)
     parser.add_option("--beta",default=3.0,type=float)
-    parser.add_option("--kappa_r",default=10.0,type=float)
+    parser.add_option("--kappa_r",default=0.1,type=float)
     parser.add_option("--slope_r",default=-1.2,type=float)
     parser.add_option("--Xlan",default=1e-3,type=float)
     parser.add_option("--Ye",default=0.25,type=float)
+    parser.add_option("--doAB",  action="store_true", default=False)
+    parser.add_option("--doSpec",  action="store_true", default=False)
     
     opts, args = parser.parse_args()
  
@@ -92,8 +94,16 @@ elif opts.eos == "MS1":
 mns = 1.35
 
 tini = 0.1
+tmax = 7.0
 tmax = 14.0
-dt = 0.1
+#dt = 0.1
+#dt = 0.25
+dt = 0.5
+
+lambdaini = 3700
+lambdamax = 28000
+dlambda = 50.0 
+dlambda = 500.0
 
 vave = 0.267
 vmin = 0.02
@@ -115,6 +125,9 @@ samples = {}
 samples['tini'] = tini
 samples['tmax'] = tmax
 samples['dt'] = dt
+samples['lambdaini'] = lambdaini
+samples['lambdamax'] = lambdamax
+samples['dlambda'] = dlambda
 samples['vmin'] = vmin
 samples['th'] = th
 samples['ph'] = ph
@@ -151,12 +164,24 @@ else:
     print "Enable --doEjecta or --doMasses"
     exit(0)
 
+ModelPath = '%s/svdmodels'%(opts.outputDir)
+if not os.path.isdir(ModelPath):
+    os.makedirs(ModelPath)
+kwargs = {'SaveModel':True,'LoadModel':False,'ModelPath':ModelPath}
+kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
+kwargs["doAB"] = opts.doAB
+kwargs["doSpec"] = opts.doSpec
+
 t = Table()
 for key, val in samples.iteritems():
     t.add_column(Column(data=[val],name=key))
 samples = t
-model_table = KNTable.model(opts.model, samples)
-t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0] 
+
+model_table = KNTable.model(opts.model, samples, **kwargs)
+if opts.doAB:
+    t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0] 
+elif opts.doSpec:
+    t, lambdas, spec = model_table["t"][0], model_table["lambda"][0], model_table["spec"][0]
 
 if opts.model == "KaKy2016":
     if opts.doEjecta:
@@ -245,9 +270,14 @@ else:
    print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, SN, Afterglow"
    exit(0)
 
-if np.sum(lbol) == 0.0:
-    print "No luminosity..."
-    exit(0)
+if opts.doAB:
+    if np.sum(lbol) == 0.0:
+        print "No luminosity..."
+        exit(0)
+elif opts.doSpec:
+    if np.sum(spec) == 0.0:
+        print "No spectra..."
+        exit(0)
 
 baseoutputDir = opts.outputDir
 if not os.path.isdir(baseoutputDir):
@@ -263,57 +293,74 @@ plotDir = os.path.join(baseplotDir,opts.model)
 if not os.path.isdir(plotDir):
     os.mkdir(plotDir)
 
-#filename = 'bhns/%s.txt'%name
-#fid = open(filename,'w')
-#fid.write('# t[days]   Lbol[erg/s]  u-band  g-band  r-band i-band  z-band  J-band  H-band  K-band\n')
-#for ii in xrange(len(t)):
-#    fid.write("%.2f "%t[ii])
-#    fid.write("%.3e "%lbol[ii])
-#    for jj in xrange(8):
-#        fid.write("%.3f "%mag[jj][ii])
-#    fid.write("\n")
-#fid.close()
+if opts.doAB:
+    filename = "%s/%s.dat"%(outputDir,name)
+    fid = open(filename,'w')
+    #fid.write('# t[days] g-band r-band  i-band z-band\n')
+    fid.write('# t[days] u g r i z y J H K\n')
+    for ii in xrange(len(t)):
+        fid.write("%.2f "%t[ii])
+        for jj in np.arange(0,9):
+            fid.write("%.3f "%mag[jj][ii])
+        fid.write("\n")
+    fid.close()
+    
+    plotName = "%s/%s.pdf"%(plotDir,name)
+    plt.figure(figsize=(12,8))
+    plt.plot(t,mag[0],'r',label='u-band')
+    plt.plot(t,mag[1],'y',label='g-band')
+    plt.plot(t,mag[2],'g',label='r-band')
+    plt.plot(t,mag[3],'b',label='i-band')
+    plt.plot(t,mag[4],'c',label='z-band')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Absolute AB Magnitude')
+    plt.legend(loc="best")
+    plt.gca().invert_yaxis()
+    plt.savefig(plotName)
+    plt.close()
+    
+    filename = "%s/%s_Lbol.dat"%(outputDir,name)
+    fid = open(filename,'w')
+    fid.write('# t[days] Lbol[erg/s]\n')
+    for ii in xrange(len(t)):
+        fid.write("%.5f %.5e\n"%(t[ii],lbol[ii]))
+    fid.close()
+    
+    Lbol_ds = np.loadtxt(filename)
+    t = Lbol_ds[:,0]
+    Lbol = Lbol_ds[:,1]
+    
+    plotName = "%s/%s_Lbol.pdf"%(plotDir,name)
+    plt.figure(figsize=(12,8))
+    plt.semilogy(t,Lbol,'k--')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Bolometric Luminosity [erg/s]')
+    plt.savefig(plotName)
+    plt.close()
 
-filename = "%s/%s.dat"%(outputDir,name)
-fid = open(filename,'w')
-#fid.write('# t[days] g-band r-band  i-band z-band\n')
-fid.write('# t[days] u g r i z y J H K\n')
-for ii in xrange(len(t)):
-    fid.write("%.2f "%t[ii])
-    for jj in np.arange(0,9):
-        fid.write("%.3f "%mag[jj][ii])
+elif opts.doSpec:
+
+    filename = "%s/%s_spec.dat"%(outputDir,name)
+    fid = open(filename,'w')
+    fid.write("nan")
+    for jj in xrange(len(lambdas)):
+        fid.write(" %.3f"%lambdas[jj])
     fid.write("\n")
-fid.close()
+    for ii in xrange(len(t)):
+        fid.write("%.5f "%t[ii])
+        for jj in xrange(len(lambdas)):
+            fid.write("%.5e "%spec[jj][ii])
+        fid.write("\n")
+    fid.close()
 
-plotName = "%s/%s.pdf"%(plotDir,name)
-plt.figure()
-plt.plot(t,mag[0],'r',label='u-band')
-plt.plot(t,mag[1],'y',label='g-band')
-plt.plot(t,mag[2],'g',label='r-band')
-plt.plot(t,mag[3],'b',label='i-band')
-plt.plot(t,mag[4],'c',label='z-band')
-plt.xlabel('Time [days]')
-plt.ylabel('Absolute AB Magnitude')
-plt.legend(loc="best")
-plt.gca().invert_yaxis()
-plt.savefig(plotName)
-plt.close()
+    data_out = np.loadtxt(filename)
+    t_d, lambda_d, spec_d = data_out[1:,0], data_out[0,1:], data_out[1:,1:]
+    TGRID,LAMBDAGRID = np.meshgrid(t_d,lambda_d)
+    plotName = "%s/%s_spec.pdf"%(plotDir,name)
+    plt.figure(figsize=(12,10))
+    plt.pcolormesh(TGRID,LAMBDAGRID,spec_d.T,vmin=np.min(spec_d),vmax=np.max(spec_d))
+    plt.xlabel('Time [days]')
+    plt.ylabel(r'$\lambda [\AA]$')
+    plt.savefig(plotName)
+    plt.close()
 
-filename = "%s/%s_Lbol.dat"%(outputDir,name)
-fid = open(filename,'w')
-fid.write('# t[days] Lbol[erg/s]\n')
-for ii in xrange(len(t)):
-    fid.write("%.5f %.5e\n"%(t[ii],lbol[ii]))
-fid.close()
-
-Lbol_ds = np.loadtxt(filename)
-t = Lbol_ds[:,0]
-Lbol = Lbol_ds[:,1]
-
-plotName = "%s/%s_Lbol.pdf"%(plotDir,name)
-plt.figure()
-plt.semilogy(t,Lbol,'k--')
-plt.xlabel('Time [days]')
-plt.ylabel('Bolometric Luminosity [erg/s]')
-plt.savefig(plotName)
-plt.close()
