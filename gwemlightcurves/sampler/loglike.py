@@ -11,6 +11,12 @@ def prior_2Component(Xlan1,Xlan2):
     else:
         return 1.0
 
+def prior_2ComponentVel(vej_1,vej_2):
+    if vej_1 < vej_2:
+        return 1.0
+    else:
+        return 0.0
+
 def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
     if m1 < m2:
         return 0.0
@@ -120,11 +126,15 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
     Xlan_2 = 10**cube[6]
     zp = cube[7]
 
-    tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
     prior = prior_2Component(Xlan_1,Xlan_2)
     if prior == 0.0:
-        prob = -np.inf
+        return -np.inf
+    prior = prior_2ComponentVel(vej_1,vej_2)
+    if prior == 0.0:
+        return -np.inf
+
+    tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
 
     return prob
 

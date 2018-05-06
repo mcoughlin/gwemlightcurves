@@ -683,7 +683,25 @@ def get_legend(model):
     return legend_name
 
 def get_mag(mag,key):
-    if key == "w": 
+    if key == "u":
+        magave = 1.0*mag[0]
+    elif key == "g":
+        magave = 1.0*mag[1]
+    elif key == "r":
+        magave = 1.0*mag[2]
+    elif key == "i":
+        magave = 1.0*mag[3]
+    elif key == "z":
+        magave = 1.0*mag[4]
+    elif key == "y":
+        magave = 1.0*mag[5]
+    elif key == "J":
+        magave = 1.0*mag[6]
+    elif key == "H":
+        magave = 1.0*mag[7]
+    elif key == "K":
+        magave = 1.0*mag[8]
+    elif key == "w": 
         magave = (mag[1]+mag[2]+mag[3])/3.0
     elif key == "B":
         magave = 1.0*mag[1]
@@ -698,3 +716,27 @@ def get_mag(mag,key):
     elif key == "F160W":
         magave = 1.0*mag[7]
     return magave
+
+def get_med(magtable, errorbudget = 0.0, filts = ["u","g","r","i","z","y","J","H","K"]):
+
+    mag_all = {}
+    med_all = {}
+    for ii, filt in enumerate(filts):
+        med_all[filt] = {}
+        for jj, row in enumerate(magtable):
+            t, lbol, mag = row["t"], row["lbol"], row["mag"]
+            if (jj==0):
+                mag_all[filt] = np.empty((0,len(t)))
+
+            maginterp = get_mag(mag,filt)
+            mag_all[filt] = np.append(mag_all[filt],[maginterp],axis=0)
+        magmed = np.percentile(mag_all[filt], 50, axis=0)
+        magmax = np.percentile(mag_all[filt], 90, axis=0) + errorbudget
+        magmin = np.percentile(mag_all[filt], 10, axis=0) - errorbudget
+
+        med_all[filt]["10"] = magmin
+        med_all[filt]["50"] = magmed
+        med_all[filt]["90"] = magmax
+
+    return med_all
+

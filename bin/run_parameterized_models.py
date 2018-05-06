@@ -30,7 +30,7 @@ def parse_commandline():
     parser.add_option("-e","--eos",default="H4")
     parser.add_option("-q","--massratio",default=3.0,type=float)
     parser.add_option("-a","--chi_eff",default=0.1,type=float) 
-    parser.add_option("--mej",default=0.005,type=float)
+    parser.add_option("--mej",default=0.05,type=float)
     parser.add_option("--vej",default=0.2,type=float)
     parser.add_option("--m1",default=1.35,type=float)
     parser.add_option("--m2",default=1.35,type=float)
@@ -53,7 +53,8 @@ def parse_commandline():
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
-    
+    parser.add_option("--comparisonFile",default="../output/kasen_kilonova_grid/knova_d1_n10_m0.050_vk0.20_fd1.0_Xlan1e-3.0.dat") 
+
     opts, args = parser.parse_args()
  
     return opts
@@ -103,10 +104,11 @@ if opts.doAB:
 elif opts.doSpec:
     tmax = 10.0
 
-lambdaini = 3700
-lambdamax = 28000
+lambdaini = 5000
+lambdamax = 25000
 #dlambda = 50.0 
 dlambda = 500.0
+#dlambda = 100.0
 
 vave = 0.267
 vmin = 0.02
@@ -168,6 +170,7 @@ else:
     exit(0)
 
 ModelPath = '%s/svdmodels'%(opts.outputDir)
+#ModelPath = '%s/svdmodels_remove'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 
@@ -326,7 +329,75 @@ if opts.doAB:
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
     plt.close()   
- 
+
+    color1 = 'coral'
+    color2 = 'cornflowerblue'
+    
+    mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
+    key = mag_d_comparison[0].keys()[0]
+    mag_d_comparison = mag_d_comparison[0][key]
+
+    tini, tmax, dt = 0.0, 21.0, 0.1
+    tt = np.arange(tini,tmax,dt)
+    zp_best1, zp_best2 = 0, 0
+    errorbudget = 1.0
+
+    plotName = "%s/%s_panels.pdf"%(plotDir,name)
+    plotNamePNG = "%s/%s_panels.png"%(plotDir,name)
+    plt.figure(figsize=(20,28))
+    
+    cnt = 0
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        cnt = cnt+1
+        vals = "%d%d%d"%(len(filts),1,cnt)
+        if cnt == 1:
+            ax1 = plt.subplot(eval(vals))
+        else:
+            ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+    
+        magave1 = mag[magidx,:]
+        magave2 = mag_d_comparison[filt]
+
+        print(magave1,magave2)
+
+        ii = np.where(~np.isnan(magave1))[0]
+        f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')
+        maginterp1 = f(tt)
+        plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='1 Component')
+        plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
+        plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
+        plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
+    
+        ii = np.where(~np.isnan(magave2))[0]
+        f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
+        maginterp2 = f(tt)
+        plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
+        plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+        plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+        plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
+    
+        plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+        plt.xlim([0.0, 14.0])
+        plt.ylim([-18.0,-8.0])
+        plt.gca().invert_yaxis()
+        plt.grid()
+    
+        if cnt == 1:
+            ax1.set_yticks([-18,-16,-14,-12,-10,-8])
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
+        elif not cnt == len(filts):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.xticks(fontsize=32)
+        plt.yticks(fontsize=32)
+    
+    ax1.set_zorder(1)
+    plt.xlabel('Time [days]',fontsize=48)
+    plt.savefig(plotNamePNG, bbox_inches='tight')
+    plt.close()
+    convert_command = "convert %s %s"%(plotNamePNG,plotName)
+    os.system(convert_command)
+
     filename = "%s/%s_Lbol.dat"%(outputDir,name)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
@@ -377,4 +448,62 @@ elif opts.doSpec:
     plt.colorbar()
     plt.savefig(plotName)
     plt.close()
+
+    color1 = 'coral'
+    color2 = 'cornflowerblue'
+
+    tt = np.arange(0.5,10.5,1.0)
+    colors=cm.rainbow(np.linspace(0,1,len(tt)))
+    sm = plt.cm.ScalarMappable(cmap=cm.rainbow, norm=plt.Normalize(vmin=0, vmax=np.max(tt)))
+    sm._A = []
+
+    data_out = np.loadtxt(opts.comparisonFile)
+    t_d_comparison, lambda_d_comparison, spec_d_comparison = \
+        data_out[1:,0], data_out[0,1:], data_out[1:,1:]
+    spec_d_comparison_log10 = np.log10(spec_d_comparison)
+    spec_d_comparison_log10[~np.isfinite(spec_d_comparison_log10)] = -100.0
+
+    plotName = "%s/%s_spec_panels.pdf"%(plotDir,name)
+    plotNamePNG = "%s/%s_spec_panels.png"%(plotDir,name)
+    fig = plt.figure(figsize=(22,28))
+
+    cnt = 0
+    for ii in xrange(len(tt)):
+        cnt = cnt+1
+        vals = "%d%d%d"%(len(tt),1,cnt)
+        if cnt == 1:
+            #ax1 = plt.subplot(eval(vals))
+            ax1 = plt.subplot(len(tt),1,cnt)
+        else:
+            #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+            ax2 = plt.subplot(len(tt),1,cnt,sharex=ax1,sharey=ax1)
+
+        idx = np.argmin(np.abs(t_d-tt[ii]))
+        plt.plot(lambda_d,spec_d_log10[idx,:],'-',c=color1)
+        idx = np.argmin(np.abs(t_d_comparison-tt[ii]))
+        plt.plot(lambda_d_comparison,spec_d_comparison_log10[idx,:],'-',c=color2)
+
+        plt.fill_between([13500.0,14500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+        plt.fill_between([18000.0,19500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+
+        plt.ylabel('%.1f'%float(tt[ii]),fontsize=48,rotation=0,labelpad=40)
+        plt.xlim([5000, 25000])
+        plt.ylim([33.0,38.0])
+        plt.grid()
+
+        if (not cnt == len(tt)) and (not cnt == 1):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+        elif cnt == 1:
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=2, prop={'size':48})
+        else:
+            plt.xticks(fontsize=36)
+ 
+    ax1.set_zorder(1)
+    ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
+    plt.savefig(plotNamePNG, bbox_inches='tight')
+    plt.close()
+    convert_command = "convert %s %s"%(plotNamePNG,plotName)
+    os.system(convert_command)
 

@@ -8,7 +8,7 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-m","--model",default="Ka2017")
+    parser.add_option("-m","--model",default="TrPi2018")
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("--doBNSFit",  action="store_true", default=False)
     parser.add_option("--doMasses",  action="store_true", default=False)
@@ -19,7 +19,7 @@ def parse_commandline():
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
     parser.add_option("--doLuminosity",  action="store_true", default=False)
-    parser.add_option("-f","--filters",default="u,g,r,i,z,y,J,H,K")
+    parser.add_option("-f","--filters",default="r,i,z")
 
     opts, args = parser.parse_args()
 
@@ -61,28 +61,26 @@ if not (opts.doLuminosity or opts.doLightcurves):
     exit(0)
 
 if opts.doLightcurves:
-    system_command = "python run_lightcurves_models.py --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_lightcurves_models.py --doEvent --model %s --name GRB140903A --tmin 0.0 --tmax 5.0 --distance 1880.5 --T0 56903.62534722 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     #os.system(system_command)
     print(system_command)
-    #print stop
+    print(stop)
 
     lambdamin, lambdamax = 0, 640
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
-    print system_command 
+    #print system_command 
     #os.system(system_command)
-
-    print stop
 
     lambdamin, lambdamax = 0, 1500
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
     #os.system(system_command)
 
 if opts.doLuminosity:
-    system_command = "python run_luminosity_models.py --doEvent --model %s --name GW170817_Lbol --tmin 0.0 --tmax 6.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_XSH_PESSTO_redo --tmin 0.0 --tmax 6.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     #os.system(system_command)
 
-    system_command = "python run_luminosity_models.py --doEvent --model %s --name GW170817_Lbol --tmin 0.0 --tmax 14.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
-    os.system(system_command)
+    system_command = "python run_luminosity_models.py --doEvent --model %s --name G298048_XSH_PESSTO_redo --tmin 0.0 --tmax 14.0 --errorbudget %.2f %s %s %s "%(opts.model,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
+    #os.system(system_command)
 
-    #print system_command
+    print system_command
 

@@ -50,6 +50,11 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
                     Xlan0 = 10**float(keySplit[6].replace("Xlan1e",""))
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
+
+            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+                del lbols[key]
+                continue
+
             lbols[key]["mej"] = mej0
             lbols[key]["vej"] = vej0
             lbols[key]["Xlan"] = Xlan0
@@ -104,7 +109,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
     gps = []
     for i in range(n_coeff):
-        gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0,alpha=cAstd[i,:])
+        gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
         gp.fit(param_array_postprocess, cAmat[i,:])
         gps.append(gp)
 
@@ -169,6 +174,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
                     Xlan0 = 10**float(keySplit[6].replace("Xlan1e",""))
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e","")) 
+
+            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+                del mags[key]
+                continue
  
             mags[key]["mej"] = mej0
             mags[key]["vej"] = vej0
@@ -183,6 +192,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             f = interp.interp1d(mags[key]["t"][ii], mags[key][filt][ii], fill_value='extrapolate')
             maginterp = f(tt)
             mags[key]["data"][:,jj] = maginterp
+
         mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
 
     magkeys = mags.keys()
@@ -230,7 +240,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
         gps = []
         for i in range(n_coeff):
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0,alpha=cAvar[i,:])
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
             gp.fit(param_array_postprocess, cAmat[i,:])
             gps.append(gp)
 
@@ -290,6 +300,10 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
 
+            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+                del specs[key]
+                continue
+
             specs[key]["mej"] = mej0
             specs[key]["vej"] = vej0
             specs[key]["Xlan"] = Xlan0
@@ -342,7 +356,7 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
         ErrorLevel=2
         for i in range(n):
             cAmat[:,i] = np.dot(spec_array_postprocess[i,:],VA[:,:n_coeff])
-            errors = ErrorLevel*lbol_array_postprocess[i,:]
+            errors = ErrorLevel*spec_array_postprocess[i,:]
             cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
         cAstd = np.sqrt(cAvar)
 
@@ -351,7 +365,7 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
 
         gps = []
         for i in range(n_coeff):
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0,alpha=cAstd[i,:])
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
             gp.fit(param_array_postprocess, cAmat[i,:])
             gps.append(gp)
 
@@ -387,7 +401,6 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
         n_coeff = svd_mag_model[filt]["n_coeff"]
         param_array = svd_mag_model[filt]["param_array"]
         cAmat = svd_mag_model[filt]["cAmat"]
-        cAstd = svd_mag_model[filt]["cAstd"]
         VA = svd_mag_model[filt]["VA"]
         param_mins = svd_mag_model[filt]["param_mins"]
         param_maxs = svd_mag_model[filt]["param_maxs"]
@@ -413,7 +426,7 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
 
         mag_back = np.dot(VA[:,:n_coeff],cAproj)
         mag_back = mag_back*(maxs-mins)+mins
-        mag_back = scipy.signal.medfilt(mag_back,kernel_size=3)
+        #mag_back = scipy.signal.medfilt(mag_back,kernel_size=3)
 
         ii = np.where(~np.isnan(mag_back))[0]
         if len(ii) < 2:
@@ -426,7 +439,6 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     n_coeff = svd_lbol_model["n_coeff"]
     param_array = svd_lbol_model["param_array"]
     cAmat = svd_lbol_model["cAmat"]
-    cAstd = svd_lbol_model["cAstd"]
     VA = svd_lbol_model["VA"]
     param_mins = svd_lbol_model["param_mins"]
     param_maxs = svd_lbol_model["param_maxs"]
@@ -447,8 +459,7 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
 
     lbol_back = np.dot(VA[:,:n_coeff],cAproj)
     lbol_back = lbol_back*(maxs-mins)+mins
-
-    lbol_back = scipy.signal.medfilt(lbol_back,kernel_size=3)
+    #lbol_back = scipy.signal.medfilt(lbol_back,kernel_size=3)
 
     ii = np.where(~np.isnan(lbol_back))[0]
     if len(ii) < 2:
@@ -495,7 +506,12 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
 
         spectra_back = np.dot(VA[:,:n_coeff],cAproj)
         spectra_back = spectra_back*(maxs-mins)+mins
-        spectra_back = scipy.signal.medfilt(spectra_back,kernel_size=3)
+        #spectra_back = scipy.signal.medfilt(spectra_back,kernel_size=3)
+
+        N  = 3    # Filter order
+        Wn = 0.1 # Cutoff frequency
+        B, A = scipy.signal.butter(N, Wn, output='ba')
+        #spectra_back = scipy.signal.filtfilt(B,A,spectra_back)
 
         ii = np.where(~np.isnan(spectra_back))[0]
         if len(ii) < 2:
@@ -504,6 +520,20 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
             f = interp.interp1d(tt_interp[ii], spectra_back[ii], fill_value='extrapolate')
             specinterp = 10**f(tt)
         spec[jj,:] = specinterp
+
+    for jj, t in enumerate(tt):
+        spectra_back = np.log10(spec[:,jj])
+        if t < 7.0:
+            spectra_back[1:-1] = scipy.signal.medfilt(spectra_back,kernel_size=5)[1:-1]
+        else:
+            spectra_back[1:-1] = scipy.signal.medfilt(spectra_back,kernel_size=5)[1:-1]
+        ii = np.where(spectra_back!=0)[0] 
+        if len(ii) < 2:
+            specinterp = np.nan*np.ones(lambdas.shape)
+        else:
+            f = interp.interp1d(lambdas[ii], spectra_back[ii], fill_value='extrapolate')
+            specinterp = 10**f(lambdas)
+        spec[:,jj] = specinterp
 
     return np.squeeze(tt), np.squeeze(lambdas), spec
 

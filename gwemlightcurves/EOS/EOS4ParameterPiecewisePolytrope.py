@@ -10,6 +10,7 @@ class EOS4ParameterPiecewisePolytrope(object):
     def __init__(self, EOS):
         """Initialize EOS and calculate a family of TOV stars.
         """
+        print(find_executable('polytrope_table.dat'))
         # load in polytop table
         polytable = Table.read(find_executable('polytrope_table.dat'), format='ascii')
         polytable = polytable[polytable['col1'] == EOS]
@@ -30,7 +31,6 @@ class EOS4ParameterPiecewisePolytrope(object):
 
         # Get maximum mass for this EOS
         self.mmax = lalsimulation.SimNeutronStarMaximumMass(self.fam)/lal.MSUN_SI
-
     def radiusofm(self, m):
         """Radius in km.
         """
@@ -48,3 +48,4 @@ class EOS4ParameterPiecewisePolytrope(object):
         r = self.radiusofm(m)
         k2 = self.k2ofm(m)
         return (2./3.)*k2*( (lal.C_SI**2*r*1000.0)/(lal.G_SI*m*lal.MSUN_SI) )**5
+

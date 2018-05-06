@@ -165,9 +165,9 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     ii = np.where(~np.isnan(magave1))[0]
     f = interp.interp1d(tmag[ii], magave1[ii], fill_value='extrapolate')
     if filt == 'u':
-       tt1 = tt[tt<=4.0]
+       tt1 = tt[tt<=3.0]
     elif filt == 'g':
-       tt1 = tt[tt<=6.0]
+       tt1 = tt[tt<=6.5]
     else:
        tt1 = tt[tt<=21.0]
 

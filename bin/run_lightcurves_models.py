@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 import os, sys, glob, pickle
 import optparse
@@ -392,38 +393,13 @@ plt.close()
 
 tmag = tmag + t0_best
 
-if opts.filters == "c,o":
-    filts = ["c","o"]
-    #colors = ["y","g","b","c","k","pink","orange","purple"]
-    #colors = ["purple","y","g","b","c","k","pink","orange"]
-    colors=cm.rainbow(np.linspace(0,1,len(filts)))
-    magidxs = [9,10]
-    tini, tmax, dt = opts.tmin, opts.tmax, 0.1
-elif opts.filters == "r,i,z":
-    filts = filters
-    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
-    magidxs = [2,3,4]
-    tini, tmax, dt = 0.0, 21.0, 0.1  
-elif opts.filters == "g,V,F606W,r,i,z,J,F160W,K":
-    filts = filters
-    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
-    magidxs = [1,2,2,2,3,4,6,8,7]
-    tini, tmax, dt = 0.0, 21.0, 0.1
-else:
-    filts = ["u","g","r","i","z","y","J","H","K"]
-    #colors = ["y","g","b","c","k","pink","orange","purple"]
-    #colors = ["purple","y","g","b","c","k","pink","orange"]
-    #colors=cm.rainbow(np.linspace(0,1,len(filts)))
-    #colors=cm.viridis(np.linspace(0,1,len(filts)))
-    filts = filters
-    colors=cm.jet(np.linspace(0,1,len(opts.filters)))
-    magidxs = [2,3,4]
-    tini, tmax, dt = 0.0, 21.0, 0.1    
+colors=cm.rainbow(np.linspace(0,1,len(filters)))
+tini, tmax, dt = opts.tmin, opts.tmax, 0.1
 tt = np.arange(tini,tmax,dt)
 
 plotName = "%s/lightcurve.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-for filt, color, magidx in zip(filts,colors,magidxs):
+for filt, color in zip(filters,colors):
     if not filt in filters: continue
     if not filt in data_out: continue
     samples = data_out[filt]
@@ -433,15 +409,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     if len(t) == 0: continue
 
     plt.errorbar(t,y,sigma_y,fmt='o',c=color,label='%s-band'%filt)
-
-    if filt == "w":
-        magave = (mag[1]+mag[2]+mag[3])/3.0
-    elif filt == "c":
-        magave = (mag[1]+mag[2])/2.0
-    elif filt == "o":
-        magave = (mag[2]+mag[3])/2.0
-    else:
-        magave = mag[magidx]
+    magave = lightcurve_utils.get_mag(mag,filt)
 
     ii = np.where(~np.isnan(magave))[0]
     f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
@@ -489,7 +457,7 @@ plt.close()
 
 plotName = "%s/lightcurve_zoom.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
-for filt, color, magidx in zip(filts,colors,magidxs):
+for filt, color in zip(filters,colors):
     if not filt in data_out: continue
     samples = data_out[filt]
     t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
@@ -503,14 +471,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    if filt == "w":
-        magave = (mag[1]+mag[2]+mag[3])/3.0
-    elif filt == "c":
-        magave = (mag[1]+mag[2])/2.0
-    elif filt == "o":
-        magave = (mag[2]+mag[3])/2.0
-    else:
-        magave = mag[magidx]
+    magave = lightcurve_utils.get_mag(mag,filt)
 
     ii = np.where(~np.isnan(magave))[0]
     f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
@@ -564,15 +525,13 @@ plt.figure(figsize=(20,28))
 tini, tmax, dt = 0.0, 21.0, 0.1
 tt = np.arange(tini,tmax,dt)
 
-print(len(filts))
 cnt = 0
-for filt, color, magidx in zip(filts,colors,magidxs):
+for filt, color in zip(filters,colors):
     cnt = cnt+1
-    vals = "%d%d%d"%(len(filts),1,cnt)
     if cnt == 1:
-        ax1 = plt.subplot(eval(vals))
+        ax1 = plt.subplot(len(filters),1,cnt)
     else:
-        ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+        ax2 = plt.subplot(len(filters),1,cnt,sharex=ax1,sharey=ax1)
 
     if not filt in data_out: continue
     samples = data_out[filt]
@@ -587,11 +546,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     idx = np.where(~np.isfinite(sigma_y))[0]
     plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
 
-    if filt in ["w","c","o","V","B","R","I","F606W","F160W","F814W"]:
-        magave = lightcurve_utils.get_mag(mag,filt)
-    else:
-        magave = mag[magidx]
-
+    magave = lightcurve_utils.get_mag(mag,filt)
     ii = np.where(~np.isnan(magave))[0]
     f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
     maginterp = f(tt)
@@ -599,12 +554,12 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-    if opts.name == "GRB051221A":
-        plt.xlim([0.0, 7.0])
-        plt.ylim([-20.0,-10.0])
-    else:
+    if opts.name == "GW170817":
         plt.xlim([0.0, 18.0])
         plt.ylim([-18.0,-10.0])
+    else:
+        plt.xlim([0.0, 7.0])
+        plt.ylim([-22.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
 
@@ -612,7 +567,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
-    elif not cnt == len(filts):
+    elif not cnt == len(filters):
         plt.setp(ax2.get_xticklabels(), visible=False)
     plt.xticks(fontsize=30)
     plt.yticks(fontsize=30)

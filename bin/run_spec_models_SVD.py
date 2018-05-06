@@ -60,6 +60,12 @@ def prior_2Component(Xlan1,Xlan2):
     else:
         return 1.0
 
+def prior_2ComponentVel(vej_1,vej_2):
+    if vej_1 < vej_2:
+        return 1.0
+    else:
+        return 0.0
+
 def generate_spectra(model,samples):
 
     #kwargs = {'SaveModel':True,'LoadModel':False,'ModelPath':ModelPath}
@@ -89,12 +95,16 @@ def myloglike_Ka2017x2_spec_ejecta(cube, ndim, nparams):
     Xlan_2 = 10**cube[6]
     zp = cube[7]
 
+    prior = prior_2Component(Xlan_1,Xlan_2)
+    if prior == 0.0:
+        return -np.inf
+    prior = prior_2ComponentVel(vej_1,vej_2)
+    if prior == 0.0:
+        return -np.inf
+
     t, lambdas, spec = Ka2017x2_model_spec_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
 
     prob = calc_prob_spec(t, lambdas, spec, t0, zp)
-    prior = prior_2Component(Xlan_1,Xlan_2)
-    if prior == 0.0:
-        prob = -np.inf
 
     return prob
 
@@ -108,7 +118,7 @@ def myloglike_Ka2017_spec_ejecta(cube, ndim, nparams):
     t, lambdas, spec = Ka2017_model_spec_ejecta(mej,vej,Xlan)
 
     prob = calc_prob_spec(t, lambdas, spec, t0, zp)
-
+  
     return prob
 
 def Ka2017x2_model_spec_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
@@ -117,8 +127,8 @@ def Ka2017x2_model_spec_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
     tmax = 14.0
     dt = 1.0
 
-    lambdaini = 3700
-    lambdamax = 28000
+    lambdaini = 5000
+    lambdamax = 25000
     dlambda = 500.0
 
     samples = {}
@@ -146,8 +156,8 @@ def Ka2017_model_spec_ejecta(mej,vej,Xlan):
     tmax = 14.0
     dt = 1.0
 
-    lambdaini = 3700
-    lambdamax = 28000
+    lambdaini = 5000
+    lambdamax = 25000
     dlambda = 500.0
 
     samples = {}
