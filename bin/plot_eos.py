@@ -43,7 +43,7 @@ df = pandas.read_table(eosfilename, skiprows=1, delim_whitespace=True, names=['e
 eosnames = ["ALF2","MPA1","AP3","SLy","ALF4","AP4","WFF3","WFF1"]
 
 plotName = "%s/mass_radius.pdf"%(plotDir)
-masses = np.linspace(0.5,2.0,100)
+masses = np.linspace(0.1,2.6,100)
 plt.figure(figsize=(12,8))        
 for ii,eosname in enumerate(eosnames):
     print(eosname)
@@ -57,13 +57,52 @@ for ii,eosname in enumerate(eosnames):
             radius = eos.radiusofm(mass)
         except:
             continue
+	radii[jj]=radius
 
-        radii[jj] = radius
-
-    plt.plot(radii,masses,'-',label=eosname)
+    plt.plot(radii,masses,'+',label=eosname)
 plt.legend(loc='best')
+plt.xlim(xmin=9,xmax=15)
+plt.ylim(ymax=2.6)
 plt.xlabel('Radius [km]')
 plt.ylabel('Mass [solar masses]')
+plt.savefig(plotName, bbox_inches='tight')
+plt.close()
+
+plotName="%s/love_EOS.pdf"%(plotDir)
+plt.figure(figsize=(12,8))
+for ii,eosname in enumerate(eosnames):
+    print(eosname)
+    lovenumbers=np.zeros(masses.shape)
+    eos=EOS4ParameterPiecewisePolytrope(eosname)
+    for jj,mass in enumerate(masses):
+	try:
+	    lovenumber=eos.k2ofm(mass)
+	except:
+	    continue
+	lovenumbers[jj]=lovenumber
+    plt.plot(masses,lovenumbers,'+',label=eosname)
+plt.legend(loc='best')
+plt.xlabel('Mass [solar masses]')
+plt.ylabel('Love number')
+plt.savefig(plotName, bbox_inches='tight')
+plt.close()
+
+plotName="%s/lambda_EOS.pdf"%(plotDir)
+plt.figure(figsize=(12,8))
+for ii,eosname in enumerate(eosnames):
+    print(eosname)
+    lambdas=np.zeros(masses.shape)
+    eos=EOS4ParameterPiecewisePolytrope(eosname)
+    for jj,mass in enumerate(masses):
+        try:
+            lambda1=eos.lambdaofm(mass)
+        except:
+            continue
+        lambdas[jj]=lambda1
+    plt.plot(masses,lambdas,'-',label=eosname)
+plt.legend(loc='best')
+plt.xlabel('Mass [solar masses]')
+plt.ylabel('Lambda')
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
@@ -75,9 +114,7 @@ for ii,eosname in enumerate(eosnames):
     eos = EOS4ParameterPiecewisePolytrope(eosname)
     eps = get_eps(eosname.lower(),masses)
     for jj,mass in enumerate(masses):
-
-        try:
-            lambda1 = eos.lambdaofm(mass)
+	try:
             radius = eos.radiusofm(mass)
         except:
             continue
