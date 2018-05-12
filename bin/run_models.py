@@ -168,7 +168,7 @@ def getMagAB(filename,band,model):
 
     return t_d, mag_d, L_d
 
-def getMagSpecH5(filename,band,model):
+def getMagSpecH5(filename,band,model,filtname):
     fin    = h5py.File(filename,'r')
     # frequency in Hz
     nu    = np.array(fin['nu'],dtype='d')
@@ -251,9 +251,10 @@ def getMagSpecH5(filename,band,model):
     #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
     #    mag_d = f(t_d)
 
-    ii = np.where(mag_d<0)[0]
-    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    mag_d = f(t_d)
+    if not filtname == "u":
+        ii = np.where(mag_d<0)[0]
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
 
     peakmag = np.min(mag_d)
     ii = np.where(mag_d<=peakmag+3.0)[0]
@@ -294,6 +295,10 @@ def getMagSpecH5(filename,band,model):
         mag_d = f(t_d)
 
     ii = np.where(np.isfinite(np.log10(L_d)))[0]
+    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    L_d = 10**f(t_d)
+
+    ii = np.where(t_d<=7.0)[0]
     f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
     L_d = 10**f(t_d)
 
@@ -565,7 +570,7 @@ if opts.doAB:
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
         elif opts.model in spech5models:
-            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model)
+            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii])
             L_d = scipy.signal.medfilt(L_d,kernel_size=5)         
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)

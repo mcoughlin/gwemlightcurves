@@ -12,11 +12,13 @@ for model in models:
         name = file.split("/")[-1].replace(".mod","").replace(".spec","").replace("_AB","").replace(".h5","").replace(".dat","").replace(".txt","")
 
         filename = "../output/%s/%s.dat"%(model,name)
-        if os.path.isfile(filename): continue
+        #if os.path.isfile(filename): continue
 
         system_call = "python run_models.py --doAB --model %s --name %s"%(model,name)
         print system_call
         os.system(system_call)
+
+print(stop)
 
 #print stop
 

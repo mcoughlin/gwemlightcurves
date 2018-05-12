@@ -234,6 +234,10 @@ class KNTable(Table):
 			names=['t0', 'mej', 'vej', 'Xlan', 'zp', 'loglikelihood']
 		elif model == "Ka2017x2":
 			names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'zp', 'loglikelihood']
+                elif model == "Ka2017_TrPi2018":
+                        names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
+                elif model == "Ka2017_A":
+                        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
 		else:
 			print("Model not implemented...")
 			exit(0)
@@ -241,12 +245,22 @@ class KNTable(Table):
 		if model == "Ka2017":
 			data_out['mej'] = 10**data_out['mej']
 			data_out['Xlan'] = 10**data_out['Xlan']
+                elif model == "Ka2017_A":
+                        data_out['mej'] = 10**data_out['mej']
+                        data_out['Xlan'] = 10**data_out['Xlan']
+                        data_out['A'] = 10**data_out['A']
 		elif model == "Ka2017x2":
 			data_out['mej_1'] = 10**data_out['mej_1']
 			data_out['Xlan_1'] = 10**data_out['Xlan_1']
 			data_out['mej_2'] = 10**data_out['mej_2']
 			data_out['Xlan_2'] = 10**data_out['Xlan_2']
-
+                elif model == "Ka2017_TrPi2018":
+                        data_out['mej'] = 10**data_out['mej']
+                        data_out['Xlan'] = 10**data_out['Xlan']
+                        data_out['E0'] = 10**data_out['E0']
+                        data_out['n'] = 10**data_out['n']
+                        data_out['epsilon_E'] = 10**data_out['epsilon_E']
+                        data_out['epsilon_B'] = 10**data_out['epsilon_B']
 		return KNTable(data_out)
 
 	def calc_tidal_lambda(self, remove_negative_lambda=False):
@@ -399,7 +413,7 @@ class KNTable(Table):
 				self['r2']=lalsim.SimNeutronStarRadius(self['m2']*msun, eos_fam)
 
 			else:
-				MassRadiusiBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
+				MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
 				radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
 				# after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
 				# also radius is in km in table. need to convert to SI (i.e. meters)

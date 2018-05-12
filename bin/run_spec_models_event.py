@@ -38,12 +38,6 @@ def parse_commandline():
     parser.add_argument("-a","--analysisType",default="multinest")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
 
-    #parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    #parser.add_argument("-m","--model",default="Ka2017x2", help="Ka2017x2")
-
-    #parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    #parser.add_argument("-m","--model",default="Ka2017", help="Ka2017")
-
     parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat,../plots/gws/Ka2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
     parser.add_argument("-m","--model",default="Ka2017,Ka2017x2", help="Ka2017")
 
@@ -71,19 +65,6 @@ def parse_commandline():
     args = parser.parse_args()
  
     return args
-
-def hist_results(samples,Nbins=16,bounds=None):
-
-    if not bounds==None:
-        bins = np.linspace(bounds[0],bounds[1],Nbins)
-    else:
-        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
-    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
-    hist1[hist1==0.0] = 1e-3
-    #hist1 = hist1 / float(np.sum(hist1))
-    bins = (bins[1:] + bins[:-1])/2.0
-
-    return bins, hist1
 
 def get_legend(model):
 
@@ -162,8 +143,8 @@ if opts.doEvent:
 tini = 0.1
 tmax = 14.0
 dt = 0.1
-lambdaini = 3700
-lambdamax = 28000
+lambdaini = 5000
+lambdamax = 25000
 dlambda = 500.0
 
 vmin = 0.02
@@ -349,9 +330,9 @@ for key, color in zip(keys,colors):
         legend_name = get_legend(model)
 
         lambdas = data_out[key]["lambda"]
-        specmed = np.percentile(spec_all[model][key], 50, axis=0)
-        specmax = np.percentile(spec_all[model][key], 90, axis=0)*(1-opts.errorbudget)
-        specmin = np.percentile(spec_all[model][key], 10, axis=0)*(1-opts.errorbudget)
+        specmed = np.nanpercentile(spec_all[model][key], 50, axis=0)
+        specmax = np.nanpercentile(spec_all[model][key], 90, axis=0)*(1-opts.errorbudget)
+        specmin = np.nanpercentile(spec_all[model][key], 10, axis=0)*(1-opts.errorbudget)
 
         plt.plot(lambdas,np.log10(specmed),'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(lambdas,np.log10(specmin),'-',c=colors_names[ii],linewidth=4)

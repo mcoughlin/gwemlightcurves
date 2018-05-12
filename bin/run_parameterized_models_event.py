@@ -29,16 +29,20 @@ def parse_commandline():
     parser.add_argument("-p","--plotDir",default="../plots")
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
+
+    parser.add_argument("-s","--spectraDir",default="../spectra")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    #parser.add_argument("-m","--model",default="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017", help="DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017")
-    parser.add_argument("-m","--model",default="DiUj2017,Me2017,WoKo2017", help="DiUj2017,Me2017,WoKo2017")
-    parser.add_argument("--name",default="G298048")
+    parser.add_argument("--name",default="GW170817")
+
+    parser.add_argument("-a","--analysisType",default="multinest")
+    #parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat,../plots/gws/Ka2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
+    #parser.add_argument("-m","--model",default="Ka2017,Ka2017x2", help="Ka2017,Ka2017x2")
+
+    parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
+    parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
 
     parser.add_argument("--doEvent",  action="store_true", default=False)
-    parser.add_argument("-e","--event",default="G298048_PS1_GROND_SOFI")
-    #parser.add_argument("-e","--event",default="G298048_XSH_PESSTO")
-    #parser.add_argument("-e","--event",default="G298048_20170822")
-    #parser.add_argument("-e","--event",default="G298048_PESSTO_20170818,G298048_PESSTO_20170819,G298048_PESSTO_20170820,G298048_PESSTO_20170821,G298048_XSH_20170819,G298048_XSH_20170821")
+    parser.add_argument("-e","--event",default="GW170817")
     parser.add_argument("--distance",default=40.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
@@ -47,19 +51,6 @@ def parse_commandline():
     args = parser.parse_args()
  
     return args
-
-def hist_results(samples,Nbins=16,bounds=None):
-
-    if not bounds==None:
-        bins = np.linspace(bounds[0],bounds[1],Nbins)
-    else:
-        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
-    hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
-    hist1[hist1==0.0] = 1e-3
-    #hist1 = hist1 / float(np.sum(hist1))
-    bins = (bins[1:] + bins[:-1])/2.0
-
-    return bins, hist1
 
 def get_legend(model):
 
@@ -76,7 +67,9 @@ def get_legend(model):
     elif model == "BaKa2016":
         legend_name = "Barnes et al. (2016)"
     elif model == "Ka2017":
-        legend_name = "Kasen (2017)"
+        legend_name = "1 Component"
+    elif model == "Ka2017x2":
+        legend_name = "2 Component"
     elif model == "RoFe2017":
         legend_name = "Rosswog et al. (2017)"
 
@@ -95,6 +88,10 @@ for model in models:
         exit(0)
 
 lightcurvesDir = opts.lightcurvesDir
+spectraDir = opts.spectraDir
+ModelPath = '%s/svdmodels'%(opts.outputDir)
+if not os.path.isdir(ModelPath):
+    os.makedirs(ModelPath)
 
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
@@ -116,42 +113,50 @@ slope_r = -1.2
 theta_r = 0.0
 Ye = 0.3
 
-# read in samples
-samples = KNTable.read_samples(opts.posterior_samples)
-# limit masses
-samples = samples.mass_cut(mass1=3.0,mass2=3.0)
-
-print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
-print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
-
-# Downsample 
-samples = samples.downsample(Nsamples=100)
-# Calc lambdas
-samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
-# Calc compactness
-samples = samples.calc_compactness(fit=True)
-# Calc baryonic mass
-samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
-
-if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
-    from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
-    # calc the mass of ejecta
-    samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
-    # calc the velocity of ejecta
-    samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
-
-    # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
-    erroropt = 'none'
-    if erroropt == 'none':
-        print "Not applying an error to mass ejecta"
-    elif erroropt == 'log':
-        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
-    elif erroropt == 'lin':
-        samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
-    elif erroropt == 'loggauss':
-        samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
-    idx = np.where(samples['mej'] > 0)[0]
-    samples = samples[idx]
+if opts.analysisType == "posterior":
+    # read in samples
+    samples = KNTable.read_samples(opts.posterior_samples)
+    # limit masses
+    samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+    
+    print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
+    print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
+    
+    # Downsample 
+    samples = samples.downsample(Nsamples=100)
+    # Calc lambdas
+    samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
+    # Calc compactness
+    samples = samples.calc_compactness(fit=True)
+    # Calc baryonic mass
+    samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+    
+    if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
+        from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
+        # calc the mass of ejecta
+        samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
+        # calc the velocity of ejecta
+        samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+    
+        # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
+        erroropt = 'none'
+        if erroropt == 'none':
+            print "Not applying an error to mass ejecta"
+        elif erroropt == 'log':
+            samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
+        elif erroropt == 'lin':
+            samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
+        elif erroropt == 'loggauss':
+            samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
+        idx = np.where(samples['mej'] > 0)[0]
+        samples = samples[idx]
+elif opts.analysisType == "multinest":
+    multinest_samples = opts.multinest_samples.split(",")
+    samples_all = {}
+    for multinest_sample, model in zip(multinest_samples,models):
+        # read multinest samples
+        samples = KNTable.read_multinest_samples(multinest_sample, model)
+        samples_all[model] = samples
 
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
@@ -174,10 +179,14 @@ samples['slope_r'] = slope_r
 samples['theta_r'] = theta_r
 samples['Ye'] = Ye
 
+kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
+kwargs["doAB"] = True
+kwargs["doSpec"] = False
+
 # Create dict of tables for the various models, calculating mass ejecta velocity of ejecta and the lightcurve from the model
 model_tables = {}
 for model in models:
-    model_tables[model] = KNTable.model(model, samples)
+    model_tables[model] = KNTable.model(model, samples, **kwargs)
 
 # Now we need to do some interpolation
 for model in models:
@@ -198,7 +207,7 @@ filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
-tini, tmax, dt = 0.1, 50.0, 0.1
+tini, tmax, dt = 0.1, 14.0, 0.1
 tt = np.arange(tini,tmax+dt,dt)
 
 mag_all = {}
@@ -283,12 +292,16 @@ cbar.set_label(r'Ejecta mass log10($M_{\odot}$)')
 plt.savefig(plotName)
 plt.close()
 
-filts = ["g","r","i","z","y","J","H","K"]
-#filts = ["u","g","r","i","z","y","J","H","K"]
-colors=cm.rainbow(np.linspace(0,1,len(filts)))
-magidxs = [0,1,2,3,4,5,6,7,8]
-magidxs = [1,2,3,4,5,6,7,8]
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+
+filts = ["u","g","r","i","z","y","J","H","K"]
+colors=cm.jet(np.linspace(0,1,len(filts)))
+magidxs = [0,1,2,3,4,5,6,7,8]
+
+colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+color1 = 'coral'
+color2 = 'cornflowerblue'
+colors_names=[color1,color2]
 
 for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
@@ -324,9 +337,9 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 
         idx = np.where(np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c='k',markersize=15)
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
         idx = np.where(~np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c='k',markersize=15)
+        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
@@ -355,21 +368,19 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
-        plt.xticks(fontsize=36)
-        plt.yticks(fontsize=36)
 
-        ax3 = ax1.twinx()   # mirror them
-        ax3.set_yticks([16,12,8,4,0])
-        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
-        ax3.set_yticklabels(app.astype(int))
+        #ax3 = ax1.twinx()   # mirror them
+        #ax3.set_yticks([16,12,8,4,0])
+        #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        #ax3.set_yticklabels(app.astype(int))
 
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
     else:
-        ax4 = ax2.twinx()   # mirror them
-        ax4.set_yticks([16,12,8,4,0])
-        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
-        ax4.set_yticklabels(app.astype(int))
+        #ax4 = ax2.twinx()   # mirror them
+        #ax4.set_yticks([16,12,8,4,0])
+        #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        #ax4.set_yticklabels(app.astype(int))
 
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
@@ -430,7 +441,7 @@ plotName = "%s/mej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = hist_results(np.log10(model_tables[model]["mej"]),Nbins=25,bounds=bounds)
+    bins, hist1 = lightcurve_utils.hist_results(np.log10(model_tables[model]["mej"]),Nbins=25,bounds=bounds)
     plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
 plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -450,7 +461,7 @@ plotName = "%s/vej.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = hist_results(model_tables[model]["vej"],Nbins=25,bounds=bounds)
+    bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["vej"],Nbins=25,bounds=bounds)
     plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
 
 plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
@@ -463,24 +474,4 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
-bounds = [0.0,2.0]
-xlims = [0.0,2.0]
-ylims = [1e-1,10]
 
-plotName = "%s/masses.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for ii,model in enumerate(models):
-    legend_name = get_legend(model)
-    bins1, hist1 = hist_results(model_tables[model]["m1"],Nbins=25,bounds=bounds)
-    plt.semilogy(bins1,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
-    bins2, hist2 = hist_results(model_tables[model]["m2"],Nbins=25,bounds=bounds)
-    plt.semilogy(bins2,hist2,'--',color=colors_names[ii],linewidth=3)
-plt.xlabel(r"Masses",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-plt.xlim(xlims)
-plt.ylim(ylims)
-plt.savefig(plotName)
-plt.close()        
