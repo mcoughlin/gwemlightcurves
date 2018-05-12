@@ -15,7 +15,7 @@ def multinest(opts,plotDir):
     max_iter = 0
     best = []
 
-    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
+    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017"]:
     
         if opts.doMasses:
             if opts.model == "KaKy2016":
@@ -132,6 +132,11 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"${\rm log}_{10} (X_{\rm lan})$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Ka2017_ejecta, myprior_Ka2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Ka2017_A":
+                parameters = ["t0","mej","vej","xlan","A","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"${\rm log}_{10} (X_{\rm lan})$",r"${\rm log}_{10} (A)$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Ka2017_A_ejecta, myprior_Ka2017_A_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Ka2017x2":
                 parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (X_{\rm lan 1})$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (X_{\rm lan 2})$","ZP"]
@@ -201,6 +206,14 @@ def multinest(opts,plotDir):
         n_params = len(parameters)
 
         pymultinest.run(myloglike_Ka2017_TrPi2018, myprior_Ka2017_TrPi2018, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+
+    elif opts.model in ["Ka2017_TrPi2018_A"]:
+
+        parameters = ["t0","mej","vej","xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp","A"]
+        labels = [r"$T_0$", r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"${\rm log}_{10} (X_{\rm lan})$", r"$\theta_v$", r"$E_0$", r"$\theta_c$", r"$\theta_w$", r"$n$",r"$p$", "$\epsilon_E$","$\epsilon_B$","${\rm log}_{10} (A)","ZP"]
+        n_params = len(parameters)
+
+        pymultinest.run(myloglike_Ka2017_TrPi2018_A, myprior_Ka2017_TrPi2018_A, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
 
     #multifile= os.path.join(plotDir,'2-.txt')
     multifile = lightcurve_utils.get_post_file(plotDir)
@@ -462,10 +475,16 @@ def multinest(opts,plotDir):
             tmag, lbol, mag = Ka2017_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,Xlan_best)
 
         elif opts.doEjecta:
-            t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+            t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], data[:,5], data[:,6]
             idx = np.argmax(loglikelihood)
             t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4]
             tmag, lbol, mag = Ka2017_model_ejecta(mej_best,vej_best,Xlan_best)
+    elif opts.model == "Ka2017_A":
+        if opts.doEjecta:
+            t0, mej, vej, Xlan, A, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], 10**data[:,4], data[:,5], data[:,6]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_best, vej_best, Xlan_best, A_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], 10**data[idx,4], data[idx,5]
+            tmag, lbol, mag = Ka2017_A_model(mej_best,vej_best,Xlan_best,A_best)
     elif opts.model == "Ka2017x2":
         if opts.doEjecta:
             t0, mej_1, vej_1, Xlan_1, mej_2, vej_2, Xlan_2, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], 10**data[:,4], data[:,5], 10**data[:,6], data[:,7], data[:,8]
@@ -867,6 +886,15 @@ def multinest(opts,plotDir):
         t0_best, mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4], 10**data[idx,5], data[idx,6], data[idx,7], 10**data[idx,8], data[idx,9], 10**data[idx,10], 10**data[idx,11], data[idx,12]
 
         tmag, lbol, mag = Ka2017_TrPi2018_model(mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best)
+
+    elif opts.model == "Ka2017_TrPi2018_A":
+
+        t0, mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, A, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], 10**data[:,5], data[:,6], data[:,7], 10**data[:,8], data[:,9], 10**data[:,10], 10**data[:,11], 10**data[:,12], data[:,13], data[:,14]
+        idx = np.argmax(loglikelihood)
+
+        t0_best, mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, A_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4], 10**data[idx,5], data[idx,6], data[idx,7], 10**data[idx,8], data[idx,9], 10**data[idx,10], 10**data[idx,11], 10**data[idx,12], data[idx,13]
+
+        tmag, lbol, mag = Ka2017_TrPi2018_A_model(mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, A_best)
 
     if opts.model == "KaKy2016":
         if opts.doMasses:

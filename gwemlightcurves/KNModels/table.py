@@ -236,6 +236,8 @@ class KNTable(Table):
 			names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'zp', 'loglikelihood']
                 elif model == "Ka2017_TrPi2018":
                         names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
+                elif model == "Ka2017_A":
+                        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
 		else:
 			print("Model not implemented...")
 			exit(0)
@@ -243,6 +245,10 @@ class KNTable(Table):
 		if model == "Ka2017":
 			data_out['mej'] = 10**data_out['mej']
 			data_out['Xlan'] = 10**data_out['Xlan']
+                elif model == "Ka2017_A":
+                        data_out['mej'] = 10**data_out['mej']
+                        data_out['Xlan'] = 10**data_out['Xlan']
+                        data_out['A'] = 10**data_out['A']
 		elif model == "Ka2017x2":
 			data_out['mej_1'] = 10**data_out['mej_1']
 			data_out['Xlan_1'] = 10**data_out['Xlan_1']

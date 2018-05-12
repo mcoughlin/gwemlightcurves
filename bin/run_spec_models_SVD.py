@@ -40,6 +40,7 @@ def parse_commandline():
     parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--doAbsorption",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     #parser.add_option("--T0",default="1,2,3,4,5,6,7")
     parser.add_option("--T0",default="57982.5285236896")
@@ -118,7 +119,7 @@ def myloglike_Ka2017_spec_ejecta(cube, ndim, nparams):
     t, lambdas, spec = Ka2017_model_spec_ejecta(mej,vej,Xlan)
 
     prob = calc_prob_spec(t, lambdas, spec, t0, zp)
-  
+
     return prob
 
 def Ka2017x2_model_spec_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
@@ -195,10 +196,17 @@ def calc_prob_spec(t, lambdas, spec, t0, zp):
         zp_factor = 10**(zp/-2.5)
         flux1 = flux1*zp_factor
 
-        flux1 = np.log10(np.abs(flux1))
-        flux2 = np.log10(np.abs(flux2))
-        chisquarevals = ((flux1-flux2)/sigma)**2
-        chisquarevals = chisquarevals[0]
+        if Global.doAbsorption:
+            lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(wav2,flux1[0])
+            flux1 = spec_lowpass/spec_envelope
+            chisquarevals = ((flux1-flux2)/sigma)**2
+        else:
+            zp_factor = 10**(zp/-2.5)
+            flux1 = flux1*zp_factor
+            flux1 = np.log10(np.abs(flux1))
+            flux2 = np.log10(np.abs(flux2))
+            chisquarevals = ((flux1-flux2)/sigma)**2
+            chisquarevals = chisquarevals[0]
 
         chisquaresum = np.sum(chisquarevals)
         chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
@@ -242,6 +250,8 @@ else:
 baseplotDir = opts.plotDir
 if opts.doModels:
     basename = 'models_spec'
+elif opts.doAbsorption:
+    basename = 'abs_spec'
 else:
     basename = 'gws_spec'
 plotDir = os.path.join(baseplotDir,basename)
@@ -260,9 +270,16 @@ plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
+specDir = os.path.join(plotDir,'spec')
+if not os.path.isdir(specDir):
+    os.makedirs(specDir)
+
 dataDir = opts.dataDir
 lightcurvesDir = opts.lightcurvesDir
 spectraDir = opts.spectraDir
+
+if opts.doAbsorption:
+    Global.doAbsorption = 1
 
 ModelPath = '%s/svdmodels'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
@@ -277,7 +294,9 @@ for key in speckeys:
     specs[key]["f"] = f
 
 n_live_points = 100
+n_live_points = 10
 evidence_tolerance = 0.5
+evidence_tolerance = 10
 max_iter = 0
 
 if opts.doModels:
@@ -347,13 +366,59 @@ elif opts.doEvent:
         data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=15)
         data_out[str(T0)]["error"] = scipy.signal.medfilt(data_out[str(T0)]["error"],kernel_size=15)
 
-        idx = np.where((data_out[str(T0)]["lambda"] >= 13500) & (data_out[str(T0)]["lambda"] <= 14500))[0]
+        idx = np.where((data_out[str(T0)]["lambda"] >= 13000) & (data_out[str(T0)]["lambda"] <= 15000))[0]
         data_out[str(T0)]["error"][idx] = np.inf
-        idx = np.where((data_out[str(T0)]["lambda"] >= 18000) & (data_out[str(T0)]["lambda"] <= 19500))[0]
+        idx = np.where((data_out[str(T0)]["lambda"] >= 17900) & (data_out[str(T0)]["lambda"] <= 19700))[0]
+        data_out[str(T0)]["error"][idx] = np.inf
+
+elif opts.doAbsorption:
+    filename = "../spectra/%s_spectra_index.dat"%opts.name
+    lines = [line.rstrip('\n') for line in open(filename)]
+    filenames = []
+    T0s = []
+    for line in lines:
+        lineSplit = line.split(" ")
+        filename = "%s/%s"%(spectraDir,lineSplit[1])
+        filenames.append(filename)
+        mjd = Time(lineSplit[2], format='isot').mjd
+        T0s.append(mjd-float(opts.T0))
+
+    filenames = filenames[1:3]
+    T0s = T0s[1:3]
+
+    distconv = (opts.distance*1e6/10)**2
+    pctocm = 3.086e18 # 1 pc in cm
+    distconv = 4*np.pi*(opts.distance*1e6*pctocm)**2
+
+    data_out = {}
+    cnt = 0
+    for filename,T0 in zip(filenames,T0s):
+
+        cnt = cnt + 1
+        #if cnt > 5: continue
+
+        data_out_temp = lightcurve_utils.loadEventSpec(filename)
+        data_out[str(T0)] = data_out_temp
+
+        idx = np.where((data_out[str(T0)]["lambda"] >= opts.lambdamin) & (data_out[str(T0)]["lambda"] <= opts.lambdamax))[0]
+        data_out[str(T0)]["lambda"] = data_out[str(T0)]["lambda"][idx]
+        data_out[str(T0)]["data"] = data_out[str(T0)]["data"][idx]
+        data_out[str(T0)]["error"] = data_out[str(T0)]["error"][idx]
+
+        lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(data_out[str(T0)]["lambda"],data_out[str(T0)]["data"])
+        f = interp.interp1d(data_out[str(T0)]["lambda"],data_out[str(T0)]["error"], fill_value='extrapolate', kind = 'quadratic')
+        error = f(lambdas_lowpass)
+        data_out[str(T0)]["lambda"] = lambdas_lowpass
+        data_out[str(T0)]["data"] = spec_lowpass/spec_envelope
+        data_out[str(T0)]["error"] = error*data_out[str(T0)]["data"]
+
+        idx = np.where((data_out[str(T0)]["lambda"] >= 13000) & (data_out[str(T0)]["lambda"] <= 15000))[0]
+        data_out[str(T0)]["error"][idx] = np.inf
+        idx = np.where((data_out[str(T0)]["lambda"] >= 17900) & (data_out[str(T0)]["lambda"] <= 19700))[0]
         data_out[str(T0)]["error"][idx] = np.inf
 
 else:
-    print "Must enable --doModels or --doEvent"
+    print "Must enable --doModels, --doAbsorption, or --doEvent"
     exit(0)
 
 Global.ZPRange = ZPRange
@@ -424,7 +489,9 @@ plt.savefig(plotName)
 plt.close()
 
 spec_best_dic = {}
-for key in data_out:
+keys = sorted(data_out.keys())
+for ii,key in enumerate(keys):
+
     f = interp.interp2d(t_best+t0_best, lambdas_best, np.log10(spec_best), kind='cubic')
     flux1 = (10**(f(float(key),data_out[key]["lambda"]))).T
     zp_factor = 10**(zp_best/-2.5)
@@ -432,6 +499,12 @@ for key in data_out:
     spec_best_dic[key] = {}
     spec_best_dic[key]["lambda"] = data_out[key]["lambda"]
     spec_best_dic[key]["data"] = np.squeeze(flux1)
+
+    filename = os.path.join(specDir,"spec_%s.dat"%key)
+    fid = open(filename, 'wb')
+    for l,s in zip(spec_best_dic[key]["lambda"],spec_best_dic[key]["data"]):
+        fid.write("%.5f %.5e\n"%(l,s))
+    fid.close()
 
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))

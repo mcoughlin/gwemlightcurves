@@ -5,6 +5,10 @@ import numpy as np
 import glob
 import scipy.stats
 
+from scipy.interpolate import interpolate as interp
+from scipy.signal import butter, lfilter, filtfilt, freqz
+from scipy.signal import argrelextrema
+
 import matplotlib
 #matplotlib.rc('text', usetex=True)
 matplotlib.use('Agg')
@@ -739,4 +743,56 @@ def get_med(magtable, errorbudget = 0.0, filts = ["u","g","r","i","z","y","J","H
         med_all[filt]["90"] = magmax
 
     return med_all
+
+def get_envelope(lambdas,spec):
+
+    lambdas_all = lambdas*1.0
+
+    idx = np.where(np.isfinite(np.log10(spec)))[0]
+    lambdas = lambdas[idx]
+    spec = spec[idx]
+    
+    if len(lambdas) == 0:
+        return lambdas_all, np.nan*np.zeros(lambdas_all.shape), np.nan*np.zeros(lambdas_all.shape)
+
+    lambdas_interp = np.arange(lambdas[0],lambdas[-1],1.0)
+    f = interp.interp1d(lambdas, np.log10(spec), fill_value='extrapolate')
+    spec = 10**f(lambdas_interp)
+    lambdas = lambdas_interp*1.0
+
+    spec_lowpass = butter_lowpass_filter(spec, 0.002/3.0, 1.0, order=5)
+
+    idx = np.where((lambdas >= 10200) & (lambdas <= 10100))[0]
+    spec_lowpass[idx] = np.nan
+    idx = np.where((lambdas >= 13000) & (lambdas <= 15000))[0]
+    spec_lowpass[idx] = np.nan
+    idx = np.where((lambdas >= 17900) & (lambdas <= 19700))[0]
+    spec_lowpass[idx] = np.nan
+    idx = np.where(~np.isnan(spec_lowpass))[0]
+    lambdas_lowpass = lambdas[idx]
+    spec_lowpass = spec_lowpass[idx]
+
+    f = interp.interp1d(lambdas_lowpass, np.log10(spec_lowpass), fill_value='extrapolate')
+    spec_lowpass = 10**f(lambdas_all)
+    lambdas = lambdas_all*1.0
+
+    idx = argrelextrema(spec_lowpass, np.greater)[0]
+    idx = np.hstack((0,idx,len(spec_lowpass)-1))
+    spec_envelope = spec_lowpass[idx]
+   
+    try:
+        f = interp.interp1d(lambdas[idx], spec_lowpass[idx], fill_value='extrapolate', kind = 'quadratic')
+        spec_envelope = f(lambdas)
+        spec_envelope = np.max(np.vstack((spec_lowpass,spec_envelope)),axis=0)
+    except:
+        spec_envelope = np.nan*np.zeros(lambdas_all.shape)
+
+    return lambdas, spec_lowpass, spec_envelope
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    y = filtfilt(b, a, data)
+    return y
 

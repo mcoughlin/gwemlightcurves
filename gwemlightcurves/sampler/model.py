@@ -515,3 +515,28 @@ def Ka2017_TrPi2018_model(mej,vej,Xlan,theta_v, E0, theta_c, theta_w, n, p, epsi
     mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
 
     return tmag, lbol, mag
+
+def Ka2017_TrPi2018_A_model(mej,vej,Xlan,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, A):
+
+    tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej,vej,Xlan)
+    tmag_2, lbol_2, mag_2 = TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    dm = -2.5*np.log10(A)
+    mag_1 = mag_1 + dm
+
+    tmag = tmag_1
+    lbol = lbol_1*A + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
+
+def Ka2017_A_model(mej,vej,Xlan,A):
+
+    tmag, lbol, mag = Ka2017_model_ejecta(mej,vej,Xlan)
+
+    dm = -2.5*np.log10(A)
+    mag = mag + dm
+    lbol = lbol*A
+
+    return tmag, lbol, mag
+

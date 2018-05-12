@@ -269,3 +269,136 @@ plt.close()
 convert_command = "convert %s %s"%(plotNamePNG,plotName)
 os.system(convert_command)
 
+keys_tmp = sorted(data_out.keys())
+keys_float = np.array(keys_tmp,dtype=np.float64)
+idx = np.where(keys_float <= 5.0)[0]
+keys = [keys_tmp[ii] for ii in idx]
+colors=cm.rainbow(np.linspace(0,1,len(keys)))
+
+plotName = "%s/spec_panels_fit_early.pdf"%(plotDir)
+plotNamePNG = "%s/spec_panels_fit_early.png"%(plotDir)
+fig = plt.figure(figsize=(22,28))
+
+cnt = 0
+for key, color in zip(keys,colors):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(keys),1,cnt)
+    if cnt == 1:
+        #ax1 = plt.subplot(eval(vals))
+        ax1 = plt.subplot(len(keys),1,cnt)
+    else:
+        #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+        ax2 = plt.subplot(len(keys),1,cnt,sharex=ax1,sharey=ax1)
+
+    plt.plot(data_out[key]["lambda"],data_out[key]["data"],'--',c='k',linewidth=4,zorder=99)
+
+    lambdas = spec_best_dic1[key]["lambda"]
+    specmed = spec_best_dic1[key]["data"]
+    specmin = spec_best_dic1[key]["data"]/errorbudget
+    specmax = spec_best_dic1[key]["data"]*errorbudget
+
+    plt.plot(lambdas,specmed,'--',c=color1,linewidth=2,label="1 Component")
+    plt.plot(lambdas,specmin,'-',c=color1,linewidth=2)
+    plt.plot(lambdas,specmax,'-',c=color1,linewidth=2)
+    plt.fill_between(lambdas,specmin,specmax,facecolor=color1,edgecolor=color1,alpha=0.2,linewidth=3)
+
+    lambdas = spec_best_dic2[key]["lambda"]
+    specmed = spec_best_dic2[key]["data"]
+    specmin = spec_best_dic2[key]["data"]/errorbudget
+    specmax = spec_best_dic2[key]["data"]*errorbudget
+
+    plt.plot(lambdas,specmed,'--',c=color2,linewidth=2,label="2 Component")
+    plt.plot(lambdas,specmin,'-',c=color2,linewidth=2)
+    plt.plot(lambdas,specmax,'-',c=color2,linewidth=2)
+    plt.fill_between(lambdas,specmin,specmax,facecolor=color2,edgecolor=color2,alpha=0.2,linewidth=3)
+
+    plt.fill_between([13500.0,14500.0],[10**-100.0,10**-100.0],[10**100.0,10**100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+    plt.fill_between([18000.0,19500.0],[10**-100.0,10**-100.0],[10**100.0,10**100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+
+    plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
+    plt.xlim([5000, 25000])
+    plt.ylim([10**35.5,10**37.9])
+    plt.grid()
+
+    if (not cnt == len(keys)) and (not cnt == 1):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+    elif cnt == 1:
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=2, prop={'size':48})
+    else:
+        plt.xticks(fontsize=36)
+
+ax1.set_zorder(1)
+ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
+plt.savefig(plotNamePNG, bbox_inches='tight')
+plt.close()
+convert_command = "convert %s %s"%(plotNamePNG,plotName)
+os.system(convert_command)
+
+keys_tmp = sorted(data_out.keys())
+keys_float = np.array(keys_tmp,dtype=np.float64)
+idx = np.where(keys_float >= 5.0)[0]
+keys = [keys_tmp[ii] for ii in idx]
+colors=cm.rainbow(np.linspace(0,1,len(keys)))
+
+plotName = "%s/spec_panels_fit_late.pdf"%(plotDir)
+plotNamePNG = "%s/spec_panels_fit_late.png"%(plotDir)
+fig = plt.figure(figsize=(22,28))
+
+cnt = 0
+for key, color in zip(keys,colors):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(keys),1,cnt)
+    if cnt == 1:
+        #ax1 = plt.subplot(eval(vals))
+        ax1 = plt.subplot(len(keys),1,cnt)
+    else:
+        #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+        ax2 = plt.subplot(len(keys),1,cnt,sharex=ax1,sharey=ax1)
+
+    plt.plot(data_out[key]["lambda"],data_out[key]["data"],'--',c='k',linewidth=4,zorder=99)
+
+    lambdas = spec_best_dic1[key]["lambda"]
+    specmed = spec_best_dic1[key]["data"]
+    specmin = spec_best_dic1[key]["data"]/errorbudget
+    specmax = spec_best_dic1[key]["data"]*errorbudget
+
+    plt.plot(lambdas,specmed,'--',c=color1,linewidth=2,label="1 Component")
+    plt.plot(lambdas,specmin,'-',c=color1,linewidth=2)
+    plt.plot(lambdas,specmax,'-',c=color1,linewidth=2)
+    plt.fill_between(lambdas,specmin,specmax,facecolor=color1,edgecolor=color1,alpha=0.2,linewidth=3)
+
+    lambdas = spec_best_dic2[key]["lambda"]
+    specmed = spec_best_dic2[key]["data"]
+    specmin = spec_best_dic2[key]["data"]/errorbudget
+    specmax = spec_best_dic2[key]["data"]*errorbudget
+
+    plt.plot(lambdas,specmed,'--',c=color2,linewidth=2,label="2 Component")
+    plt.plot(lambdas,specmin,'-',c=color2,linewidth=2)
+    plt.plot(lambdas,specmax,'-',c=color2,linewidth=2)
+    plt.fill_between(lambdas,specmin,specmax,facecolor=color2,edgecolor=color2,alpha=0.2,linewidth=3)
+
+    plt.fill_between([13500.0,14500.0],[10**-100.0,10**-100.0],[10**100.0,10**100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+    plt.fill_between([18000.0,19500.0],[10**-100.0,10**-100.0],[10**100.0,10**100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+
+    plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
+    plt.xlim([5000, 25000])
+    plt.ylim([10**35.5,10**36.9])
+    plt.grid()
+
+    if (not cnt == len(keys)) and (not cnt == 1):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+    elif cnt == 1:
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
+                mode="expand", borderaxespad=0, ncol=2, prop={'size':48})
+    else:
+        plt.xticks(fontsize=36)
+
+ax1.set_zorder(1)
+ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
+plt.savefig(plotNamePNG, bbox_inches='tight')
+plt.close()
+convert_command = "convert %s %s"%(plotNamePNG,plotName)
+os.system(convert_command)

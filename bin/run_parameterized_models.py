@@ -105,6 +105,7 @@ elif opts.doSpec:
     tmax = 10.0
 
 lambdaini = 5000
+lambdaini = 3500
 lambdamax = 25000
 #dlambda = 50.0 
 dlambda = 500.0
@@ -487,7 +488,7 @@ elif opts.doSpec:
         plt.fill_between([18000.0,19500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
 
         plt.ylabel('%.1f'%float(tt[ii]),fontsize=48,rotation=0,labelpad=40)
-        plt.xlim([5000, 25000])
+        plt.xlim([3500, 25000])
         plt.ylim([33.0,38.0])
         plt.grid()
 

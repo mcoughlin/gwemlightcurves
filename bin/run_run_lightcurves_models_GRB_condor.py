@@ -26,7 +26,8 @@ for line in lines:
     dist = float(lineSplit[3])
 
     if np.isnan(dist): continue
-    if not grb in grbs: continue
+
+    if not grb == "GRB130603B": continue
 
     if grb in ["GW170817"]:
         tmin, tmax = 0.0, 14.0
@@ -35,15 +36,6 @@ for line in lines:
 
     for errorbudget in errorbudgets:
 
-        model = "Ka2017"
-        checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/ejecta/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
-        if not os.path.isfile(checkfile):
-            fid.write('JOB %d condor.sub\n'%(job_number))
-            fid.write('RETRY %d 3\n'%(job_number))
-            fid.write('VARS %d jobNumber="%d" model="%s" distance="%.5f" T0="%.5f" filters="%s" errorbudget="%.2f" grb="%s" tmin="%.1f" tmax="%.1f"\n'%(job_number,job_number,model,dist,mjd,filts,errorbudget,grb,tmin,tmax))
-            fid.write('\n\n')
-            job_number = job_number + 1
-        
         model = "TrPi2018"
         checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
         if not os.path.isfile(checkfile):
@@ -52,7 +44,35 @@ for line in lines:
             fid.write('VARS %d jobNumber="%d" model="%s" distance="%.5f" T0="%.5f" filters="%s" errorbudget="%.2f" grb="%s" tmin="%.1f" tmax="%.1f"\n'%(job_number,job_number,model,dist,mjd,filts,errorbudget,grb,tmin,tmax))
             fid.write('\n\n')
             job_number = job_number + 1
-        
+
+        model = "Ka2017_A"
+        checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
+        if not os.path.isfile(checkfile):
+            fid.write('JOB %d condor.sub\n'%(job_number))
+            fid.write('RETRY %d 3\n'%(job_number))
+            fid.write('VARS %d jobNumber="%d" model="%s" distance="%.5f" T0="%.5f" filters="%s" errorbudget="%.2f" grb="%s" tmin="%.1f" tmax="%.1f"\n'%(job_number,job_number,model,dist,mjd,filts,errorbudget,grb,tmin,tmax))
+            fid.write('\n\n')
+            job_number = job_number + 1
+
+        model = "Ka2017_TrPi2018_A"
+        checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
+        if not os.path.isfile(checkfile):
+            fid.write('JOB %d condor.sub\n'%(job_number))
+            fid.write('RETRY %d 3\n'%(job_number))
+            fid.write('VARS %d jobNumber="%d" model="%s" distance="%.5f" T0="%.5f" filters="%s" errorbudget="%.2f" grb="%s" tmin="%.1f" tmax="%.1f"\n'%(job_number,job_number,model,dist,mjd,filts,errorbudget,grb,tmin,tmax))
+            fid.write('\n\n')
+            job_number = job_number + 1       
+
+        if not grb in grbs: continue
+        model = "Ka2017"
+        checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/ejecta/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
+        if not os.path.isfile(checkfile):
+            fid.write('JOB %d condor.sub\n'%(job_number))
+            fid.write('RETRY %d 3\n'%(job_number))
+            fid.write('VARS %d jobNumber="%d" model="%s" distance="%.5f" T0="%.5f" filters="%s" errorbudget="%.2f" grb="%s" tmin="%.1f" tmax="%.1f"\n'%(job_number,job_number,model,dist,mjd,filts,errorbudget,grb,tmin,tmax))
+            fid.write('\n\n')
+            job_number = job_number + 1
+ 
         model = "Ka2017_TrPi2018"
         checkfile = "../plots/gws/%s_FixZPT0/%s/%d_%d/%s/%.2f/data.pkl"%(model,filts.replace(",","_"),tmin,tmax,grb,errorbudget)
         if not os.path.isfile(checkfile):

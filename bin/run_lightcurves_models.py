@@ -67,8 +67,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017_A, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A"
     exit(0)
 
 if opts.doFixZPT0:
@@ -107,7 +107,7 @@ else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -341,7 +341,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018":
+if opts.model == "Ka2017" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
@@ -443,6 +443,9 @@ elif opts.model == "WoKo2016":
 elif opts.model == "TrPi2018":
     plt.xlim([0.0, 5.0])
     plt.ylim([-40.0,-10.0])
+elif opts.model == "Ka2017_A":
+    plt.xlim([0.0, 14.0])
+    plt.ylim([-30.0,0.0])
 else:
     plt.xlim([1.0, 18.0])
     plt.ylim([-20.0,-5.0])

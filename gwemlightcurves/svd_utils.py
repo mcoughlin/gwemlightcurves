@@ -51,9 +51,9 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
 
-            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
-                del lbols[key]
-                continue
+            #if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+            #    del lbols[key]
+            #    continue
 
             lbols[key]["mej"] = mej0
             lbols[key]["vej"] = vej0
@@ -175,9 +175,9 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e","")) 
 
-            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
-                del mags[key]
-                continue
+            #if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+            #    del mags[key]
+            #    continue
  
             mags[key]["mej"] = mej0
             mags[key]["vej"] = vej0
@@ -300,9 +300,9 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
                 elif "Xlan1e" in keySplit[5]:
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
 
-            if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
-                del specs[key]
-                continue
+            #if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
+            #    del specs[key]
+            #    continue
 
             specs[key]["mej"] = mej0
             specs[key]["vej"] = vej0

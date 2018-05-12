@@ -116,6 +116,20 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Ka2017_A_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Xlan = 10**cube[3]
+    A = 10**cube[4]
+    zp = cube[5]
+
+    tmag, lbol, mag = Ka2017_A_model(mej,vej,Xlan,A)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
 def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej_1 = 10**cube[1]
@@ -630,6 +644,29 @@ def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
     zp = cube[12]
 
     tmag, lbol, mag = Ka2017_TrPi2018_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Ka2017_TrPi2018_A(cube, ndim, nparams):
+
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    Xlan = 10**cube[3]
+    theta_v = cube[4]
+    E0 = 10**cube[5]
+    theta_c = cube[6]
+    theta_w = cube[7]
+    n = 10**cube[8]
+    p = cube[9]
+    epsilon_E = 10**cube[10]
+    epsilon_B = 10**cube[11]
+    A = 10**cube[12]
+    zp = cube[13]
+
+    tmag, lbol, mag = Ka2017_TrPi2018_A_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, A)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
 

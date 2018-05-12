@@ -31,20 +31,20 @@ if not os.path.isdir(plotDir):
 
 errorbudget = 1.00
 
-plotDir1 = '../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_10/ejecta/GW170817/1.00/'
+plotDir1 = '../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/'
 pcklFile = os.path.join(plotDir1,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data1, tmag1, lbol1, mag1, t0_best1, zp_best1, n_params1, labels1, best1, truths1) = pickle.load(f)
 f.close()
 
-plotDir2 = '../plots/gws/TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_10/GW170817/1.00/'
-plotDir2 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_10/GW170817/1.00/'
+plotDir2 = '../plots/gws/TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/GW170817/1.00/'
+plotDir2 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/GW170817/1.00/'
 pcklFile = os.path.join(plotDir2,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data2, tmag2, lbol2, mag2, t0_best2, zp_best2, n_params2, labels2, best2, truths2) = pickle.load(f)
 f.close()
 
-plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_10/GW170817/1.00/'
+plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/GW170817/1.00/'
 pcklFile = os.path.join(plotDir3,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data3, tmag3, lbol3, mag3, t0_best3, zp_best3, n_params3, labels3, best3, truths3) = pickle.load(f)
