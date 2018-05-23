@@ -136,8 +136,8 @@ if opts.doEvent:
         data_out[str(T0)]["data"] = data_out[str(T0)]["data"]*distconv
         data_out[str(T0)]["error"] = data_out[str(T0)]["error"]*distconv
 
-        #data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=15)
-        #data_out[str(T0)]["error"] = scipy.signal.medfilt(data_out[str(T0)]["error"],kernel_size=15)
+        data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=15)
+        data_out[str(T0)]["error"] = scipy.signal.medfilt(data_out[str(T0)]["error"],kernel_size=15)
 
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
@@ -212,7 +212,7 @@ elif opts.analysisType == "multinest":
         # read multinest samples
         samples = KNTable.read_multinest_samples(multinest_sample, model) 
         samples_all[model] = samples
-if opts.analysisType == "single":
+elif opts.analysisType == "single":
     samples = {}
     samples['mej'] = opts.mej
     samples['vej'] = opts.vej 
@@ -304,8 +304,8 @@ for model in models:
             spec_all[model][key] = np.append(spec_all[model][key],[flux1],axis=0)
 
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
-color1 = 'coral'
-color2 = 'cornflowerblue'
+color2 = 'coral'
+color1 = 'cornflowerblue'
 colors_names=[color1,color2]
 
 plotName = "%s/spec_panels.pdf"%(plotDir)
@@ -387,9 +387,14 @@ for key, color in zip(keys,colors):
         legend_name = get_legend(model)
 
         lambdas = data_out[key]["lambda"]
-        specmed = np.percentile(spec_all[model][key], 50, axis=0)
-        specmax = np.percentile(spec_all[model][key], 90, axis=0)*(1-opts.errorbudget)
-        specmin = np.percentile(spec_all[model][key], 10, axis=0)*(1-opts.errorbudget)
+        if opts.analysisType == "single":
+            specmed = spec_all[model][key][0]
+            specmax = spec_all[model][key][0]*(1+opts.errorbudget)
+            specmin = spec_all[model][key][0]*(1-opts.errorbudget)
+        else:
+            specmed = np.nanpercentile(spec_all[model][key], 50, axis=0)
+            specmax = np.nanpercentile(spec_all[model][key], 90, axis=0)*(1+opts.errorbudget)
+            specmin = np.nanpercentile(spec_all[model][key], 10, axis=0)*(1-opts.errorbudget)
 
         plt.plot(lambdas,specmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(lambdas,specmin,'-',c=colors_names[ii],linewidth=4)

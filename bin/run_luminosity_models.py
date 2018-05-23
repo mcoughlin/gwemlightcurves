@@ -284,8 +284,10 @@ else:
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths, smooth=3, levels=[0.68, 0.95, 0.997])
-if n_params >= 8:
-    figure.set_size_inches(18.0,18.0)
+if n_params >= 10:
+    figure.set_size_inches(40.0,40.0)
+elif n_params >= 6:
+    figure.set_size_inches(22.0,22.0)
 else:
     figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)

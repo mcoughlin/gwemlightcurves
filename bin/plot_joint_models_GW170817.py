@@ -145,8 +145,8 @@ figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
 plt.close()
 
-print(np.percentile(q_gw,90))
-print(np.percentile(lambdatilde_gw,10))
+print("GW: %.5f EM: %.5f Combined: %.5f"%(np.percentile(q_gw,90),np.percentile(q_em,90),np.percentile(q_combined,90)))
+print("GW: %.5f EM: %.5f Combined: %.5f"%(np.percentile(lambdatilde_gw,10),np.percentile(lambdatilde_em,10),np.percentile(lambdatilde_combined,10)))
 
 q_percentiles = np.percentile(q_em,[10,50,90])
 lambdatilde_percentiles = np.percentile(lambdatilde_em,[10,50,90]) 
@@ -210,7 +210,7 @@ fig_height = fig_width*golden_mean      # height in inches
 fig_size =  [fig_width,fig_height]
 params = {'backend': 'pdf',
            'axes.labelsize': 17,
-           'text.fontsize': 17,
+           'font.size': 17,
            'legend.fontsize': 17,
            'xtick.labelsize': 17,
            'ytick.labelsize': 17,
@@ -245,7 +245,7 @@ for ii in xrange(len(bins)-1):
     bin_start, bin_end = bins[ii], bins[ii+1]
     val = hist1[ii]
     #g.ax_marg_x.fill_between([bin_start, bin_end],[0,0],[val,val],facecolor=color1,alpha=1.0)
-    g.ax_marg_x.plot([bin_start, bin_end],[val,val],color=color1,alpha=1.0)
+    #g.ax_marg_x.plot([bin_start, bin_end],[val,val],color=color1,alpha=1.0)
 
 bounds = [0,600]
 bins, hist1 = lightcurve_utils.hist_results(lambdatilde_gw,Nbins=25,bounds=bounds)
@@ -253,7 +253,7 @@ hist1 = 1500.0*hist1/np.max(hist1)
 for ii in xrange(len(bins)-1):
     bin_start, bin_end = bins[ii], bins[ii+1]
     val = hist1[ii]
-    g.ax_marg_y.plot([val,val],[bin_start, bin_end],color=color1,alpha=1.0)
+    #g.ax_marg_y.plot([val,val],[bin_start, bin_end],color=color1,alpha=1.0)
 
 for ii,eosname in enumerate(eosnames):
     lambdatildes = []

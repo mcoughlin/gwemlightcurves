@@ -171,7 +171,7 @@ else:
     exit(0)
 
 ModelPath = '%s/svdmodels'%(opts.outputDir)
-#ModelPath = '%s/svdmodels_remove'%(opts.outputDir)
+ModelPath = '%s/svdmodels_remove'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 

@@ -475,7 +475,7 @@ def multinest(opts,plotDir):
             tmag, lbol, mag = Ka2017_model(m1_best,mb1_best,c1_best,m2_best,mb2_best,c2_best,Xlan_best)
 
         elif opts.doEjecta:
-            t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], data[:,5], data[:,6]
+            t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], data[:,5]
             idx = np.argmax(loglikelihood)
             t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4]
             tmag, lbol, mag = Ka2017_model_ejecta(mej_best,vej_best,Xlan_best)

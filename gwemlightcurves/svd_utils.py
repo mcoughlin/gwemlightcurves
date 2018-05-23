@@ -322,7 +322,7 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
         if model == "BaKa2016":
             param_array.append([np.log10(specs[key]["mej"]),specs[key]["vej"]])
         elif model == "Ka2017":
-            param_array.append([np.log10(specs[key]["mej"]),np.log10(specs[key]["vej"]),np.log10(specs[key]["Xlan"])])
+            param_array.append([np.log10(specs[key]["mej"]),specs[key]["vej"],np.log10(specs[key]["Xlan"])])
         elif model == "RoFe2017":
             param_array.append([np.log10(specs[key]["mej"]),specs[key]["vej"],specs[key]["Ye"]])
 
@@ -523,11 +523,12 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
 
     for jj, t in enumerate(tt):
         spectra_back = np.log10(spec[:,jj])
+        spectra_back[~np.isfinite(spectra_back)] = -99.0
         if t < 7.0:
             spectra_back[1:-1] = scipy.signal.medfilt(spectra_back,kernel_size=5)[1:-1]
         else:
             spectra_back[1:-1] = scipy.signal.medfilt(spectra_back,kernel_size=5)[1:-1]
-        ii = np.where(spectra_back!=0)[0] 
+        ii = np.where((spectra_back!=0) & ~np.isnan(spectra_back))[0] 
         if len(ii) < 2:
             specinterp = np.nan*np.ones(lambdas.shape)
         else:

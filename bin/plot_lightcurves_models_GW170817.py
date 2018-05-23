@@ -55,8 +55,8 @@ magidxs = [0,1,2,3,4,5,6,7,8]
 tini, tmax, dt = 0.0, 21.0, 0.1    
 tt = np.arange(tini,tmax,dt)
 
-color1 = 'coral'
-color2 = 'cornflowerblue'
+color2 = 'coral'
+color1 = 'cornflowerblue'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))

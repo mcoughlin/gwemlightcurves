@@ -299,8 +299,8 @@ colors=cm.jet(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
-color1 = 'coral'
-color2 = 'cornflowerblue'
+color2 = 'coral'
+color1 = 'cornflowerblue'
 colors_names=[color1,color2]
 
 for model in models:

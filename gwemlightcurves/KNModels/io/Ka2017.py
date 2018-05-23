@@ -119,7 +119,7 @@ def get_Ka2017_model(table, **kwargs):
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),np.log10(table['vej'][isample]),np.log10(table['Xlan'][isample])],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Ka2017")
         elif doSpec:
-            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),np.log10(table['vej'][isample]),np.log10(table['Xlan'][isample])],svd_spec_model = svd_spec_model, model = "Ka2017")
+            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['vej'][isample],np.log10(table['Xlan'][isample])],svd_spec_model = svd_spec_model, model = "Ka2017")
 
     return table
 
