@@ -1,5 +1,5 @@
 
-import os, sys, glob
+import os, sys, glob, copy
 import pickle
 from time import time
 import optparse
@@ -86,6 +86,29 @@ def generate_spectra(model,samples):
         t, lambdas, spec = model_table["t"][0], model_table["lambda"][0], model_table["spec"][0]
         return t, lambdas, spec
 
+def myloglike_Ka2017x2_spec_ejecta_absorption(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    zp = cube[7]
+
+    prior = prior_2Component(Xlan_1,Xlan_2)
+    if prior == 0.0:
+        return -np.inf
+    prior = prior_2ComponentVel(vej_1,vej_2)
+    if prior == 0.0:
+        return -np.inf
+
+    t, lambdas, spec = Ka2017x2_model_spec_ejecta_absorption(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
+
+    prob = calc_prob_spec(t, lambdas, spec, t0, zp)
+
+    return prob
+
 def myloglike_Ka2017x2_spec_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej_1 = 10**cube[1]
@@ -121,6 +144,49 @@ def myloglike_Ka2017_spec_ejecta(cube, ndim, nparams):
     prob = calc_prob_spec(t, lambdas, spec, t0, zp)
 
     return prob
+
+def Ka2017x2_model_spec_ejecta_absorption(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
+
+    tini = 0.1
+    tmax = 14.0
+    dt = 1.0
+
+    lambdaini = 5000
+    lambdamax = 25000
+    dlambda = 500.0
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['lambdaini'] = lambdaini
+    samples['lambdamax'] = lambdamax
+    samples['dlambda'] = dlambda
+
+    model = "Ka2017"
+
+    samples['mej'] = mej_1
+    samples['vej'] = vej_1
+    samples['Xlan'] = Xlan_1
+    t, lambdas, spec1 = generate_spectra(model,samples)
+
+    samples['mej'] = mej_2
+    samples['vej'] = vej_2
+    samples['Xlan'] = Xlan_2
+    t, lambdas, spec2 = generate_spectra(model,samples)
+
+    idx1 = np.where(lambdas<=9000.0)[0]
+    idx2 = np.where(lambdas>9000.0)[0]
+
+    spec = np.zeros(spec1.shape)
+    ii = 0
+    for sp1, sp2 in zip(spec1.T,spec2.T):
+        #sp = np.max(np.vstack((sp1,sp2)),axis=0)
+        spec[idx1,ii] = sp2[idx1]
+        spec[idx2,ii] = sp1[idx2]
+        ii = ii + 1
+
+    return t, lambdas, spec
 
 def Ka2017x2_model_spec_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
 
@@ -197,9 +263,11 @@ def calc_prob_spec(t, lambdas, spec, t0, zp):
         flux1 = flux1*zp_factor
 
         if Global.doAbsorption:
-            lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(wav2,flux1[0])
-            flux1 = spec_lowpass/spec_envelope
-            chisquarevals = ((flux1-flux2)/sigma)**2
+            #lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(wav2,flux1[0])
+            #flux1 = spec_lowpass/spec_envelope
+            flux1 = flux1 / np.nanmax(flux1)
+            chisquarevals = ((flux1-flux2)/opts.errorbudget)**2
+            chisquarevals = chisquarevals[0]
         else:
             zp_factor = 10**(zp/-2.5)
             flux1 = flux1*zp_factor
@@ -294,9 +362,9 @@ for key in speckeys:
     specs[key]["f"] = f
 
 n_live_points = 100
-n_live_points = 10
+#n_live_points = 10
 evidence_tolerance = 0.5
-evidence_tolerance = 10
+#evidence_tolerance = 10
 max_iter = 0
 
 if opts.doModels:
@@ -405,17 +473,34 @@ elif opts.doAbsorption:
         data_out[str(T0)]["data"] = data_out[str(T0)]["data"][idx]
         data_out[str(T0)]["error"] = data_out[str(T0)]["error"][idx]
 
-        lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(data_out[str(T0)]["lambda"],data_out[str(T0)]["data"])
-        f = interp.interp1d(data_out[str(T0)]["lambda"],data_out[str(T0)]["error"], fill_value='extrapolate', kind = 'quadratic')
-        error = f(lambdas_lowpass)
-        data_out[str(T0)]["lambda"] = lambdas_lowpass
-        data_out[str(T0)]["data"] = spec_lowpass/spec_envelope
-        data_out[str(T0)]["error"] = error*data_out[str(T0)]["data"]
+        data_out[str(T0)]["data"] = data_out[str(T0)]["data"]*distconv
+        data_out[str(T0)]["error"] = data_out[str(T0)]["error"]*distconv
 
-        idx = np.where((data_out[str(T0)]["lambda"] >= 13000) & (data_out[str(T0)]["lambda"] <= 15000))[0]
-        data_out[str(T0)]["error"][idx] = np.inf
-        idx = np.where((data_out[str(T0)]["lambda"] >= 17900) & (data_out[str(T0)]["lambda"] <= 19700))[0]
-        data_out[str(T0)]["error"][idx] = np.inf
+        data_out[str(T0)]["data"] = scipy.signal.medfilt(data_out[str(T0)]["data"],kernel_size=15)
+        data_out[str(T0)]["error"] = scipy.signal.medfilt(data_out[str(T0)]["error"],kernel_size=15)
+
+        data_out[str(T0)]["lambda_orig"] = data_out[str(T0)]["lambda"]
+        data_out[str(T0)]["data_orig"] = data_out[str(T0)]["data"]
+        data_out[str(T0)]["error_orig"] = data_out[str(T0)]["error"]
+
+        valhold = copy.copy(data_out[str(T0)]["data"])
+        idx = np.where((13500<=data_out[str(T0)]["lambda"]) & (data_out[str(T0)]["lambda"]<=14500.0))[0]
+        valhold[idx] = 0.0
+        idx = np.where((18000.0<=data_out[str(T0)]["lambda"]) & (data_out[str(T0)]["lambda"]<=19500.0))[0]
+        valhold[idx] = 0.0
+        data_out[str(T0)]["data"] = data_out[str(T0)]["data"] / np.nanmax(valhold)
+      
+        #lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(data_out[str(T0)]["lambda"],data_out[str(T0)]["data"])
+        #f = interp.interp1d(data_out[str(T0)]["lambda"],data_out[str(T0)]["error"], fill_value='extrapolate', kind = 'quadratic')
+        #error = f(lambdas_lowpass)
+        #data_out[str(T0)]["lambda"] = lambdas_lowpass
+        #data_out[str(T0)]["data"] = spec_lowpass/spec_envelope
+        #data_out[str(T0)]["error"] = error*data_out[str(T0)]["data"]
+
+        #idx = np.where((data_out[str(T0)]["lambda"] >= 13000) & (data_out[str(T0)]["lambda"] <= 15000))[0]
+        #data_out[str(T0)]["error"][idx] = np.inf
+        #idx = np.where((data_out[str(T0)]["lambda"] >= 17900) & (data_out[str(T0)]["lambda"] <= 19700))[0]
+        #data_out[str(T0)]["error"][idx] = np.inf
 
 else:
     print "Must enable --doModels, --doAbsorption, or --doEvent"
@@ -434,7 +519,10 @@ elif opts.model == "Ka2017x2":
     parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","zp"]
     labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (Xlan_1)$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (Xlan_2)$","ZP"]
     n_params = len(parameters)
-    pymultinest.run(myloglike_Ka2017x2_spec_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+    if opts.doAbsorption:
+        pymultinest.run(myloglike_Ka2017x2_spec_ejecta_absorption, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+    else:
+        pymultinest.run(myloglike_Ka2017x2_spec_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
 else:
     print "Not implemented..."
     exit(0)
@@ -452,7 +540,11 @@ elif opts.model == "Ka2017x2":
     t0, mej_1, vej_1, Xlan_1, mej_2, vej_2, Xlan_2, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], 10**data[:,4], data[:,5], 10**data[:,6], data[:,7], data[:,8]
     idx = np.argmax(loglikelihood)
     t0_best, mej_1_best, vej_1_best, Xlan_1_best, mej_2_best, vej_2_best, Xlan_2_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], 10**data[idx,4], data[idx,5], 10**data[idx,6], data[idx,7]
-    t_best, lambdas_best, spec_best = Ka2017x2_model_spec_ejecta(mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best) 
+
+    if opts.doAbsorption:
+        t_best, lambdas_best, spec_best = Ka2017x2_model_spec_ejecta_absorption(mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best)
+    else:
+        t_best, lambdas_best, spec_best = Ka2017x2_model_spec_ejecta(mej_1_best,vej_1_best,Xlan_1_best,mej_2_best,vej_2_best,Xlan_2_best) 
 
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,True)
 
@@ -506,6 +598,18 @@ for ii,key in enumerate(keys):
         fid.write("%.5f %.5e\n"%(l,s))
     fid.close()
 
+if opts.doAbsorption:
+    for ii,key in enumerate(keys):
+        spec_best_dic[key]["lambda_orig"] = spec_best_dic[key]["lambda"]
+        spec_best_dic[key]["data_orig"] = spec_best_dic[key]["data"] 
+
+        spec_best_dic[key]["data"] = spec_best_dic[key]["data"] / np.nanmax(spec_best_dic[key]["data"])
+
+        #lambdas_lowpass, spec_lowpass, spec_envelope = lightcurve_utils.get_envelope(spec_best_dic[key]["lambda"],spec_best_dic[key]["data"])
+        #flux1 = spec_lowpass/spec_envelope
+        #spec_best_dic[key]["lambda"] = lambdas_lowpass
+        #spec_best_dic[key]["data"] = flux1
+
 plotName = "%s/spec.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for key in data_out.keys():
@@ -517,6 +621,19 @@ plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
 plt.grid()
 plt.savefig(plotName)
 plt.close()
+
+if opts.doAbsorption:
+    plotName = "%s/spec_absorption.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    for key in data_out.keys():
+        plt.semilogy(data_out[key]["lambda_orig"],data_out[key]["data_orig"],'r-',linewidth=2)
+        plt.semilogy(spec_best_dic[key]["lambda_orig"],spec_best_dic[key]["data_orig"],'k--',linewidth=2)
+    plt.xlabel(r'$\lambda [\AA]$',fontsize=24)
+    plt.ylabel('Fluence [erg/s/cm2/A]',fontsize=24)
+    #plt.legend(loc="best",prop={'size':16},numpoints=1)
+    plt.grid()
+    plt.savefig(plotName)
+    plt.close()
 
 keys = sorted(data_out.keys())
 colors=cm.rainbow(np.linspace(0,1,len(keys)))
@@ -535,24 +652,35 @@ for key, color in zip(keys,colors):
         #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
         ax2 = plt.subplot(len(keys),1,cnt,sharex=ax1,sharey=ax1)
 
-    plt.plot(data_out[key]["lambda"],np.log10(data_out[key]["data"]),'k--',linewidth=2)
-
     lambdas = spec_best_dic[key]["lambda"]
     specmed = spec_best_dic[key]["data"]
     specmin = spec_best_dic[key]["data"]/opts.errorbudget
     specmax = spec_best_dic[key]["data"]*opts.errorbudget
 
-    plt.plot(lambdas,np.log10(specmed),'--',c=color,linewidth=4)
-    plt.plot(lambdas,np.log10(specmin),'-',c=color,linewidth=4)
-    plt.plot(lambdas,np.log10(specmax),'-',c=color,linewidth=4)
-    plt.fill_between(lambdas,np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
+    if opts.doAbsorption:
+        plt.plot(data_out[key]["lambda"],data_out[key]["data"],'k--',linewidth=2)
+        plt.plot(lambdas,specmed,'--',c=color,linewidth=4)
 
-    plt.fill_between([13500.0,14500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
-    plt.fill_between([18000.0,19500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+        plt.fill_between([13000.0,15000.0],[0.0,0.0],[1.0,1.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+        plt.fill_between([17900.0,19700.0],[0.0,-100.0],[1.0,1.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+
+    else:
+        plt.plot(data_out[key]["lambda"],np.log10(data_out[key]["data"]),'k--',linewidth=2)
+
+        plt.plot(lambdas,np.log10(specmed),'--',c=color,linewidth=4)
+        plt.plot(lambdas,np.log10(specmin),'-',c=color,linewidth=4)
+        plt.plot(lambdas,np.log10(specmax),'-',c=color,linewidth=4)
+        plt.fill_between(lambdas,np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
+
+        plt.fill_between([13500.0,14500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+        plt.fill_between([18000.0,19500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
 
     plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
-    plt.xlim([4000, 25000])
-    plt.ylim([35.0,39.0])
+    plt.xlim([opts.lambdamin,opts.lambdamax])
+    if opts.doAbsorption:
+        plt.ylim([0.0,1.0])
+    else:
+        plt.ylim([35.0,39.0])
     plt.grid()
     plt.yticks(fontsize=36)
   
@@ -568,3 +696,50 @@ ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
 plt.savefig(plotName)
 plt.close()
 
+if opts.doAbsorption:
+    plotName = "%s/spec_panels_absorption.pdf"%(plotDir)
+    fig = plt.figure(figsize=(22,28))
+    
+    cnt = 0
+    for key, color in zip(keys,colors):
+        cnt = cnt+1
+        vals = "%d%d%d"%(len(keys),1,cnt)
+        if cnt == 1:
+            #ax1 = plt.subplot(eval(vals))
+            ax1 = plt.subplot(len(keys),1,cnt)
+        else:
+            #ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+            ax2 = plt.subplot(len(keys),1,cnt,sharex=ax1,sharey=ax1)
+     
+        lambdas = spec_best_dic[key]["lambda_orig"]
+        specmed = spec_best_dic[key]["data_orig"]
+        specmin = spec_best_dic[key]["data_orig"]/2.0
+        specmax = spec_best_dic[key]["data_orig"]*2.0
+    
+        plt.plot(data_out[key]["lambda_orig"],np.log10(data_out[key]["data_orig"]),'k--',linewidth=2)
+     
+        plt.plot(lambdas,np.log10(specmed),'--',c=color,linewidth=4)
+        plt.plot(lambdas,np.log10(specmin),'-',c=color,linewidth=4)
+        plt.plot(lambdas,np.log10(specmax),'-',c=color,linewidth=4)
+        plt.fill_between(lambdas,np.log10(specmin),np.log10(specmax),facecolor=color,edgecolor=color,alpha=0.2,linewidth=3)
+     
+        plt.fill_between([13500.0,14500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+        plt.fill_between([18000.0,19500.0],[-100.0,-100.0],[100.0,100.0],facecolor='0.5',edgecolor='0.5',alpha=0.2,linewidth=3)
+    
+        plt.ylabel('%.1f'%float(key),fontsize=48,rotation=0,labelpad=40)
+        plt.xlim([opts.lambdamin,opts.lambdamax])
+        plt.ylim([35.0,39.0])
+        plt.grid()
+        plt.yticks(fontsize=36)
+     
+        if (not cnt == len(keys)) and (not cnt == 1):
+            plt.setp(ax2.get_xticklabels(), visible=False)
+        elif cnt == 1:
+            plt.setp(ax1.get_xticklabels(), visible=False)
+        else:
+            plt.xticks(fontsize=36)
+    
+    ax1.set_zorder(1)
+    ax2.set_xlabel(r'$\lambda [\AA]$',fontsize=48,labelpad=30)
+    plt.savefig(plotName)
+    plt.close()

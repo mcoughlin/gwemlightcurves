@@ -6,7 +6,6 @@ import h5py
 import bisect
 from scipy.interpolate import interpolate as interp
 import scipy.signal
-import statsmodels.api as sm
 
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -14,6 +13,8 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+
+import statsmodels.api as sm
 
 def parse_commandline():
     """
@@ -176,6 +177,8 @@ def getMagSpecH5(filename,band,model,filtname):
     times = np.array(fin['time'])
     # covert time to days
     times = times/3600.0/24.0
+
+    print(times[1]-times[0])
 
     # specific luminosity (ergs/s/Hz) 
     # this is a 2D array, Lnu[times][nu]

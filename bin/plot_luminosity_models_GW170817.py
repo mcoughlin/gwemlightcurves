@@ -18,6 +18,8 @@ plt.rcParams['ytick.labelsize']=30
 
 import corner
 
+import pandas as pd
+
 import pymultinest
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
@@ -46,18 +48,20 @@ f.close()
 tmag1 = tmag1 + t0_best1
 tmag2 = tmag2 + t0_best2
 
-color1 = 'coral'
-color2 = 'cornflowerblue'
+color2 = 'coral'
+color1 = 'cornflowerblue'
 
 plotName = "%s/lbol.pdf"%(plotDir)
 fig = plt.figure(figsize=(15,10))
 
 t, y, sigma_y = data_out["tt"], data_out["Lbol"], data_out["Lbol_err"]
+sigma_y_up, sigma_y_down = data_out["Lbol_err_up"], data_out["Lbol_err_down"]
 idx = np.where(~np.isnan(y))[0]
 t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
 idx = np.where(sigma_y > y)[0]
 sigma_y[idx] = 0.99*y[idx]
-plt.errorbar(t,y,sigma_y,fmt='o',c='k')
+yerr = np.vstack((sigma_y_down, sigma_y_up))
+plt.errorbar(t,y,yerr,fmt='o',c='k')
 
 tini, tmax, dt = 0.0, 14.0, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -88,3 +92,6 @@ plt.grid()
 plt.savefig(plotName)
 plt.close()
 
+values = np.vstack((t,y,sigma_y_down, sigma_y_up))
+df = pd.DataFrame(values.T,columns=["Phase [days]","L [erg/s]","\sigma L^+ [erg/s]","\sigma L^- [erg/s]"])
+print(df.to_latex(index=False,formatters=[lambda x: '%.2f' %x,lambda x: '%.1e' %x,lambda x: '%.1e' %x,lambda x: '%.1e' %x]))
