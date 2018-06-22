@@ -105,7 +105,8 @@ elif opts.doSpec:
     tmax = 10.0
 
 lambdaini = 5000
-lambdaini = 3500
+#lambdaini = 3500
+#lambdaini = 4500
 lambdamax = 25000
 #dlambda = 50.0 
 dlambda = 500.0

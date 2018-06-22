@@ -19,6 +19,8 @@ from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves import __version__
 
+from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
+
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -30,16 +32,23 @@ def parse_commandline():
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
 
+    parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_max_8.txt")
+    parser.add_argument("--name",default="3G")
+    parser.add_argument("--mindistance",default=1.0,type=float)
+    parser.add_argument("--maxdistance",default=1000.0,type=float)
+
     parser.add_argument("-s","--spectraDir",default="../spectra")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_argument("--name",default="GW170817")
+    #parser.add_argument("--name",default="GW170817")
+    #parser.add_argument("--name",default="3G_1000")
 
-    parser.add_argument("-a","--analysisType",default="multinest")
+    parser.add_argument("-a","--analysisType",default="cbclist")
     #parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat,../plots/gws/Ka2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
     #parser.add_argument("-m","--model",default="Ka2017,Ka2017x2", help="Ka2017,Ka2017x2")
 
     parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
+    #parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
+    parser.add_argument("-m","--model",default="Me2017")
 
     parser.add_argument("--doEvent",  action="store_true", default=False)
     parser.add_argument("-e","--event",default="GW170817")
@@ -119,6 +128,8 @@ if opts.analysisType == "posterior":
     # limit masses
     samples = samples.mass_cut(mass1=3.0,mass2=3.0)
     
+    samples["dist"] = opts.distance   
+ 
     print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
     print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
     
@@ -156,7 +167,59 @@ elif opts.analysisType == "multinest":
     for multinest_sample, model in zip(multinest_samples,models):
         # read multinest samples
         samples = KNTable.read_multinest_samples(multinest_sample, model)
+        samples["dist"] = opts.distance
         samples_all[model] = samples
+elif opts.analysisType == "cbclist":
+
+    tmpfile = opts.cbc_list.replace(".txt",".tmp")
+    cnt = 0
+    lines = [line.rstrip('\n') for line in open(opts.cbc_list)]
+    fid = open(tmpfile,'w')
+    for line in lines:
+        lineSplit = line.split(" ")
+        dist = lineSplit[9]
+        if (float(dist) > opts.mindistance) and (float(dist) < opts.maxdistance):
+            fid.write('%s\n'%line)
+            cnt = cnt + 1
+        if cnt == opts.nsamples: break
+    fid.close()
+
+    # read in samples
+    samples = KNTable.read_cbc_list(tmpfile)
+    # limit masses
+    samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+
+    print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
+    print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
+
+    # Downsample 
+    #samples = samples.downsample(Nsamples=1000)
+
+    eosname = "SLy" 
+    eos = EOS4ParameterPiecewisePolytrope(eosname)
+    lambda1s, lambda2s = [], []
+    for row in samples:
+        lambda1, lambda2 = eos.lambdaofm(row["m1"]), eos.lambdaofm(row["m2"])
+        lambda1s.append(lambda1)
+        lambda2s.append(lambda2)
+    samples["lambda1"] = lambda1s
+    samples["lambda2"] = lambda2s
+    samples["Xlan"] = 1e-3
+
+    # Calc compactness
+    samples = samples.calc_compactness(fit=True)
+    # Calc baryonic mass
+    samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+
+    if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
+        from gwemlightcurves.EjectaFits.Di2018 import calc_meje, calc_vej
+        # calc the mass of ejecta
+        samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mb2'])
+        # calc the velocity of ejecta
+        samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+
+    # HACK: multiply by 10 to get full ejecta
+    samples['mej'] = samples['mej'] * 10.0
 
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
@@ -197,6 +260,9 @@ baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.name)
+if opts.analysisType == "cbclist":
+    plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
+
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 datDir = os.path.join(plotDir,"dat")
@@ -258,6 +324,11 @@ if opts.doEvent:
             data_out[key][:,0] = data_out[key][:,0] - opts.T0
             data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
 
+colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+color2 = 'coral'
+color1 = 'cornflowerblue'
+colors_names=[color1,color2]
+
 linestyles = ['-', '-.', ':','--','-']
 
 plotName = "%s/mag.pdf"%(plotDir)
@@ -292,16 +363,39 @@ cbar.set_label(r'Ejecta mass log10($M_{\odot}$)')
 plt.savefig(plotName)
 plt.close()
 
+bounds = [18,24]
+xlims = [15.0,25.0]
+ylims = [1e-2,1]
+
+plotName = "%s/appi.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["peak_appmag_i"],Nbins=25,bounds=bounds)
+    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+plt.xlabel(r"Apparent Magnitude [mag]",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.jet(np.linspace(0,1,len(filts)))
 magidxs = [0,1,2,3,4,5,6,7,8]
 
-colors_names=cm.rainbow(np.linspace(0,1,len(models)))
-color2 = 'coral'
-color1 = 'cornflowerblue'
-colors_names=[color1,color2]
+for model in models:
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        fid = open(os.path.join(datDir,'%s_%s_list.dat'%(model,filt)),'w')
+        for row in model_tables[model]:
+            q = np.max([row["m1"]/row["m2"],row["m2"]/row["m1"]])
+            fid.write("%.5f %.5f %.5f %.5f %.5f\n"%(q,row["dist"],row["peak_tt_%s"%filt],row["peak_mag_%s"%filt],row["peak_appmag_%s"%filt]))
+        fid.close()  
 
 for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):

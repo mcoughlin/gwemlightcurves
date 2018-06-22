@@ -41,6 +41,7 @@ def parse_commandline():
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--doAbsorption",  action="store_true", default=False)
+    parser.add_option("--doSplit",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     #parser.add_option("--T0",default="1,2,3,4,5,6,7")
     parser.add_option("--T0",default="57982.5285236896")
@@ -320,6 +321,8 @@ if opts.doModels:
     basename = 'models_spec'
 elif opts.doAbsorption:
     basename = 'abs_spec'
+elif opts.doSplit:
+    basename = 'spl_spec'
 else:
     basename = 'gws_spec'
 plotDir = os.path.join(baseplotDir,basename)
@@ -406,6 +409,10 @@ elif opts.doEvent:
         filenames.append(filename)
         mjd = Time(lineSplit[2], format='isot').mjd
         T0s.append(mjd-float(opts.T0))
+
+    if opts.doSplit:
+        filenames = filenames[1:3]
+        T0s = T0s[1:3]
 
     #filenames = filenames[:7]
     #T0s = T0s[:7]
@@ -520,6 +527,8 @@ elif opts.model == "Ka2017x2":
     labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (Xlan_1)$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (Xlan_2)$","ZP"]
     n_params = len(parameters)
     if opts.doAbsorption:
+        pymultinest.run(myloglike_Ka2017x2_spec_ejecta_absorption, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+    elif opts.doSplit:
         pymultinest.run(myloglike_Ka2017x2_spec_ejecta_absorption, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
     else:
         pymultinest.run(myloglike_Ka2017x2_spec_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)

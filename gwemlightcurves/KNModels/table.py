@@ -221,6 +221,39 @@ class KNTable(Table):
 
 		return KNTable(data_out)
 
+        @classmethod
+        def read_cbc_list(cls, filename_samples):
+                """
+                Read CBC list
+                """
+                import os
+                if not os.path.isfile(filename_samples):
+                        raise ValueError("Sample file supplied does not exist")
+
+                data_out = Table.read(filename_samples, format='ascii',
+                                      names = ("idx","type","t0","tc","m1",
+                                               "m2","Xi1",
+                                               "Xi2","z","dist","ra",
+                                               "decl","polarization",
+                                               "inclination","phase at t0",
+                                               "snrET","snrCE","snr3G"))
+
+                if 'm1_source' in list(data_out.columns):
+                        data_out['m1'] = data_out['m1_source']
+                        print 'setting m1 to m1_source'
+                if 'm2_source' in list(data_out.columns):
+                        data_out['m2'] = data_out['m2_source']
+                        print 'setting m2 to m2_source'
+
+                if 'dlam_tilde' in list(data_out.columns):
+                        data_out['dlambdat'] = data_out['dlam_tilde']
+                        print 'setting dlambdat to dlam_tilde'
+                if 'lam_tilde' in list(data_out.columns):
+                        data_out['lambdat'] = data_out['lam_tilde']
+                        print 'setting lambdat to lam_tilde'
+
+                return KNTable(data_out)
+
 	@classmethod
 	def read_multinest_samples(cls, filename_samples, model):
 		"""
