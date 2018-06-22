@@ -36,7 +36,7 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
-    parser.add_option("-n","--name",default="PS1-13cyr")
+    parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
