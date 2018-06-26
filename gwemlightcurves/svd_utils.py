@@ -12,8 +12,8 @@ from gwemlightcurves import lightcurve_utils, Global
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
 
-import george
-from george import kernels
+#import george
+#from george import kernels
 
 def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
