@@ -477,7 +477,7 @@ def hist_results(samples,Nbins=16,bounds=None):
     else:
         bins = np.linspace(np.min(samples),np.max(samples),Nbins)
     hist1, bin_edges = np.histogram(samples, bins=bins, density=True)
-    hist1[hist1==0.0] = 1e-3
+    hist1[hist1==0.0] = 1e-10
     #hist1 = hist1 / float(np.sum(hist1))
     bins = (bins[1:] + bins[:-1])/2.0
 
@@ -610,6 +610,7 @@ def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], mag
             if len(idx) == 0:
                 model_table_tts[filt].append(np.nan)
                 model_table_mags[filt].append(np.nan)
+                model_table_appmags[filt].append(np.nan)
             else:
                 ii = np.argmin(mag[magidx][idx])
                 model_table_tts[filt].append(t[idx][ii])
