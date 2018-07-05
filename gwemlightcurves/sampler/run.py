@@ -15,7 +15,7 @@ def multinest(opts,plotDir):
     max_iter = 0
     best = []
 
-    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017"]:
+    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017"]:
     
         if opts.doMasses:
             if opts.model == "KaKy2016":
@@ -157,6 +157,11 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\alpha$",r"${\rm log}_{10} \kappa_{\rm r}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Me2017_ejecta, myprior_Me2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Me2017_A":
+                parameters = ["t0","mej","vej","beta","kappa_r","zp","A"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"$\alpha$",r"${\rm log}_{10} \kappa_{\rm r}$","A","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Me2017_A_ejecta, myprior_Me2017_A_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Me2017x2":
                 parameters = ["t0","mej1","vej1","beta1","kappa_r1","mej2","vej2","beta2","kappa_r2","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"$\alpha_1$",r"${\rm log}_{10} \kappa_{\rm r 1}$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"$\alpha_2$",r"${\rm log}_{10} \kappa_{\rm r 2}$","ZP"]
@@ -615,7 +620,28 @@ def multinest(opts,plotDir):
             zp_best = data[idx,5]
     
             tmag, lbol, mag = Me2017_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best)
-   
+  
+    elif opts.model == "Me2017_A":
+        t0 = data[:,0]
+        mej = 10**data[:,1]
+        vej = data[:,2]
+        beta = data[:,3]
+        kappa_r = 10**data[:,4]
+        A = 10**data[:,5]
+        zp = data[:,6]
+        loglikelihood = data[:,6]
+        idx = np.argmax(loglikelihood)
+
+        t0_best = data[idx,0]
+        mej_best = 10**data[idx,1]
+        vej_best = data[idx,2]
+        beta_best = data[idx,3]
+        kappa_r_best = 10**data[idx,4]
+        A_best = 10**data[idx,5]
+        zp_best = data[idx,6]
+
+        tmag, lbol, mag = Me2017_A_model_ejecta(mej_best,vej_best,beta_best,kappa_r_best,A_best)
+ 
     elif opts.model == "Me2017x2":
         if opts.doEjecta:
             t0 = data[:,0]

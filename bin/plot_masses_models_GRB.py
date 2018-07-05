@@ -82,8 +82,10 @@ for grb, dataDirKN, dataDirKNAG in zip(grbs,dataDirsKN,dataDirsKNAG):
 
 tt = np.arange(tini,tmax+dt,dt)
 colors = ['coral','cornflowerblue','palegreen','goldenrod']
+colors = ['coral','cornflowerblue','limegreen','goldenrod']
 plotName = "%s/mag_panels.pdf"%(plotDir)
-plt.figure(figsize=(20,28))
+#plt.figure(figsize=(20,28))
+plt.figure(figsize=(20,36))
 
 cnt = 0
 for filt in filts:
@@ -103,8 +105,8 @@ for filt in filts:
             magmin = data_out[grb]["KN_med"][filt]["10"]
 
             plt.plot(tt,magmed,'--',c=colors[ii],linewidth=4,label=legend_name)
-            plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
-            plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
             plt.fill_between(tt,magmin,magmax,facecolor=colors[ii],edgecolor=colors[ii],alpha=0.2,linewidth=3)
 
         if "KNAG_med" in data_out[grb]:
@@ -113,8 +115,8 @@ for filt in filts:
             magmin = data_out[grb]["KNAG_med"][filt]["10"]
 
             plt.plot(tt,magmed,'--',c=colors[ii],linewidth=4,label=legend_name)
-            plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
-            plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
             plt.fill_between(tt,magmin,magmax,facecolor=colors[ii],edgecolor=colors[ii],alpha=0.2,linewidth=3)
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 14.0])

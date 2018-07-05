@@ -32,7 +32,9 @@ def parse_commandline():
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
 
-    parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_max_8.txt")
+    parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_median_12.txt")
+    parser.add_argument("--cbc_type", default="BNS")
+
     parser.add_argument("--name",default="3G")
     parser.add_argument("--mindistance",default=1.0,type=float)
     parser.add_argument("--maxdistance",default=1000.0,type=float)
@@ -172,22 +174,23 @@ elif opts.analysisType == "multinest":
 elif opts.analysisType == "cbclist":
 
     tmpfile = opts.cbc_list.replace(".txt",".tmp")
-    cnt = 0
+    cbccnt = 0
     lines = [line.rstrip('\n') for line in open(opts.cbc_list)]
     fid = open(tmpfile,'w')
     for line in lines:
         lineSplit = line.split(" ")
         dist = lineSplit[9]
         if (float(dist) > opts.mindistance) and (float(dist) < opts.maxdistance):
-            fid.write('%s\n'%line)
-            cnt = cnt + 1
-        if cnt == opts.nsamples: break
+            if cbccnt <= opts.nsamples:
+                fid.write('%s\n'%line)
+            cbccnt = cbccnt + 1
     fid.close()
-
+    cbcratio = float(cbccnt)/float(len(lines))
+    
     # read in samples
     samples = KNTable.read_cbc_list(tmpfile)
     # limit masses
-    samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+    #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
 
     print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
     print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
@@ -212,14 +215,27 @@ elif opts.analysisType == "cbclist":
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
 
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
-        from gwemlightcurves.EjectaFits.Di2018 import calc_meje, calc_vej
-        # calc the mass of ejecta
-        samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mb2'])
-        # calc the velocity of ejecta
-        samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+        if opts.cbc_type == "BNS":
+            from gwemlightcurves.EjectaFits.Di2018 import calc_meje, calc_vej
+            # calc the mass of ejecta
+            samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mb2'])
+            # calc the velocity of ejecta
+            samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+        elif opts.cbc_type == "BHNS":
+            samples['chi_eff'] = 1.0
+            from gwemlightcurves.EjectaFits.KaKy2016 import calc_meje, calc_vave
+            # calc the mass of ejecta
+            samples['mej'] = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['mb1'], samples['m1'])
+            # calc the velocity of ejecta
+            samples['vej'] = calc_vave(samples['q'])
 
     # HACK: multiply by 10 to get full ejecta
     samples['mej'] = samples['mej'] * 10.0
+
+    idx = np.where(samples['mej']>0.1)[0]
+    samples['mej'][idx] = 0.1
+
+    print(np.min(samples['mej']),np.max(samples['mej']))
 
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
@@ -261,6 +277,7 @@ plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.name)
 if opts.analysisType == "cbclist":
+    plotDir = os.path.join(plotDir,opts.cbc_type)
     plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
 
 if not os.path.isdir(plotDir):
@@ -268,6 +285,11 @@ if not os.path.isdir(plotDir):
 datDir = os.path.join(plotDir,"dat")
 if not os.path.isdir(datDir):
     os.makedirs(datDir)
+
+if opts.analysisType == "cbclist":
+    fid = open(os.path.join(plotDir,'cbcratio.dat'),'w')
+    fid.write('%d %.10f'%(cbccnt,cbcratio))
+    fid.close()    
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
@@ -363,8 +385,8 @@ cbar.set_label(r'Ejecta mass log10($M_{\odot}$)')
 plt.savefig(plotName)
 plt.close()
 
-bounds = [18,24]
-xlims = [15.0,25.0]
+bounds = [15,35]
+xlims = [15.0,35.0]
 ylims = [1e-2,1]
 
 plotName = "%s/appi.pdf"%(plotDir)
@@ -380,6 +402,29 @@ plt.xticks(fontsize=24)
 plt.yticks(fontsize=24)
 plt.xlim(xlims)
 plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
+bounds = [15,35]
+xlims = [15.0,35.0]
+ylims = [1,100000]
+
+plotName = "%s/rates.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["peak_appmag_i"],Nbins=25,bounds=bounds)
+    hist1_cumsum = float(cbccnt)*hist1 / np.sum(hist1)
+    hist1_cumsum = np.cumsum(hist1_cumsum)
+    plt.semilogy(bins,hist1_cumsum,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+
+plt.xlabel(r"Apparent Magnitude [mag]",fontsize=24)
+plt.ylabel("Rate of apparent magnitude [per year]",fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+#plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 

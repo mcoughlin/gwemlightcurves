@@ -252,6 +252,9 @@ class KNTable(Table):
                         data_out['lambdat'] = data_out['lam_tilde']
                         print 'setting lambdat to lam_tilde'
 
+                data_out['chi_eff'] = (data_out['m1']*data_out['Xi1']+data_out['m1']*data_out['Xi1'])/(data_out['m1']+data_out['m2'])
+                data_out['q'] = data_out['m2'] / data_out['m1']
+
                 return KNTable(data_out)
 
 	@classmethod

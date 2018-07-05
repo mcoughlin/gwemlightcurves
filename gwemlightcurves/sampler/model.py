@@ -540,3 +540,12 @@ def Ka2017_A_model(mej,vej,Xlan,A):
 
     return tmag, lbol, mag
 
+def Me2017_A_model(mej,vej,beta,kappa_r,A):
+
+    tmag, lbol, mag = Me2017_model_ejecta(mej,vej,beta,kappa_r)
+
+    dm = -2.5*np.log10(A)
+    mag = mag + dm
+    lbol = lbol*A
+
+    return tmag, lbol, mag
