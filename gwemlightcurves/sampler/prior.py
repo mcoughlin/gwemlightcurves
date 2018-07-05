@@ -171,12 +171,24 @@ def myprior_SmCh2017_EOSFit(cube, ndim, nparams):
 
 def myprior_Me2017_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
-        cube[1] = cube[1]*4.0 - 5.0
+        #cube[1] = cube[1]*4.0 - 5.0
+        cube[1] = cube[1]*6.0 - 5.0
         cube[2] = cube[2]*0.3
         #cube[2] = cube[2]*1.0
         cube[3] = cube[3]*4.0 + 1.0
         cube[4] = cube[4]*3.0 - 1.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
+
+def myprior_Me2017_A_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*4.0 - 5.0
+        cube[1] = cube[1]*6.0 - 5.0
+        cube[2] = cube[2]*0.3
+        #cube[2] = cube[2]*1.0
+        cube[3] = cube[3]*4.0 + 1.0
+        cube[4] = cube[4]*3.0 - 1.0
+        cube[5] = cube[5]*10.0
+        cube[6] = cube[6]*2*Global.ZPRange - Global.ZPRange
 
 def myprior_Me2017x2_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range

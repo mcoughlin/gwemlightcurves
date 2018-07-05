@@ -34,13 +34,19 @@ class EOS4ParameterPiecewisePolytrope(object):
     def radiusofm(self, m):
         """Radius in km.
         """
-        r_SI = lalsimulation.SimNeutronStarRadius(m*lal.MSUN_SI, self.fam)
-        return r_SI/1000.0
+        try:
+            r_SI = lalsimulation.SimNeutronStarRadius(m*lal.MSUN_SI, self.fam)
+            return r_SI/1000.0
+        except:
+            return -1
 
     def k2ofm(self, m):
         """Dimensionless Love number.
         """
-        return lalsimulation.SimNeutronStarLoveNumberK2(m*lal.MSUN_SI, self.fam)
+        try:
+            return lalsimulation.SimNeutronStarLoveNumberK2(m*lal.MSUN_SI, self.fam)
+        except:
+            return -1
 
     def lambdaofm(self, m):
         """Dimensionless tidal deformability.

@@ -291,6 +291,21 @@ def myloglike_Me2017_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Me2017_A_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]
+    beta = cube[3]
+    kappa_r = 10**cube[4]
+    A = 10**cube[5]
+    zp = cube[6]
+
+    tmag, lbol, mag = Me2017_A_model(mej,vej,beta,kappa_r,A)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
 def myloglike_Me2017x2_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej_1 = 10**cube[1]
@@ -803,7 +818,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             if np.isnan(chisquaresum):
                 chisquare = np.nan
                 break
-
+   
             if not float(len(chisquarevals)-1) == 0:
                 chisquaresum = (1/float(len(chisquarevals)-1))*chisquaresum
 
