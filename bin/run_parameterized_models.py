@@ -50,6 +50,14 @@ def parse_commandline():
     parser.add_option("--slope_r",default=-1.2,type=float)
     parser.add_option("--Xlan",default=1e-3,type=float)
     parser.add_option("--Ye",default=0.25,type=float)
+
+    parser.add_option("--mej1",default=0.05,type=float)
+    parser.add_option("--vej1",default=0.2,type=float)
+    parser.add_option("--Xlan1",default=1e-3,type=float)
+    parser.add_option("--mej2",default=0.05,type=float)
+    parser.add_option("--vej2",default=0.2,type=float)
+    parser.add_option("--Xlan2",default=1e-3,type=float)
+
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
@@ -80,6 +88,13 @@ kappa_r = opts.kappa_r
 slope_r = opts.slope_r
 Xlan = opts.Xlan
 Ye = opts.Ye
+
+mej1 = opts.mej1
+vej1 = opts.vej1
+Xlan1 = opts.Xlan1
+mej2 = opts.mej2
+vej2 = opts.vej2
+Xlan2 = opts.Xlan2
 
 if opts.eos == "APR4":
     c = 0.180
@@ -154,6 +169,13 @@ samples['theta_r'] = theta_r
 samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs
+
+samples['mej_1'] = mej1
+samples['vej_1'] = vej1
+samples['Xlan_1'] = Xlan1
+samples['mej_2'] = mej2
+samples['vej_2'] = vej2
+samples['Xlan_2'] = Xlan2
 
 if opts.doEjecta:
     samples['mej'] = opts.mej
@@ -250,6 +272,14 @@ elif opts.model == "Ka2017":
     else:
         print "Enable --doEjecta or --doMasses"
         exit(0)
+elif opts.model == "Ka2017x2":
+    if opts.doEjecta:
+        name = "Ka2017x2_M%03dV%02dX%d_M%03dV%02dX%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2))
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+    else:
+        print "Enable --doEjecta or --doMasses"
+        exit(0)
 elif opts.model == "RoFe2017":
     if opts.doEjecta:
         name = "FoFe2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Ye))
@@ -278,7 +308,7 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, SN, Afterglow"
+   print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow"
    exit(0)
 
 if opts.doAB:
@@ -359,8 +389,6 @@ if opts.doAB:
     
         magave1 = mag[magidx,:]
         magave2 = mag_d_comparison[filt]
-
-        print(magave1,magave2)
 
         ii = np.where(~np.isnan(magave1))[0]
         f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')

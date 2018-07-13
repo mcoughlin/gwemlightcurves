@@ -50,7 +50,7 @@ def get_Ka2017x2_model(table, **kwargs):
     # calc lightcurve for each sample
     for isample in range(len(table)):
         if doAB:
-            table['t'][isample], table['lbol'][isample], table['mag'][isample] = table1['t'][isample], table1['lbol'][isample] + table2['lbol'][isample], -2.5*log10(10**(-table1['mag'][isample]*0.4) + 10**(-table2['mag'][isample]*0.4))
+            table['t'][isample], table['lbol'][isample], table['mag'][isample] = table1['t'][isample], table1['lbol'][isample] + table2['lbol'][isample], -2.5*np.log10(10**(-table1['mag'][isample]*0.4) + 10**(-table2['mag'][isample]*0.4))
         elif doSpec:
             table['t'][isample], table['lambda'][isample], table['spec'][isample] = table1['t'][isample], table1['lambda'][isample], table1['spec'][isample] + table2['spec'][isample]
 
