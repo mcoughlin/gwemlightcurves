@@ -144,6 +144,7 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
     if prior == 0.0:
         return -np.inf
     prior = prior_2ComponentVel(vej_1,vej_2)
+    #prior = prior_2ComponentVel(vej_2,vej_1)
     if prior == 0.0:
         return -np.inf
 
