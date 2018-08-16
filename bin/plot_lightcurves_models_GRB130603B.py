@@ -25,6 +25,8 @@ from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
 from gwemlightcurves import lightcurve_utils, Global
 
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
 plotDir = '../plots/gws/GRB130603B'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
@@ -93,12 +95,12 @@ tt = np.arange(tini,tmax,dt)
 
 color1 = 'coral'
 color2 = 'cornflowerblue'
-color3 = 'palegreen'
+color3 = 'forestgreen'
 color4 = 'darkmagenta'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
-#plt.figure(figsize=(20,18))
-plt.figure(figsize=(20,28))
+#plt.figure(figsize=(20,28))
+plt.figure(figsize=(28,28))
 
 tini, tmax, dt = 0.0, 14.0, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -130,56 +132,61 @@ for filt, color in zip(filts,colors):
     magave3 = lightcurve_utils.get_mag(mag3,filt)
     magave4 = lightcurve_utils.get_mag(mag4,filt)
 
+    frac = 0.10
     ii = np.where(~np.isnan(magave1))[0]
     f = interp.interp1d(tmag1[ii], magave1[ii], fill_value='extrapolate')
     maginterp1 = f(tt)
+    maginterp1 = lowess(maginterp1.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
     plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='Kilonova')
-    plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
-    plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
+    #plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
+    #plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
     plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
 
     ii = np.where(~np.isnan(magave2))[0]
     f = interp.interp1d(tmag2[ii], magave2[ii], fill_value='extrapolate')
     maginterp2 = f(tt)
-    plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='Afterglow')
-    plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
-    plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+    maginterp2 = lowess(maginterp2.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
+    plt.plot(tt,maginterp2+zp_best2,'-',c=color2,linewidth=2,label='Afterglow')
+    #plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+    #plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
     plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
 
     ii = np.where(~np.isnan(magave3))[0]
     f = interp.interp1d(tmag3[ii], magave3[ii], fill_value='extrapolate')
     maginterp3 = f(tt)
-    plt.plot(tt,maginterp3+zp_best3,'--',c=color3,linewidth=2,label='Kilonova+Afterglow')
-    plt.plot(tt,maginterp3+zp_best3-errorbudget,'-',c=color3,linewidth=2)
-    plt.plot(tt,maginterp3+zp_best3+errorbudget,'-',c=color3,linewidth=2)
+    maginterp3 = lowess(maginterp3.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
+    plt.plot(tt,maginterp3+zp_best3,'-',c=color3,linewidth=2,label='Kilonova+Afterglow')
+    #plt.plot(tt,maginterp3+zp_best3-errorbudget,'-',c=color3,linewidth=2)
+    #plt.plot(tt,maginterp3+zp_best3+errorbudget,'-',c=color3,linewidth=2)
     plt.fill_between(tt,maginterp3+zp_best3-errorbudget,maginterp3+zp_best3+errorbudget,facecolor=color3,alpha=0.2)
 
     ii = np.where(~np.isnan(magave4))[0]
     f = interp.interp1d(tmag4[ii], magave4[ii], fill_value='extrapolate')
-    maginterp4 = f(tt)
+    maginterp4 = f(tt) 
+    maginterp4 = lowess(maginterp4.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
     plt.plot(tt,maginterp4+zp_best4,'--',c=color4,linewidth=2,label='Kilonova part')
-    plt.plot(tt,maginterp4+zp_best4-errorbudget,'-',c=color4,linewidth=2)
-    plt.plot(tt,maginterp4+zp_best4+errorbudget,'-',c=color4,linewidth=2)
+    #plt.plot(tt,maginterp4+zp_best4-errorbudget,'-',c=color4,linewidth=2)
+    #plt.plot(tt,maginterp4+zp_best4+errorbudget,'-',c=color4,linewidth=2)
     plt.fill_between(tt,maginterp4+zp_best4-errorbudget,maginterp4+zp_best4+errorbudget,facecolor=color4,alpha=0.2)
 
-    plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+    plt.ylabel('%s'%filt,fontsize=28,rotation=0,labelpad=48)
     plt.xlim([0.0, 10.0])
-    plt.ylim([-22.0,-14.0])
+    plt.ylim([-22.0,-10.0])
     plt.gca().invert_yaxis()
-    plt.grid()
+    plt.grid(alpha=1.0,linewidth=3)
 
     if cnt == 1:
-        ax1.set_yticks([-22,-20,-18,-16,-14])
+        ax1.set_yticks([-22,-18,-14,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=2, prop={'size':38})
+                mode="expand", borderaxespad=0, ncol=4, prop={'size':36})
     elif not cnt == len(filts):
         plt.setp(ax2.get_xticklabels(), visible=False)
     plt.xticks(fontsize=32)
     plt.yticks(fontsize=32)
 
 ax1.set_zorder(1)
-plt.xlabel('Time [days]',fontsize=48)
+plt.xlabel('Rest frame time since burst [days]',fontsize=48)
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
