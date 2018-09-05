@@ -203,17 +203,31 @@ if opts.doAB:
             plt.plot([3,5],[lim_mag,lim_mag],'k')
             plt.text(3,lim_mag-0.5,'HST F336W')
         elif filt == "J":
-            lim_mag = -10
-            days = [5,10,20]
-            for day in days:
-                plt.plot(day,lim_mag,'ko')
-                plt.text(day-1,lim_mag-0.5,'HST F110W')
+            app_mag = 26.0
+            distance = 100.0
+            lim_mag = app_mag - 5*(np.log10(distance*1e6) - 1)
+            plt.plot(5,lim_mag,'ko')
+            plt.text(5-1,lim_mag-0.5,'HST F110W')
+            plt.plot(10,lim_mag,'ko')
+            plt.text(10-1,lim_mag-0.5,'HST F110W')
+            app_mag = 27.0
+            distance = 100.0
+            lim_mag = app_mag - 5*(np.log10(distance*1e6) - 1)
+            plt.plot(20,lim_mag,'ko')
+            plt.text(20-1,lim_mag-0.5,'HST F110W')
         elif filt == "H":
-            lim_mag = -10
-            days = [5,10,20]
-            for day in days:
-                plt.plot(day,lim_mag,'ko')
-                plt.text(day-1,lim_mag-0.5,'HST F160W')
+            app_mag = 25.5
+            distance = 100.0
+            lim_mag = app_mag - 5*(np.log10(distance*1e6) - 1)
+            plt.plot(5,lim_mag,'ko')
+            plt.text(5-1,lim_mag-0.5,'HST F160W')
+            plt.plot(10,lim_mag,'ko')
+            plt.text(10-1,lim_mag-0.5,'HST F160W')
+            app_mag = 26.5
+            distance = 100.0
+            lim_mag = app_mag - 5*(np.log10(distance*1e6) - 1)
+            plt.plot(20,lim_mag,'ko')
+            plt.text(20-1,lim_mag-0.5,'HST F160W')
 
         if opts.doCadence:
             for c in cadence:
@@ -228,7 +242,7 @@ if opts.doAB:
         if cnt == 1:
             ax1.set_yticks([-18,-16,-14,-12,-10,-8])
             plt.setp(ax1.get_xticklabels(), visible=False)
-            l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
+            #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         elif not cnt == len(filts):
             plt.setp(ax2.get_xticklabels(), visible=False)
         plt.xticks(fontsize=28)

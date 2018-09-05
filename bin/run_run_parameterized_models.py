@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, pickle
 import glob
 import numpy as np
 
@@ -43,6 +43,11 @@ for mej2 in mej2s:
     data_out = np.loadtxt(filename)
     data[name] = mag_d
     legend_names[name] = "%.3f"%mej2  
+
+pcklFile = "%s/data.pkl"%(plotDir)
+f = open(pcklFile, 'wb')
+pickle.dump((data), f)
+f.close()
 
 filts = ["u","g","r","i","z","y","J","H","K"]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
