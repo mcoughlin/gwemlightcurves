@@ -64,7 +64,7 @@ tt = np.arange(tini,tmax,dt)
 
 color1 = 'coral'
 color2 = 'cornflowerblue'
-color3 = 'palegreen'
+color3 = 'forestgreen'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))
@@ -141,6 +141,6 @@ for filt, color in zip(filts,colors):
     plt.yticks(fontsize=32)
 
 ax1.set_zorder(1)
-plt.xlabel('Time [days]',fontsize=48)
+plt.xlabel('Rest frame time since burst [days]',fontsize=48)
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()

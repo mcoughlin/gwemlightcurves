@@ -151,7 +151,7 @@ for filt in filts:
         plt.setp(ax2.get_xticklabels(), visible=False)
 
 ax1.set_zorder(1)
-ax2.set_xlabel('Time [days]',fontsize=48,labelpad=30)
+ax2.set_xlabel('Rest frame time since burst [days]',fontsize=48,labelpad=30)
 plt.savefig(plotName)
 plt.close()
 

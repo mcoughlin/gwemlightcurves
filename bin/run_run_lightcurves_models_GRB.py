@@ -18,6 +18,7 @@ def parse_commandline():
 opts = parse_commandline()
 
 errorbudget = 0.01
+errorbudget = 1.00
 
 filename = "../lightcurves/GRB.dat"
 lines = [line.rstrip('\n') for line in open(filename)]
@@ -31,50 +32,58 @@ for line in lines:
         dist = float(lineSplit[3])
         break
 
+if grb in ["GRB061201","GRB050509B","GRB080905A","GRB050709"]:
+    doExtrapolate = "--doWaveformExtrapolate"
+else:
+    doExtrapolate = ""
+
 model = "Ka2017"
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta"%(model,grb,dist,mjd,filts,errorbudget)
-#os.system(system_command)
+system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
+print(system_command)
+#print(stop)
+os.system(system_command)
 
 model = "TrPi2018"
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta"%(model,grb,dist,mjd,filts,errorbudget)
-#os.system(system_command)
+system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
+os.system(system_command)
 
 model = "Ka2017_TrPi2018"
-system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta"%(model,grb,dist,mjd,filts,errorbudget)
+system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
 #print system_command
-#os.system(system_command)
+os.system(system_command)
+print(stop)
 
 lambdamin, lambdamax = 0, 500
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 0, 1000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 0, 2000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 200, 500
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 200, 1000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 200, 2000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 200, 2000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 lambdamin, lambdamax = 0, 5000
 system_command = "python run_fitting_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --filters %s --errorbudget %.2f --doFixZPT0 --lambdamin %.0f --lambdamax %.0f --doJoint --doLightcurves"%(model,grb,filts,errorbudget,lambdamin, lambdamax)
-os.system(system_command)
+#os.system(system_command)
 
 print system_command
 
