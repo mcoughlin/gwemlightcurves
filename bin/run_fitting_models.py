@@ -57,6 +57,7 @@ def parse_commandline():
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("--doJoint",  action="store_true", default=False)
     parser.add_option("--doJointLambda",  action="store_true", default=False)
+    parser.add_option("--doJointDisk",  action="store_true", default=False)
     parser.add_option("--doLoveC",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
     parser.add_option("--doLuminosity",  action="store_true", default=False)
@@ -203,6 +204,12 @@ def myprior_bns_JointFitLambda(cube, ndim, nparams):
         #cube[2] = cube[2]*5.0
         cube[2] = cube[2]*100.0
         cube[3] = cube[3]*5.0
+
+def myprior_bns_JointFitDisk(cube, ndim, nparams):
+        cube[0] = cube[0]*2.0 + 1.0
+        cube[1] = cube[1]*4900.0 + 10.0
+        cube[2] = cube[2]*100.0
+        cube[3] = cube[3]*0.3 + 0.2
 
 def myprior_combined_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*5.0 - 5.0
@@ -432,9 +439,6 @@ def myloglike_bns_JointFitLambda(cube, ndim, nparams):
         if (lambdatilde<lambdamin) or (lambdatilde>lambdamax):
             prob = -np.inf
             return prob
-        #if (lambdatilde<400.0) or (lambdatilde>800.0):
-        #    prob = -np.inf
-        #    return prob
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
@@ -457,6 +461,57 @@ def myloglike_bns_JointFitLambda(cube, ndim, nparams):
         if prior == 0.0:
             prob = -np.inf
         if mej == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_JointFitDisk(cube, ndim, nparams):
+        q = cube[0]
+        lambda1 = cube[1]
+        A = cube[2]
+        zeta = cube[3]
+        mc = 1.188
+
+        lambda_coeff = np.array([374839, -1.06499e7, 1.27306e8, -8.14721e8, 2.93183e9, -5.60839e9, 4.44638e9])
+
+        c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+        c2 = c1/q
+        coeff = lambda_coeff[::-1]
+        p = np.poly1d(coeff)
+        lambda2 = p(c2)
+
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+        if (lambdatilde<lambdamin) or (lambdatilde>lambdamax):
+            prob = -np.inf
+            return prob
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        if (m1+m2>2.9) or (m1+m2<1.8):
+            prob = -np.inf
+            return prob
+
+        mej1, vej1 = bns2_model(m1,c1,m2,c2)
+        mej1 = mej1*A
+
+        alpha, beta, gamma, delta = 0.084, 0.127, 567.1, 405.14
+        mdisk = np.max([0.001, alpha + beta*np.tanh((lambdatilde - gamma)/delta)])
+        mej2 = zeta*mdisk
+
+        if (mej1+mej2)>(m1+m2):
+            prob = -np.inf
+            return prob
+
+        prob = calc_prob_disk(mej1,vej1,mej2)
+        print(mej1,vej1,mej2,prob)
+        prior = prior_bns(m1,m1,c1,m2,m2,c2)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej1 == 0.0:
+            prob = -np.inf
+        if mej2 == 0.0:
             prob = -np.inf
 
         return prob
@@ -582,6 +637,22 @@ def calc_prob(mej, vej):
         #    print mej, vej, prob
         return prob
 
+def calc_prob_disk(mej1, vej1, mej2):
+
+        if (mej1==0.0) or (vej1==0.0) or (mej2==0.0):
+            prob = np.nan
+        else:
+            vals = np.array([mej1,vej1,mej2]).T
+            kdeeval = kde_eval(kdedir_pts,vals)[0]
+            prob = np.log(kdeeval)
+
+        if np.isnan(prob):
+            prob = -np.inf
+
+        #if np.isfinite(prob):
+        #    print mej, vej, prob
+        return prob
+
 def calc_prob_gw(m1, m2):
 
         if (m1==0.0) or (m2==0.0):
@@ -697,6 +768,8 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plotDir = os.path.join(plotDir,'joint')
     elif opts.doJointLambda:
         plotDir = os.path.join(plotDir,'joinl')
+    elif opts.doJointDisk:
+        plotDir = os.path.join(plotDir,'joind')
     plotDir = os.path.join(plotDir,opts.name)
     #dataDir = plotDir.replace("fitting_","").replace("_EOSFit","")
     dataDir = plotDir.replace("fitting_","").replace("fit_","")
@@ -711,10 +784,15 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         if opts.model == "Ka2017_TrPi2018":
             dataDir = dataDir.replace("joinl/","").replace("_EOSFit","").replace("_BNSFit","")
         else:
-            dataDir = dataDir.replace("joinl/","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+            dataDir = dataDir.replace("joinl","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+    elif opts.doJointDisk:
+        if opts.model == "Ka2017_TrPi2018":
+            dataDir = dataDir.replace("joind/","").replace("_EOSFit","").replace("_BNSFit","")
+        else:
+            dataDir = dataDir.replace("joind","ejecta").replace("_EOSFit","").replace("_BNSFit","")
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
-    if opts.doJoint or opts.doJointLambda:
+    if opts.doJoint or opts.doJointLambda or opts.doJointDisk:
         plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.lambdamin,opts.lambdamax))    
 
 if not os.path.isdir(plotDir):
@@ -774,6 +852,16 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             mej = 10**data[:,1]
             vej = data[:,2]
         pts = np.vstack((mej,vej)).T
+    elif opts.doJointDisk:
+        if opts.model == "Ka2017x2":
+            mej1 = 10**data[:,1]
+            vej1 = data[:,2]
+            mej2 = 10**data[:,4]
+            vej2 = data[:,5]
+        else:
+            print("--doJointDisk only works with Ka2017x2")
+            exit(0)
+        pts = np.vstack((mej1,vej1,mej2)).T
     else:
         pts = np.vstack((m1,m2)).T
 
@@ -791,6 +879,15 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         else:
             mej_em = data[:,1]
             vej_em = data[:,2]
+
+        mej_true = truths_mej_vej[0]
+        vej_true = truths_mej_vej[1]
+    elif opts.doJointDisk:
+        if opts.model == "Ka2017x2":
+            mej1_em = data[:,1]
+            vej1_em = data[:,2]
+            mej2_em = data[:,4]
+            vej2_em = data[:,5]
 
         mej_true = truths_mej_vej[0]
         vej_true = truths_mej_vej[1]
@@ -898,6 +995,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             labels = [r"q",r"$\Lambda_1$",r"A"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_JointFitLambda, myprior_bns_JointFit, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.doJointDisk:
+            parameters = ["q","lambda1","A","zeta"]
+            labels = [r"q",r"$\Lambda_1$",r"A",r"$\zeta$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_bns_JointFitDisk, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         else:
             parameters = ["m1","mb1","c1","m2","mb2","c2"]
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
@@ -1015,7 +1117,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             for m1,c1,m2,c2 in data[:,:-1]:
                 mej_gw[ii], vej_gw[ii] = bns2_model(m1,c1,m2,c2)
                 ii = ii + 1
-        elif opts.doJoint or opts.doJointLambda:
+        elif opts.doJoint or opts.doJointLambda or opts.doJointDisk:
             q_gw = data[:,0]
             lambda1_gw = data[:,1]
             A_gw = data[:,2]
@@ -1023,6 +1125,9 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 mchirp_gw = 1.188
             elif opts.doJointLambda:
                 mchirp_gw = data[:,3]
+            elif opts.doJointDisk:
+                mchirp_gw = 1.188
+                zeta_gw = data[:,3]
 
             eta = lightcurve_utils.q2eta(q_gw)
             (m1,m2) = lightcurve_utils.mc2ms(mchirp_gw,eta)
@@ -1032,7 +1137,8 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
             mej_gw, vej_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
             lambdatilde_gw = np.zeros(data[:,0].shape)
- 
+            mej2_gw, vej2_gw = np.zeros(data[:,0].shape), np.zeros(data[:,0].shape)
+
             filename = os.path.join(plotDir,'q_lambdatilde.dat')
             fid = open(filename,'w')
             ii = 0
@@ -1070,6 +1176,30 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                     lambdatilde_gw[ii] = lambdatilde
                     ii = ii + 1
                     fid.write('%.10f %.10f\n'%(q,lambdatilde))
+
+            elif opts.doJointDisk:
+                labels = [r"q",r"$\tilde{\Lambda}$",r"A",r"$\zeta$"]
+                for q,lambda1,A,zeta_gw in data[:,:-1]:
+                    c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+                    c2 = c1/q
+                    coeff = lambda_coeff[::-1]
+                    p = np.poly1d(coeff)
+                    lambda2 = p(c2)
+                    lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+                    eta = lightcurve_utils.q2eta(q)
+                    (m1,m2) = lightcurve_utils.mc2ms(mchirp_gw,eta)
+
+                    mej_gw[ii], vej_gw[ii] = bns2_model(m1,c1,m2,c2)
+                    mej_gw[ii] = mej_gw[ii]*A
+                    lambdatilde_gw[ii] = lambdatilde
+
+                    alpha, beta, gamma, delta = 0.084, 0.127, 567.1, 405.14
+                    mdisk = np.max([0.001, alpha + beta*np.tanh((lambdatilde - gamma)/delta)])
+                    mej2_gw[ii] = zeta_gw*mdisk
+
+                    ii = ii + 1
+                    fid.write('%.10f %.10f\n'%(q,lambdatilde))
+
             fid.close()
             data[:,1] = lambdatilde_gw
 

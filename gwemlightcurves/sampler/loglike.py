@@ -111,7 +111,6 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
     zp = cube[4]
 
     tmag, lbol, mag = Ka2017_model_ejecta(mej,vej,Xlan)
-
     prob = calc_prob(tmag, lbol, mag, t0, zp)
 
     return prob
@@ -662,6 +661,7 @@ def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
     tmag, lbol, mag = Ka2017_TrPi2018_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
+    print(prob)
 
     return prob
 
@@ -789,8 +789,9 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     else:
                         f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
-            elif key in ["w","c","o","V","B","R","I","F606W","F160W","F814W"]:
+            elif key in ["w","c","o","V","B","R","I","F606W","F160W","F814W","U","UVW2","UVW1","UVM2"]:
                 magave = lightcurve_utils.get_mag(mag,key)
+
                 ii = np.where(np.isfinite(magave))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
@@ -804,8 +805,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                 continue
 
             maginterp = maginterp + zp
-
             sigma = np.sqrt(Global.errorbudget**2 + sigma_y**2)
+
             chisquarevals = np.zeros(y.shape)
             chisquarevals = ((y-maginterp)/sigma)**2
             idx = np.where(~np.isfinite(sigma))[0]

@@ -714,6 +714,8 @@ def get_mag(mag,key):
         magave = 1.0*mag[8]
     elif key == "w": 
         magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif key in ["U","UVW2","UVW1","UVM2"]:
+        magave = 1.0*mag[0]
     elif key == "B":
         magave = 1.0*mag[1]
     elif key in ["c","V","F606W"]:

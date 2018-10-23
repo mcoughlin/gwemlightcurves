@@ -33,8 +33,9 @@ basedir = "../plots/gws/Ka2017_A_FixZPT0"
 dataDirs, grbs = [], []
 basedirs = glob.glob(os.path.join(basedir,'*'))
 for b in basedirs:
-    thisdir = os.path.join(b,"0_10/ejecta")
-    grbdir = glob.glob(os.path.join(thisdir,'*'))
+    thisdir1 = os.path.join(b,"0_10/ejecta")
+    thisdir2 = os.path.join(b,"0_14/ejecta")
+    grbdir = glob.glob(os.path.join(thisdir1,'*')) + glob.glob(os.path.join(thisdir2,'*')) 
     if len(grbdir) == 0: continue
     grbdir = grbdir[0]
     grb = grbdir.split("/")[-1]
@@ -43,16 +44,19 @@ for b in basedirs:
     dataDirs.append(grbdir)
     grbs.append(grb)
 
-grbs_skip = ["GW170817","GRB150101B","GRB050709","GRB130603B"]
+#grbs_skip = ["GW170817","GRB060614","GRB050709","GRB130603B"]
+grbs_include = ["GW170817","GRB060614","GRB050709","GRB130603B"]
 
 nsamples = 100
 data_out = {}
 for grb, dataDir in zip(grbs,dataDirs): 
+    if not grb in grbs_include: continue
     if not grb in data_out:
         data_out[grb] = {}
     multifile = lightcurve_utils.get_post_file(dataDir)
     data = np.loadtxt(multifile)
-    if (data.size > 0) and (not grb in grbs_skip): 
+    #if (data.size > 0) and (not grb in grbs_skip): 
+    if data.size > 0: 
         data_out[grb]["KN"] = data
         data_out[grb]["KN_samples"] = KNTable.read_multinest_samples(multifile,'Ka2017_A')
         data_out[grb]["KN_samples"] = data_out[grb]["KN_samples"].downsample(Nsamples=nsamples)
@@ -66,7 +70,8 @@ filts = ["u","g","r","i","z","y","J","H","K"]
 errorbudget = 0.0
 tini, tmax, dt = 0.1, 14.0, 0.1
 
-for grb, dataDir in zip(grbs,dataDirs):
+for grb in data_out.keys():
+    print('Generating lightcurves for %s'%grb)
     if "KN_samples" in data_out[grb]:
         samples = data_out[grb]["KN_samples"]
         samples['tini'] = tini
@@ -84,6 +89,7 @@ tt = np.arange(tini,tmax+dt,dt)
 #colors = ['coral','cornflowerblue','palegreen','goldenrod']
 keys = data_out.keys()
 colors=cm.rainbow(np.linspace(0,1,len(keys)))
+colors = ['coral','cornflowerblue','palegreen','goldenrod']
 plotName = "%s/mag_panels.pdf"%(plotDir)
 plt.figure(figsize=(20,28))
 
@@ -96,7 +102,7 @@ for filt in filts:
     else:
         ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
 
-    for ii, grb in enumerate(grbs):
+    for ii, grb in enumerate(data_out.keys()):
         legend_name = grb
 
         if "KN_med" in data_out[grb]:
@@ -111,14 +117,14 @@ for filt in filts:
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 14.0])
-    plt.ylim([-28.0,-10.0])
+    plt.ylim([-20.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
     plt.xticks(fontsize=36)
     plt.yticks(fontsize=36)
 
     if cnt == 1:
-        ax1.set_yticks([-26,-22,-18,-14,-10])
+        ax1.set_yticks([-20,-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
 
