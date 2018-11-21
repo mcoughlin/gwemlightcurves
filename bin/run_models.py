@@ -27,6 +27,7 @@ def parse_commandline():
     parser.add_option("-d","--dataDir",default="../data")
     parser.add_option("-m","--model",default="barnes_kilonova_spectra") 
     parser.add_option("-n","--name",default="rpft_m001_v1")
+    parser.add_option("-t","--theta",default=np.nan,type=float)
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)    
 
@@ -169,7 +170,7 @@ def getMagAB(filename,band,model):
 
     return t_d, mag_d, L_d
 
-def getMagSpecH5(filename,band,model,filtname):
+def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     fin    = h5py.File(filename,'r')
     # frequency in Hz
     nu    = np.array(fin['nu'],dtype='d')
@@ -177,8 +178,6 @@ def getMagSpecH5(filename,band,model,filtname):
     times = np.array(fin['time'])
     # covert time to days
     times = times/3600.0/24.0
-
-    print(times[1]-times[0])
 
     # specific luminosity (ergs/s/Hz) 
     # this is a 2D array, Lnu[times][nu]
@@ -211,6 +210,13 @@ def getMagSpecH5(filename,band,model,filtname):
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
         lam  = np.flipud(c/nu*1e8)
+
+        if Lnu.ndim == 2:
+            mu = fin['mu']
+            thetas = np.rad2deg(np.arccos(mu))
+            idx = np.argmin(np.abs(thetas-theta))
+            Lnu = Lnu[:,idx]
+        
         Llam = Lnu*np.flipud(nu)**2.0/c/1e8
 
         D_cm = 10*3.0857e16*100 # 10 pc in cm
@@ -533,7 +539,7 @@ if not os.path.isdir(plotDir):
 dataDir = opts.dataDir
 
 specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog"]
-spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid"]
+spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid","kasen_kilonova_2D"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
 absABmodels = ["tanaka_compactmergers","korobkin_kilonova"]
@@ -573,7 +579,9 @@ if opts.doAB:
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
         elif opts.model in spech5models:
-            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii])
+            fin    = h5py.File(filename,'r')
+            Lnu_all   = np.array(fin['Lnu'],dtype='d')
+            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii],theta=opts.theta)
             L_d = scipy.signal.medfilt(L_d,kernel_size=5)         
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
@@ -585,7 +593,10 @@ if opts.doAB:
         print "0's in bolometric luminosity.... quitting."
         exit(0)
 
-    filename = "%s/%s.dat"%(outputDir,opts.name)
+    if np.isnan(opts.theta):
+        filename = "%s/%s.dat"%(outputDir,opts.name)
+    else:
+        filename = "%s/%s_%.1f.dat"%(outputDir,opts.name,opts.theta)
     fid = open(filename,'w')
     fid.write('# t[days] u g r i z y J H K\n')
     for ii in xrange(len(t_d)):
@@ -613,7 +624,7 @@ if opts.doAB:
         plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
-    plt.ylim([-16,0])
+    plt.ylim([-20,0])
     plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
@@ -621,7 +632,10 @@ if opts.doAB:
     plt.savefig(plotName)
     plt.close()
     
-    filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
+    if np.isnan(opts.theta):
+        filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
+    else:
+        filename = "%s/%s_%.1f_Lbol.dat"%(outputDir,opts.name,opts.theta)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
     for ii in xrange(len(t_d)):
@@ -653,7 +667,10 @@ elif opts.doSpec:
     #    print "0's in bolometric luminosity.... quitting."
     #    exit(0)
 
-    filename = "%s/%s_spec.dat"%(outputDir,opts.name)
+    if np.isnan(opts.theta):
+        filename = "%s/%s_spec.dat"%(outputDir,opts.name)
+    else:
+        filename = "%s/%s_%.1f_spec.dat"%(outputDir,opts.name,opts.theta)
     fid = open(filename,'w')
     fid.write("nan")
     for jj in xrange(len(lambda_d)):

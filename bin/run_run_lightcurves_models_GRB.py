@@ -32,7 +32,7 @@ for line in lines:
         dist = float(lineSplit[3])
         break
 
-if grb in ["GRB061201","GRB050509B","GRB080905A","GRB050709","GRB051210","GRB060502B"]:
+if grb in ["GRB061201","GRB050509B","GRB080905A","GRB050709","GRB051210","GRB060502B","GRB130603B"]:
     doExtrapolate = "--doWaveformExtrapolate"
 else:
     doExtrapolate = ""

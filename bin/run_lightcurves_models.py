@@ -47,6 +47,7 @@ def parse_commandline():
     parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
+    parser.add_option("--doFitSigma",  action="store_true", default=False)
     parser.add_option("--doWaveformExtrapolate",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("--doBNSFit",  action="store_true", default=False)
@@ -115,8 +116,14 @@ if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017
 if opts.doReduced:
     plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
 else:
-    plotDir = os.path.join(plotDir,opts.name)
-plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+    if opts.name == "knova2D_m0.040_v0.10_X1e-2_a2.0_117.8":
+        plotDir = os.path.join(plotDir,'117.8')
+    else:
+        plotDir = os.path.join(plotDir,opts.name)
+if opts.doFitSigma:
+    plotDir = os.path.join(plotDir,"fit")
+else:
+    plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
@@ -241,9 +248,11 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         if key == "t":
             continue
         else:
-
             ii = np.where(np.isfinite(data_out[key][:,1]))[0]
-            f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
+            if opts.doWaveformExtrapolate:
+                f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value='extrapolate', bounds_error=False)
+            else:
+                f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
             maginterp = f(tt)
 
             data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
@@ -375,17 +384,19 @@ if opts.doFixZPT0:
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths[1:-1], smooth=3)
+                       truths=truths[1:-1], smooth=3,
+                       color="coral")
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths, smooth=3)
+                       truths=truths, smooth=3,
+                       color="coral")
 if n_params >= 10:
     figure.set_size_inches(40.0,40.0)
 elif n_params >= 6:
-    figure.set_size_inches(22.0,22.0)
+    figure.set_size_inches(24.0,24.0)
 else:
     figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)

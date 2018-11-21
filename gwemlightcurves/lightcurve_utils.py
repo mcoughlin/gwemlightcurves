@@ -57,8 +57,8 @@ def getLegend(outputDir,names):
 
 def loadModels(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey","kasen_kilonova_2D"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)","Kasen (2017)"]
 
     filenames = []
     legend_names = []
@@ -746,10 +746,14 @@ def get_med(magtable, errorbudget = 0.0, filts = ["u","g","r","i","z","y","J","H
         magmed = np.percentile(mag_all[filt], 50, axis=0)
         magmax = np.percentile(mag_all[filt], 90, axis=0) + errorbudget
         magmin = np.percentile(mag_all[filt], 10, axis=0) - errorbudget
+        magmax2 = np.percentile(mag_all[filt], 95, axis=0) + errorbudget
+        magmin2 = np.percentile(mag_all[filt], 5, axis=0) - errorbudget
 
         med_all[filt]["10"] = magmin
         med_all[filt]["50"] = magmed
         med_all[filt]["90"] = magmax
+        med_all[filt]["5"] = magmin2
+        med_all[filt]["95"] = magmax2
 
     return med_all
 

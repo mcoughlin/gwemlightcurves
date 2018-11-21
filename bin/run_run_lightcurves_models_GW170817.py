@@ -15,6 +15,8 @@ def parse_commandline():
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("--doJoint",  action="store_true", default=False)
     parser.add_option("--doJointLambda",  action="store_true", default=False)
+    parser.add_option("--doJointDisk",  action="store_true", default=False)
+    parser.add_option("--doJointSpin",  action="store_true", default=False)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("--doFixZPT0",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
@@ -52,8 +54,12 @@ elif opts.doJoint:
     typeFlag = "--doJoint"
 elif opts.doJointLambda:
     typeFlag = "--doJointLambda"
+elif opts.doJointDisk:
+    typeFlag = "--doJointDisk"
+elif opts.doJointSpin:
+    typeFlag = "--doJointSpin"
 else:
-    print "Must specify --doMasses, --doEjecta, --doJoint or --doJointLambda"
+    print "Must specify --doMasses, --doEjecta, --doJoint, --doJointDisk, --doJointLambda, or --doJointSpin"
     exit(0)
 
 if not (opts.doLuminosity or opts.doLightcurves):
@@ -63,10 +69,10 @@ if not (opts.doLuminosity or opts.doLightcurves):
 if opts.doLightcurves:
     system_command = "python run_lightcurves_models.py --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     #os.system(system_command)
-    #print(system_command)
-    #print stop
+    print(system_command)
+    #print(stop)
 
-    lambdamin, lambdamax = 0, 640
+    lambdamin, lambdamax = 0, 1140
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
     print(system_command )
     print(stop)

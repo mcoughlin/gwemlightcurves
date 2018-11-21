@@ -25,25 +25,25 @@ from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
 from gwemlightcurves import lightcurve_utils, Global
 
-plotDir = '../plots/gws/GRB150101B'
+plotDir = '../plots/gws/GRB140903A'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
 errorbudget = 0.01
 
-plotDir1 = '../plots/gws/Ka2017_FixZPT0/r_J_H_K/0_10/ejecta/GRB150101B/1.00/'
+plotDir1 = '../plots/gws/Ka2017_FixZPT0/g_r_i_z/0_10/ejecta/GRB140903A/1.00/'
 pcklFile = os.path.join(plotDir1,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data1, tmag1, lbol1, mag1, t0_best1, zp_best1, n_params1, labels1, best1, truths1) = pickle.load(f)
 f.close()
 
-plotDir2 = '../plots/gws/TrPi2018_FixZPT0/r_J_H_K/0_10/GRB150101B/0.01/'
+plotDir2 = '../plots/gws/TrPi2018_FixZPT0/g_r_i_z/0_10/GRB140903A/1.00/'
 pcklFile = os.path.join(plotDir2,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data2, tmag2, lbol2, mag2, t0_best2, zp_best2, n_params2, labels2, best2, truths2) = pickle.load(f)
 f.close()
 
-plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/r_J_H_K/0_10/GRB150101B/0.01/'
+plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/g_r_i_z/0_10/GRB140903A/1.00/'
 pcklFile = os.path.join(plotDir3,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data3, tmag3, lbol3, mag3, t0_best3, zp_best3, n_params3, labels3, best3, truths3) = pickle.load(f)
@@ -59,7 +59,7 @@ label_fontsize = 30
 errorbudget = 1.00
 
 #filts = ["u","g","r","i","z","y","J","H","K"]
-filts = ["r","J","H","K"]
+filts = ["g","r","i","z"]
 colors=cm.jet(np.linspace(0,1,len(filts)))
 tini, tmax, dt = 0.0, 21.0, 0.1    
 tt = np.arange(tini,tmax,dt)
@@ -126,18 +126,20 @@ for filt, color in zip(filts,colors):
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
     plt.xlim([0.0, 7.0])
-    plt.ylim([-20.0,-10.0])
+    plt.ylim([-22.0,-12.0])
     plt.gca().invert_yaxis()
     plt.grid()
 
     if cnt == 1:
-        ax1.set_yticks([-20,-17,-14,-11],minor=False)
-        ax1.set_yticks([-19,-18,-16,-15,-13,-12,-10],minor=True)
+        ax1.set_yticks([-22,-19,-16,-13])
+        ax1.set_yticks([-21,-20,-18,-17,-15,-14],minor=True)
+
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
                 mode="expand", borderaxespad=0, ncol=3, prop={'size':32})
     elif not cnt == len(filts):
+
         plt.setp(ax2.get_xticklabels(), visible=False)
 
     plt.tick_params(direction='out', length=15, width=3, colors='k', labelsize = 14)

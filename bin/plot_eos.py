@@ -28,7 +28,7 @@ def get_eps(EOS,mass):
     eps = 10**(et.values_from_table(mass, MassRadiusBaryMassTable['mass'], np.log10(MassRadiusBaryMassTable['rho_c']), energy_density_of_mass_const))
     return eps
 
-plotDir = '../plots/'
+plotDir = '../plots/eos/'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
@@ -39,17 +39,23 @@ eosfilename = '../input/lalsim/polytrope_table.dat'
 df = pandas.read_table(eosfilename, skiprows=1, delim_whitespace=True, names=['eos','logP1','gamma1','gamma2','gamma3'])
 
 #eosnames = ['AP4','SLy','MPA1','H4','MS1b','MS1']
-#eosnames = df['eos']
-eosnames = ["ALF2","MPA1","AP3","SLy","ALF4","AP4","WFF3","WFF1"]
+eosnames = df['eos']
+#eosnames = ["ALF2","MPA1","AP3","SLy","ALF4","AP4","WFF3","WFF1"]
 
 plotName = "%s/mass_radius.pdf"%(plotDir)
-masses = np.linspace(0.5,2.0,100)
+masses = np.linspace(0.5,3.0,100)
 plt.figure(figsize=(12,8))        
 for ii,eosname in enumerate(eosnames):
     print(eosname)
     radii = np.zeros(masses.shape)
     eos = EOS4ParameterPiecewisePolytrope(eosname)
-    eps = get_eps(eosname.lower(),masses)
+
+    try:
+        eps = get_eps(eosname.lower(),masses)
+    except:
+        continue
+
+    fid = open(os.path.join(plotDir,'%s.dat'%eosname),'w')
     for jj,mass in enumerate(masses):
         
         try:
@@ -60,7 +66,10 @@ for ii,eosname in enumerate(eosnames):
 
         radii[jj] = radius
 
+        fid.write('%.10f %.10f\n'%(mass,radius))
+
     plt.plot(radii,masses,'-',label=eosname)
+    fid.close()
 plt.legend(loc='best')
 plt.xlabel('Radius [km]')
 plt.ylabel('Mass [solar masses]')
@@ -73,7 +82,12 @@ for ii,eosname in enumerate(eosnames):
     print(eosname)
     radii = np.zeros(masses.shape)
     eos = EOS4ParameterPiecewisePolytrope(eosname)
-    eps = get_eps(eosname.lower(),masses)
+
+    try:
+        eps = get_eps(eosname.lower(),masses)
+    except:
+        continue
+
     for jj,mass in enumerate(masses):
 
         try:

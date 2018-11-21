@@ -91,7 +91,7 @@ keys = data_out.keys()
 colors=cm.rainbow(np.linspace(0,1,len(keys)))
 colors = ['coral','cornflowerblue','palegreen','goldenrod']
 plotName = "%s/mag_panels.pdf"%(plotDir)
-plt.figure(figsize=(20,28))
+plt.figure(figsize=(20,48))
 
 cnt = 0
 for filt in filts:
@@ -107,12 +107,12 @@ for filt in filts:
 
         if "KN_med" in data_out[grb]:
             magmed = data_out[grb]["KN_med"][filt]["50"]
-            magmax = data_out[grb]["KN_med"][filt]["90"]
-            magmin = data_out[grb]["KN_med"][filt]["10"]
+            magmax = data_out[grb]["KN_med"][filt]["95"]
+            magmin = data_out[grb]["KN_med"][filt]["5"]
 
             plt.plot(tt,magmed,'--',c=colors[ii],linewidth=4,label=legend_name)
-            plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
-            plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmin,'-',c=colors[ii],linewidth=4)
+            #plt.plot(tt,magmax,'-',c=colors[ii],linewidth=4)
             plt.fill_between(tt,magmin,magmax,facecolor=colors[ii],edgecolor=colors[ii],alpha=0.2,linewidth=3)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
@@ -124,7 +124,8 @@ for filt in filts:
     plt.yticks(fontsize=36)
 
     if cnt == 1:
-        ax1.set_yticks([-20,-18,-16,-14,-12,-10])
+        ax1.set_yticks([-20,-17,-14,-11])
+        ax1.set_yticks([-19,-18,-16,-15,-13,-12],minor=True)
         plt.setp(ax1.get_xticklabels(), visible=False)
         l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
 
@@ -133,6 +134,8 @@ for filt in filts:
         #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         #ax3.set_yticklabels(app.astype(int))
 
+        plt.tick_params(direction='out', length=15, width=3, colors='k', labelsize = 14)
+        plt.tick_params(direction='out', which = "minor", length=8, width=1.5, colors='k', labelsize = 14)
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
     else:
@@ -141,6 +144,8 @@ for filt in filts:
         #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
         #ax4.set_yticklabels(app.astype(int))
 
+        plt.tick_params(direction='out', length=15, width=3, colors='k', labelsize = 14)
+        plt.tick_params(direction='out', which = "minor", length=8, width=1.5, colors='k', labelsize = 14)
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
 
