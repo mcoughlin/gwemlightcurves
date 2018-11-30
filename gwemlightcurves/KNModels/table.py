@@ -18,6 +18,7 @@
 """Extend :mod:`astropy.table` with the `KNTable`
 """
 
+import os
 import numpy as np
 
 from astropy.table import (Table, Column, vstack)
@@ -141,11 +142,11 @@ def get_lalsim_eos(eos_name):
 	import lalsimulation
 	import lal
 	obs_max_mass = 2.01 - 0.04
-	print "Checking %s" % eos_name
+	print("Checking %s" % eos_name)
 	eos_fname = ""
 	if os.path.exists(eos_name):
 		# NOTE: Adapted from code by Monica Rizzo
-		print "Loading from %s" % eos_name
+		print("Loading from %s" % eos_name)
 		bdens, press, edens = np.loadtxt(eos_name, unpack=True)
 		press *= 7.42591549e-25
 		edens *= 7.42591549e-25
@@ -165,7 +166,7 @@ def get_lalsim_eos(eos_name):
 			edens = edens[keep_idx]
 		assert np.all(np.diff(edens) > 0)
 
-		print "Dumping to %s" % eos_fname
+		print("Dumping to %s" % eos_fname)
 		eos_fname = "./." + eos_name + ".dat"
 		np.savetxt(eos_fname, np.transpose((press, edens)), delimiter='\t')
 		eos = lalsimulation.SimNeutronStarEOSFromFile(eos_fname)
@@ -176,7 +177,7 @@ def get_lalsim_eos(eos_name):
 		fam = lalsimulation.CreateSimNeutronStarFamily(eos)
 
 	mmass = lalsimulation.SimNeutronStarMaximumMass(fam) / lal.MSUN_SI
-	print "Family %s, maximum mass: %1.2f" % (eos_name, mmass)
+	print("Family %s, maximum mass: %1.2f" % (eos_name, mmass))
 	if np.isnan(mmass) or mmass > 3. or mmass < obs_max_mass:
 		return
 
@@ -207,55 +208,54 @@ class KNTable(Table):
 
 		if 'm1_source' in list(data_out.columns):
 			data_out['m1'] = data_out['m1_source']
-			print 'setting m1 to m1_source'
+			print('setting m1 to m1_source')
 		if 'm2_source' in list(data_out.columns):
 			data_out['m2'] = data_out['m2_source']
-			print 'setting m2 to m2_source'
+			print('setting m2 to m2_source')
 
 		if 'dlam_tilde' in list(data_out.columns):
 			data_out['dlambdat'] = data_out['dlam_tilde']
-			print 'setting dlambdat to dlam_tilde'
+			print('setting dlambdat to dlam_tilde')
 		if 'lam_tilde' in list(data_out.columns):
 			data_out['lambdat'] = data_out['lam_tilde']
-			print 'setting lambdat to lam_tilde'
+			print('setting lambdat to lam_tilde')
 
 		return KNTable(data_out)
 
-        @classmethod
-        def read_cbc_list(cls, filename_samples):
-                """
-                Read CBC list
-                """
-                import os
-                if not os.path.isfile(filename_samples):
-                        raise ValueError("Sample file supplied does not exist")
+	@classmethod
+	def read_cbc_list(cls, filename_samples):
+		"""
+		Read CBC list
+		"""
+		if not os.path.isfile(filename_samples):
+			raise ValueError("Sample file supplied does not exist")
 
-                data_out = Table.read(filename_samples, format='ascii',
-                                      names = ("idx","type","t0","tc","m1",
-                                               "m2","Xi1",
-                                               "Xi2","z","dist","ra",
-                                               "decl","polarization",
-                                               "inclination","phase at t0",
-                                               "snrET","snrCE","snr3G"))
+		data_out = Table.read(filename_samples, format='ascii',
+				      names = ("idx","type","t0","tc","m1",
+				               "m2","Xi1",
+				               "Xi2","z","dist","ra",
+				               "decl","polarization",
+				               "inclination","phase at t0",
+				               "snrET","snrCE","snr3G"))
 
-                if 'm1_source' in list(data_out.columns):
-                        data_out['m1'] = data_out['m1_source']
-                        print 'setting m1 to m1_source'
-                if 'm2_source' in list(data_out.columns):
-                        data_out['m2'] = data_out['m2_source']
-                        print 'setting m2 to m2_source'
+		if 'm1_source' in list(data_out.columns):
+		        data_out['m1'] = data_out['m1_source']
+		        print('setting m1 to m1_source')
+		if 'm2_source' in list(data_out.columns):
+		        data_out['m2'] = data_out['m2_source']
+		        print('setting m2 to m2_source')
 
-                if 'dlam_tilde' in list(data_out.columns):
-                        data_out['dlambdat'] = data_out['dlam_tilde']
-                        print 'setting dlambdat to dlam_tilde'
-                if 'lam_tilde' in list(data_out.columns):
-                        data_out['lambdat'] = data_out['lam_tilde']
-                        print 'setting lambdat to lam_tilde'
+		if 'dlam_tilde' in list(data_out.columns):
+		        data_out['dlambdat'] = data_out['dlam_tilde']
+		        print('setting dlambdat to dlam_tilde')
+		if 'lam_tilde' in list(data_out.columns):
+		        data_out['lambdat'] = data_out['lam_tilde']
+		        print('setting lambdat to lam_tilde')
 
-                data_out['chi_eff'] = (data_out['m1']*data_out['Xi1']+data_out['m1']*data_out['Xi1'])/(data_out['m1']+data_out['m2'])
-                data_out['q'] = data_out['m2'] / data_out['m1']
+		data_out['chi_eff'] = (data_out['m1']*data_out['Xi1']+data_out['m1']*data_out['Xi1'])/(data_out['m1']+data_out['m2'])
+		data_out['q'] = data_out['m2'] / data_out['m1']
 
-                return KNTable(data_out)
+		return KNTable(data_out)
 
 	@classmethod
 	def read_multinest_samples(cls, filename_samples, model):
@@ -270,10 +270,10 @@ class KNTable(Table):
 			names=['t0', 'mej', 'vej', 'Xlan', 'zp', 'loglikelihood']
 		elif model == "Ka2017x2":
 			names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'zp', 'loglikelihood']
-                elif model == "Ka2017_TrPi2018":
-                        names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
-                elif model == "Ka2017_A":
-                        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
+		elif model == "Ka2017_TrPi2018":
+		        names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
+		elif model == "Ka2017_A":
+		        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
 		else:
 			print("Model not implemented...")
 			exit(0)
@@ -281,22 +281,22 @@ class KNTable(Table):
 		if model == "Ka2017":
 			data_out['mej'] = 10**data_out['mej']
 			data_out['Xlan'] = 10**data_out['Xlan']
-                elif model == "Ka2017_A":
-                        data_out['mej'] = 10**data_out['mej']
-                        data_out['Xlan'] = 10**data_out['Xlan']
-                        data_out['A'] = 10**data_out['A']
+		elif model == "Ka2017_A":
+		        data_out['mej'] = 10**data_out['mej']
+		        data_out['Xlan'] = 10**data_out['Xlan']
+		        data_out['A'] = 10**data_out['A']
 		elif model == "Ka2017x2":
 			data_out['mej_1'] = 10**data_out['mej_1']
 			data_out['Xlan_1'] = 10**data_out['Xlan_1']
 			data_out['mej_2'] = 10**data_out['mej_2']
 			data_out['Xlan_2'] = 10**data_out['Xlan_2']
-                elif model == "Ka2017_TrPi2018":
-                        data_out['mej'] = 10**data_out['mej']
-                        data_out['Xlan'] = 10**data_out['Xlan']
-                        data_out['E0'] = 10**data_out['E0']
-                        data_out['n'] = 10**data_out['n']
-                        data_out['epsilon_E'] = 10**data_out['epsilon_E']
-                        data_out['epsilon_B'] = 10**data_out['epsilon_B']
+		elif model == "Ka2017_TrPi2018":
+		        data_out['mej'] = 10**data_out['mej']
+		        data_out['Xlan'] = 10**data_out['Xlan']
+		        data_out['E0'] = 10**data_out['E0']
+		        data_out['n'] = 10**data_out['n']
+		        data_out['epsilon_E'] = 10**data_out['epsilon_E']
+		        data_out['epsilon_B'] = 10**data_out['epsilon_B']
 		return KNTable(data_out)
 
 	def calc_tidal_lambda(self, remove_negative_lambda=False):

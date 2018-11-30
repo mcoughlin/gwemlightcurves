@@ -446,7 +446,7 @@ def myloglike_bns_JointFit(cube, ndim, nparams):
         #    prob = -np.inf
         #    return prob
 
-        mc = 1.188
+        mc = 1.186
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
 
@@ -516,7 +516,7 @@ def myloglike_bns_JointFitDisk(cube, ndim, nparams):
         alpha = cube[2]
         zeta = cube[3]
         mTOV = cube[4]
-        mc = 1.188
+        mc = 1.186
 
         lambda1 = (13.0/16.0) * (lambdatilde/q) * ((1 + q)**5)/(1 + 12*q + 12*(q**3) + q**4)
 
@@ -586,7 +586,7 @@ def myloglike_GRB(cube, ndim, nparams):
         q = cube[3]
         mTOV = cube[4]
         zeta = cube[5]
-        mc = 1.188
+        mc = 1.186
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
@@ -635,7 +635,7 @@ def myloglike_Wang(cube, ndim, nparams):
         mTOV = cube[2]
         sigma = cube[3]
         zeta = cube[4]
-        mc = 1.188
+        mc = 1.186
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
@@ -691,7 +691,7 @@ def myloglike_SGRB(cube, ndim, nparams):
         q = cube[3]
         mTOV = cube[4]
         zeta = cube[5]
-        mc = 1.188
+        mc = 1.186
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
@@ -1466,11 +1466,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             lambdatilde_em = data[:,1]
             alpha_em = data[:,2]
             if opts.doJoint:
-                mchirp_em = 1.188
+                mchirp_em = 1.186
             elif opts.doJointLambda:
                 mchirp_em = data[:,3]
             elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
-                mchirp_em = 1.188
+                mchirp_em = 1.186
                 zeta_em = data[:,3]
                 mtov_em = data[:,4]
 

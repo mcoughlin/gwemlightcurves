@@ -184,7 +184,7 @@ def multinest(opts,plotDir):
                 n_params = len(parameters)
                 pymultinest.run(myloglike_SmCh2017_ejecta, myprior_SmCh2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
         else:
-            print "Enable --doEjecta or --doMasses"
+            print("Enable --doEjecta or --doMasses")
             exit(0)
     elif opts.model in ["SN"]:
     

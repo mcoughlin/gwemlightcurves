@@ -7,7 +7,7 @@ def interpolate(x_values,y_values):
     """
     #make sure the x and y arrays are the same size
     if len(x_values)!=len(y_values):
-        print "X and Y arrays must be the same length!"
+        print("X and Y arrays must be the same length!")
         return
 
     n=len(x_values)
@@ -38,7 +38,7 @@ def interpolate(x_values,y_values):
           elif np.sign(m[i-1])==-1 and np.sign(m[i])==-1:
              consts[i,0]=max(min(0.,beta[i]),3.*max(m[i-1],m[i]))
           else:
-             print "We have a problem"
+             print("We have a problem")
 
     for i in np.arange(0,n-1,1):
        consts[i,1]=(3*m[i]-consts[i+1,0]-2.*consts[i,0])/h[i]

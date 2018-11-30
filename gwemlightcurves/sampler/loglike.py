@@ -252,7 +252,7 @@ def myloglike_Me2017(cube, ndim, nparams):
 
     tmag, lbol, mag = Me2017_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp,errorbudget = Global.errorbudget)
     prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
     if prior == 0.0:
         prob = -np.inf
@@ -313,7 +313,9 @@ def myloglike_Me2017_ejecta(cube, ndim, nparams):
 
     tmag, lbol, mag = Me2017_model_ejecta(mej,vej,beta,kappa_r)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
 
     return prob
 
@@ -872,7 +874,6 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
             chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
 
             prob = chiprob + gaussprob - (nsamples/2.0)*np.log(2.0*np.pi*errorbudget**2)
-
         if np.isnan(prob):
             prob = -np.inf
 
@@ -880,7 +881,7 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
         #    print t0, zp, prob
         return prob
     else:
-        print "Enable doLuminosity or doLightcurves..."
+        print("Enable doLuminosity or doLightcurves...")
         exit(0)
 
 def findconst(array):
