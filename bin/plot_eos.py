@@ -70,9 +70,50 @@ for ii,eosname in enumerate(eosnames):
 
     plt.plot(radii,masses,'-',label=eosname)
     fid.close()
+
 plt.legend(loc='best')
+plt.xlim(xmin=9,xmax=15)
+plt.ylim(ymax=2.6)
 plt.xlabel('Radius [km]')
 plt.ylabel('Mass [solar masses]')
+plt.savefig(plotName, bbox_inches='tight')
+plt.close()
+
+plotName="%s/love_EOS.pdf"%(plotDir)
+plt.figure(figsize=(12,8))
+for ii,eosname in enumerate(eosnames):
+    print(eosname)
+    lovenumbers=np.zeros(masses.shape)
+    eos=EOS4ParameterPiecewisePolytrope(eosname)
+    for jj,mass in enumerate(masses):
+	try:
+	    lovenumber=eos.k2ofm(mass)
+	except:
+	    continue
+	lovenumbers[jj]=lovenumber
+    plt.plot(masses,lovenumbers,'+',label=eosname)
+plt.legend(loc='best')
+plt.xlabel('Mass [solar masses]')
+plt.ylabel('Love number')
+plt.savefig(plotName, bbox_inches='tight')
+plt.close()
+
+plotName="%s/lambda_EOS.pdf"%(plotDir)
+plt.figure(figsize=(12,8))
+for ii,eosname in enumerate(eosnames):
+    print(eosname)
+    lambdas=np.zeros(masses.shape)
+    eos=EOS4ParameterPiecewisePolytrope(eosname)
+    for jj,mass in enumerate(masses):
+        try:
+            lambda1=eos.lambdaofm(mass)
+        except:
+            continue
+        lambdas[jj]=lambda1
+    plt.plot(masses,lambdas,'-',label=eosname)
+plt.legend(loc='best')
+plt.xlabel('Mass [solar masses]')
+plt.ylabel('Lambda')
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
@@ -89,9 +130,7 @@ for ii,eosname in enumerate(eosnames):
         continue
 
     for jj,mass in enumerate(masses):
-
-        try:
-            lambda1 = eos.lambdaofm(mass)
+	try:
             radius = eos.radiusofm(mass)
         except:
             continue
