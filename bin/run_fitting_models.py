@@ -219,7 +219,7 @@ def myprior_bns_JointFitDisk(cube, ndim, nparams):
         #cube[4] = cube[4]*4.0
 
 def myprior_nsbh_JointFitDisk(cube, ndim, nparams):
-        cube[0] = cube[0]*7.0 + 3.0
+        cube[0] = cube[0]*9.0 + 1.0
         cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
         cube[2] = cube[2]*2.0 - 2.0
         cube[3] = cube[3]*0.5
@@ -268,7 +268,7 @@ def myprior_NSBH(cube, ndim, nparams):
         cube[1] = cube[1]*(100+lambdamax-lambdamin) + lambdamin-50
         cube[2] = cube[2]*1.0
         #cube[3] = cube[3]*1.0 + 1.0
-        cube[3] = cube[3]*7.2 + 2.9
+        cube[3] = cube[3]*9.2 + 0.9
         cube[4] = cube[4]*2.0 - 1.0
         #cube[4] = cube[4]*0.27 + 1.95
         #cube[4] = cube[4]*4.0
