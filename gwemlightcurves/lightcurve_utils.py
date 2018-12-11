@@ -46,7 +46,6 @@ def getLegend(outputDir,names):
     for name in names:
         for ii,model in enumerate(models):
             filename = '%s/%s/%s.dat'%(outputDir,model,name)
-            print filename
             if not os.path.isfile(filename):
                 continue
             filenames.append(filename)
@@ -57,8 +56,8 @@ def getLegend(outputDir,names):
 
 def loadModels(outputDir,name):
 
-    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey"]
-    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)"]
+    models = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","ns_precursor_Lbol","BHNS","BNS","SN","tanaka_compactmergers","macronovae-rosswog","Blue","Arnett","kasen_kilonova_survey","kasen_kilonova_2D","kasen_kilonova_grid"]
+    models_ref = ["Barnes et al. (2016)","Barnes and Kasen (2013)","Kasen et al. (2014)","Metzger et al. (2015)","Kawaguchi et al. (2016)","Dietrich et al. (2016)","Guy et al. (2007)","Tanaka and Hotokezaka (2013)","Rosswog et al. (2017)","Metzger (2017)", "Inserra et al. (2013)", "Kasen (2017)","Kasen (2017)","Kasen (2017)"]
 
     filenames = []
     legend_names = []
@@ -430,7 +429,6 @@ def xcorr_mags(mags1,mags2):
                     chisquare = scipy.stats.chisquare(mag2, f_exp=mag1[kk:len(mag2)])[0] 
                     chisquares.append(chisquare)
 
-            print name1, name2, xcorr_corr, np.min(np.abs(chisquares)), len(mag1), len(mag2)
             xcorrvals[ii,jj] = xcorr_corr
             chisquarevals[ii,jj] = np.min(np.abs(chisquares))
 
@@ -640,7 +638,6 @@ def interpolate_mags_lbol(model_table, filts=["u","g","r","i","z","y","J","H","K
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
 
         if np.sum(lbol) == 0.0:
-            #print "No luminosity..."
             continue
 
         allfilts = True
@@ -714,6 +711,8 @@ def get_mag(mag,key):
         magave = 1.0*mag[8]
     elif key == "w": 
         magave = (mag[1]+mag[2]+mag[3])/3.0
+    elif key in ["U","UVW2","UVW1","UVM2"]:
+        magave = 1.0*mag[0]
     elif key == "B":
         magave = 1.0*mag[1]
     elif key in ["c","V","F606W"]:
@@ -744,10 +743,14 @@ def get_med(magtable, errorbudget = 0.0, filts = ["u","g","r","i","z","y","J","H
         magmed = np.percentile(mag_all[filt], 50, axis=0)
         magmax = np.percentile(mag_all[filt], 90, axis=0) + errorbudget
         magmin = np.percentile(mag_all[filt], 10, axis=0) - errorbudget
+        magmax2 = np.percentile(mag_all[filt], 95, axis=0) + errorbudget
+        magmin2 = np.percentile(mag_all[filt], 5, axis=0) - errorbudget
 
         med_all[filt]["10"] = magmin
         med_all[filt]["50"] = magmed
         med_all[filt]["90"] = magmax
+        med_all[filt]["5"] = magmin2
+        med_all[filt]["95"] = magmax2
 
     return med_all
 

@@ -100,7 +100,8 @@ color4 = 'darkmagenta'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,28))
-plt.figure(figsize=(28,28))
+#plt.figure(figsize=(28,28))
+plt.figure(figsize=(28,46))
 
 tini, tmax, dt = 0.0, 14.0, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -137,7 +138,7 @@ for filt, color in zip(filts,colors):
     f = interp.interp1d(tmag1[ii], magave1[ii], fill_value='extrapolate')
     maginterp1 = f(tt)
     maginterp1 = lowess(maginterp1.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
-    plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='Kilonova')
+    plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='Kilonova only')
     #plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
     #plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
     plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
@@ -146,7 +147,7 @@ for filt, color in zip(filts,colors):
     f = interp.interp1d(tmag2[ii], magave2[ii], fill_value='extrapolate')
     maginterp2 = f(tt)
     maginterp2 = lowess(maginterp2.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
-    plt.plot(tt,maginterp2+zp_best2,'-',c=color2,linewidth=2,label='Afterglow')
+    plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='Afterglow only')
     #plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
     #plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
     plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
@@ -155,7 +156,7 @@ for filt, color in zip(filts,colors):
     f = interp.interp1d(tmag3[ii], magave3[ii], fill_value='extrapolate')
     maginterp3 = f(tt)
     maginterp3 = lowess(maginterp3.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
-    plt.plot(tt,maginterp3+zp_best3,'-',c=color3,linewidth=2,label='Kilonova+Afterglow')
+    plt.plot(tt,maginterp3+zp_best3,'--',c=color3,linewidth=2,label='Kilonova+Afterglow')
     #plt.plot(tt,maginterp3+zp_best3-errorbudget,'-',c=color3,linewidth=2)
     #plt.plot(tt,maginterp3+zp_best3+errorbudget,'-',c=color3,linewidth=2)
     plt.fill_between(tt,maginterp3+zp_best3-errorbudget,maginterp3+zp_best3+errorbudget,facecolor=color3,alpha=0.2)
@@ -164,7 +165,7 @@ for filt, color in zip(filts,colors):
     f = interp.interp1d(tmag4[ii], magave4[ii], fill_value='extrapolate')
     maginterp4 = f(tt) 
     maginterp4 = lowess(maginterp4.T, tt, is_sorted=True, frac=frac, it=0)[:,1]
-    plt.plot(tt,maginterp4+zp_best4,'--',c=color4,linewidth=2,label='Kilonova part')
+    plt.plot(tt,maginterp4+zp_best4,'--',c=color4,linewidth=2,label='Kilonova Contribution')
     #plt.plot(tt,maginterp4+zp_best4-errorbudget,'-',c=color4,linewidth=2)
     #plt.plot(tt,maginterp4+zp_best4+errorbudget,'-',c=color4,linewidth=2)
     plt.fill_between(tt,maginterp4+zp_best4-errorbudget,maginterp4+zp_best4+errorbudget,facecolor=color4,alpha=0.2)
@@ -177,12 +178,17 @@ for filt, color in zip(filts,colors):
 
     if cnt == 1:
         ax1.set_yticks([-22,-18,-14,-10])
+        ax1.set_yticks([-21,-20,-19,-17,-16,-15,-13,-12,-11],minor=True)
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=4, prop={'size':36})
+                mode="expand", borderaxespad=0, ncol=4, prop={'size':30})
     elif not cnt == len(filts):
         plt.setp(ax2.get_xticklabels(), visible=False)
+
+    plt.tick_params(direction='out', length=15, width=3, colors='k', labelsize = 14)
+    plt.tick_params(direction='out', which = "minor", length=8, width=1.5, colors='k', labelsize = 14)
+
     plt.xticks(fontsize=32)
     plt.yticks(fontsize=32)
 

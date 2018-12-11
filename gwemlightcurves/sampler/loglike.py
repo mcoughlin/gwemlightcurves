@@ -111,8 +111,9 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
     zp = cube[4]
 
     tmag, lbol, mag = Ka2017_model_ejecta(mej,vej,Xlan)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    print(prob)
 
     return prob
 
@@ -150,6 +151,30 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
 
     tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
     prob = calc_prob(tmag, lbol, mag, t0, zp)
+
+    return prob
+
+def myloglike_Ka2017x2_ejecta_sigma(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    errorbudget = cube[7]
+    zp = cube[8]
+
+    prior = prior_2Component(Xlan_1,Xlan_2)
+    if prior == 0.0:
+        return -np.inf
+    prior = prior_2ComponentVel(vej_1,vej_2)
+    #prior = prior_2ComponentVel(vej_2,vej_1)
+    if prior == 0.0:
+        return -np.inf
+
+    tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget=errorbudget)
 
     return prob
 
@@ -227,7 +252,7 @@ def myloglike_Me2017(cube, ndim, nparams):
 
     tmag, lbol, mag = Me2017_model(m1,mb1,c1,m2,mb2,c2,beta,kappa_r)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp,errorbudget = Global.errorbudget)
     prior = prior_DiUj2017(m1,mb1,c1,m2,mb2,c2)
     if prior == 0.0:
         prob = -np.inf
@@ -288,7 +313,9 @@ def myloglike_Me2017_ejecta(cube, ndim, nparams):
 
     tmag, lbol, mag = Me2017_model_ejecta(mej,vej,beta,kappa_r)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
 
     return prob
 
@@ -662,6 +689,7 @@ def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
     tmag, lbol, mag = Ka2017_TrPi2018_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp)
+    print(prob)
 
     return prob
 
@@ -688,7 +716,7 @@ def myloglike_Ka2017_TrPi2018_A(cube, ndim, nparams):
 
     return prob
 
-def calc_prob(tmag, lbol, mag, t0, zp):
+def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
 
     if Global.doLuminosity:
         if np.sum(lbol) == 0.0:
@@ -719,7 +747,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
         lbolinterp = lbolinterp*zp_factor
 
         sigma_y = np.abs(sigma_y/(y*np.log(10)))
-        sigma = np.sqrt((np.log10(1+Global.errorbudget))**2 + sigma_y**2)
+        sigma = np.sqrt((np.log10(1+errorbudget))**2 + sigma_y**2)
         y = np.log10(y)
         lbolinterp = np.log10(lbolinterp)
 
@@ -763,6 +791,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
         count = 0
         chisquare = np.nan
         gaussprob = np.nan
+        nsamples = 0
+
         for key in Global.data_out:
             samples = Global.data_out[key]
             t = samples[:,0]
@@ -789,8 +819,9 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                     else:
                         f = interp.interp1d(tmag[ii], mag[idx][ii], fill_value=np.nan, bounds_error = False)
                     maginterp = f(t)
-            elif key in ["w","c","o","V","B","R","I","F606W","F160W","F814W"]:
+            elif key in ["w","c","o","V","B","R","I","F606W","F160W","F814W","U","UVW2","UVW1","UVM2"]:
                 magave = lightcurve_utils.get_mag(mag,key)
+
                 ii = np.where(np.isfinite(magave))[0]
                 if len(ii) == 0:
                     maginterp = np.nan*np.ones(t.shape)
@@ -804,13 +835,14 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                 continue
 
             maginterp = maginterp + zp
+            sigma = np.sqrt(errorbudget**2 + sigma_y**2)
 
-            sigma = np.sqrt(Global.errorbudget**2 + sigma_y**2)
             chisquarevals = np.zeros(y.shape)
             chisquarevals = ((y-maginterp)/sigma)**2
             idx = np.where(~np.isfinite(sigma))[0]
+
             if len(idx) > 0:
-                gaussprobvals = 1-scipy.stats.norm.cdf(y[idx], maginterp[idx], Global.errorbudget)
+                gaussprobvals = 1-scipy.stats.norm.cdf(y[idx], maginterp[idx], errorbudget)
                 gaussprobsum = np.sum(np.log(gaussprobvals))
             else:
                 gaussprobsum = 0.0
@@ -831,6 +863,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
                 gaussprob = gaussprob + gaussprobsum
             #count = count + len(chisquarevals)
             count = count + 1
+            nsamples = nsamples + len(y)
 
         if np.isnan(chisquare):
             prob = -np.inf
@@ -839,8 +872,8 @@ def calc_prob(tmag, lbol, mag, t0, zp):
             #prob = -chisquare/2.0
             #prob = chisquare
             chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
-            prob = chiprob + gaussprob
 
+            prob = chiprob + gaussprob - (nsamples/2.0)*np.log(2.0*np.pi*errorbudget**2)
         if np.isnan(prob):
             prob = -np.inf
 
@@ -848,7 +881,7 @@ def calc_prob(tmag, lbol, mag, t0, zp):
         #    print t0, zp, prob
         return prob
     else:
-        print "Enable doLuminosity or doLightcurves..."
+        print("Enable doLuminosity or doLightcurves...")
         exit(0)
 
 def findconst(array):

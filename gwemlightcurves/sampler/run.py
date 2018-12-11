@@ -138,10 +138,16 @@ def multinest(opts,plotDir):
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Ka2017_A_ejecta, myprior_Ka2017_A_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Ka2017x2":
-                parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","zp"]
-                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (X_{\rm lan 1})$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (X_{\rm lan 2})$","ZP"]
-                n_params = len(parameters)
-                pymultinest.run(myloglike_Ka2017x2_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+                if opts.doFitSigma:
+                    parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","sigma","zp"]
+                    labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (X_{\rm lan 1})$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (X_{\rm lan 2})$",r"$\sigma$","ZP"]
+                    n_params = len(parameters)
+                    pymultinest.run(myloglike_Ka2017x2_ejecta_sigma, myprior_Ka2017x2_ejecta_sigma, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+                else:
+                    parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","zp"]
+                    labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (X_{\rm lan 1})$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (X_{\rm lan 2})$","ZP"]
+                    n_params = len(parameters)
+                    pymultinest.run(myloglike_Ka2017x2_ejecta, myprior_Ka2017x2_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Ka2017x3":
                 parameters = ["t0","mej1","vej1","xlan1","mej2","vej2","xlan2","mej3","vej3","xlan3","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej 1})$",r"$v_{\rm ej 1}$",r"${\rm log}_{10} (X_{\rm lan 1})$",r"${\rm log}_{10} (M_{\rm ej 2})$",r"$v_{\rm ej 2}$",r"${\rm log}_{10} (X_{\rm lan 2})$",r"${\rm log}_{10} (M_{\rm ej 3})$",r"$v_{\rm ej 3}$",r"${\rm log}_{10} (X_{\rm lan 3})$","ZP"]
@@ -178,7 +184,7 @@ def multinest(opts,plotDir):
                 n_params = len(parameters)
                 pymultinest.run(myloglike_SmCh2017_ejecta, myprior_SmCh2017_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
         else:
-            print "Enable --doEjecta or --doMasses"
+            print("Enable --doEjecta or --doMasses")
             exit(0)
     elif opts.model in ["SN"]:
     

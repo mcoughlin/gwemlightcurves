@@ -24,7 +24,7 @@ from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
-from gwemlightcurves import lightcurve_utils, Global
+from gwemlightcurves import lightcurve_utils, ztf_utils, Global
 
 def parse_commandline():
     """
@@ -39,6 +39,7 @@ def parse_commandline():
     parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--doZTF",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
     parser.add_option("--doCoverage",  action="store_true", default=False)
@@ -47,6 +48,7 @@ def parse_commandline():
     parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
+    parser.add_option("--doFitSigma",  action="store_true", default=False)
     parser.add_option("--doWaveformExtrapolate",  action="store_true", default=False)
     parser.add_option("--doEOSFit",  action="store_true", default=False)
     parser.add_option("--doBNSFit",  action="store_true", default=False)
@@ -60,6 +62,9 @@ def parse_commandline():
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
 
+    parser.add_option("--username",default="username")
+    parser.add_option("--password",default="password")
+
     opts, args = parser.parse_args()
 
     return opts
@@ -68,14 +73,14 @@ def parse_commandline():
 opts = parse_commandline()
 
 if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017_A, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A"
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017_A, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
     exit(0)
 
 if opts.doFixZPT0:
     ZPRange = 0.1
     T0Range = 0.1
 else:
-    ZPRange = 5.0
+    ZPRange = 50.0
     T0Range = 14.0
 
 filters = opts.filters.split(",")
@@ -115,8 +120,18 @@ if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017
 if opts.doReduced:
     plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
 else:
-    plotDir = os.path.join(plotDir,opts.name)
-plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+    if "knova2D" in opts.name:
+        nameSplit = opts.name.split("_")
+        nameCombine = "_".join(nameSplit[-2:])
+        plotDir = os.path.join(plotDir,nameCombine)
+    elif opts.name == "knova_d1_n10_m0.040_vk0.10_fd1.0_Xlan1e-2.0":
+        plotDir = os.path.join(plotDir,'sphere')
+    else:
+        plotDir = os.path.join(plotDir,opts.name)
+if opts.doFitSigma:
+    plotDir = os.path.join(plotDir,"fit")
+else:
+    plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
@@ -130,6 +145,10 @@ elif opts.doEvent:
 else:
     filename = "%s/lightcurves.tmp"%lightcurvesDir
 
+if opts.doZTF:
+    if not os.path.isfile(filename):
+        ztf_utils.get_ztf(filename,opts.name,opts.username,opts.password)
+
 errorbudget = opts.errorbudget
 mint = opts.tmin
 maxt = opts.tmax
@@ -140,7 +159,7 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
     if opts.doModels:
         data_out = lightcurve_utils.loadModels(opts.outputDir,opts.name)
         if not opts.name in data_out:
-            print "%s not in file..."%opts.name
+            print("%s not in file..."%opts.name)
             exit(0)
 
         data_out = data_out[opts.name]
@@ -241,9 +260,11 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         if key == "t":
             continue
         else:
-
             ii = np.where(np.isfinite(data_out[key][:,1]))[0]
-            f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
+            if opts.doWaveformExtrapolate:
+                f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value='extrapolate', bounds_error=False)
+            else:
+                f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
             maginterp = f(tt)
 
             data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
@@ -278,7 +299,7 @@ else:
     else:
         data_out = lightcurve_utils.loadLightcurves(filename)
         if not opts.name in data_out:
-            print "%s not in file..."%opts.name
+            print("%s not in file..."%opts.name)
             exit(0)
 
         data_out = data_out[opts.name]
@@ -288,7 +309,8 @@ else:
             continue
         else:
             data_out[key][:,0] = data_out[key][:,0] - opts.T0
-            data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+            if not opts.doZTF:
+                data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
 
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
@@ -375,17 +397,19 @@ if opts.doFixZPT0:
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths[1:-1], smooth=3)
+                       truths=truths[1:-1], smooth=3,
+                       color="coral")
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
                        show_titles=True, title_kwargs={"fontsize": title_fontsize},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
-                       truths=truths, smooth=3)
+                       truths=truths, smooth=3,
+                       color="coral")
 if n_params >= 10:
     figure.set_size_inches(40.0,40.0)
 elif n_params >= 6:
-    figure.set_size_inches(22.0,22.0)
+    figure.set_size_inches(24.0,24.0)
 else:
     figure.set_size_inches(14.0,14.0)
 plt.savefig(plotName)
@@ -568,12 +592,15 @@ for filt, color in zip(filters,colors):
         plt.ylim([-18.0,-10.0])
     else:
         plt.xlim([0.0, 7.0])
-        plt.ylim([-22.0,-10.0])
+        plt.ylim([-22.0,-8.0])
     plt.gca().invert_yaxis()
     plt.grid()
 
     if cnt == 1:
-        ax1.set_yticks([-18,-16,-14,-12,-10])
+        if opts.name == "GW170817":
+            ax1.set_yticks([-18,-16,-14,-12,-10])
+        else:
+            ax1.set_yticks([-22,-18,-14,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
     elif not cnt == len(filters):

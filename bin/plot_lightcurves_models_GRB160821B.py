@@ -25,25 +25,25 @@ from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
 from gwemlightcurves import lightcurve_utils, Global
 
-plotDir = '../plots/gws/GRB150101B'
+plotDir = '../plots/gws/GRB160821B'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
-errorbudget = 0.01
+errorbudget = 1.00
 
-plotDir1 = '../plots/gws/Ka2017_FixZPT0/r_J_H_K/0_10/ejecta/GRB150101B/1.00/'
+plotDir1 = '../plots/gws/Ka2017_FixZPT0/F606W_F160W_K/0_10/ejecta/GRB160821B/1.00/'
 pcklFile = os.path.join(plotDir1,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data1, tmag1, lbol1, mag1, t0_best1, zp_best1, n_params1, labels1, best1, truths1) = pickle.load(f)
 f.close()
 
-plotDir2 = '../plots/gws/TrPi2018_FixZPT0/r_J_H_K/0_10/GRB150101B/0.01/'
+plotDir2 = '../plots/gws/TrPi2018_FixZPT0/F606W_F160W_K/0_10/GRB160821B/1.00/'
 pcklFile = os.path.join(plotDir2,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data2, tmag2, lbol2, mag2, t0_best2, zp_best2, n_params2, labels2, best2, truths2) = pickle.load(f)
 f.close()
 
-plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/r_J_H_K/0_10/GRB150101B/0.01/'
+plotDir3 = '../plots/gws/Ka2017_TrPi2018_FixZPT0/F606W_F160W_K/0_10/GRB160821B/1.00/'
 pcklFile = os.path.join(plotDir3,"data.pkl")
 f = open(pcklFile, 'r')
 (data_out, data3, tmag3, lbol3, mag3, t0_best3, zp_best3, n_params3, labels3, best3, truths3) = pickle.load(f)
@@ -56,23 +56,21 @@ tmag3 = tmag3 + t0_best3
 title_fontsize = 30
 label_fontsize = 30
 
-errorbudget = 1.00
-
 #filts = ["u","g","r","i","z","y","J","H","K"]
-filts = ["r","J","H","K"]
+filts = ["F606W","F160W","K"]
 colors=cm.jet(np.linspace(0,1,len(filts)))
 tini, tmax, dt = 0.0, 21.0, 0.1    
 tt = np.arange(tini,tmax,dt)
 
 color1 = 'coral'
 color2 = 'cornflowerblue'
-color3 = 'forestgreen'
+color3 = 'palegreen'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
+#plt.figure(figsize=(20,18))
 plt.figure(figsize=(20,24))
-#plt.figure(figsize=(20,12))
 
-tini, tmax, dt = 0.0, 7.0, 0.1
+tini, tmax, dt = 0.0, 10.0, 0.1
 tt = np.arange(tini,tmax,dt)
 
 cnt = 0
@@ -103,29 +101,29 @@ for filt, color in zip(filts,colors):
     ii = np.where(~np.isnan(magave1))[0]
     f = interp.interp1d(tmag1[ii], magave1[ii], fill_value='extrapolate')
     maginterp1 = f(tt)
-    plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='Kilonova only')
-    #plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
-    #plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
+    plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='Kilonova')
+    plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
+    plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
     plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
 
     ii = np.where(~np.isnan(magave2))[0]
     f = interp.interp1d(tmag2[ii], magave2[ii], fill_value='extrapolate')
     maginterp2 = f(tt)
-    plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='Afterglow only')
-    #plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
-    #plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+    plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='Afterglow')
+    plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+    plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
     plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
 
     ii = np.where(~np.isnan(magave3))[0]
     f = interp.interp1d(tmag3[ii], magave3[ii], fill_value='extrapolate')
     maginterp3 = f(tt)
     plt.plot(tt,maginterp3+zp_best3,'--',c=color3,linewidth=2,label='Kilonova+Afterglow')
-    #plt.plot(tt,maginterp3+zp_best3-errorbudget,'-',c=color3,linewidth=2)
-    #plt.plot(tt,maginterp3+zp_best3+errorbudget,'-',c=color3,linewidth=2)
+    plt.plot(tt,maginterp3+zp_best3-errorbudget,'-',c=color3,linewidth=2)
+    plt.plot(tt,maginterp3+zp_best3+errorbudget,'-',c=color3,linewidth=2)
     plt.fill_between(tt,maginterp3+zp_best3-errorbudget,maginterp3+zp_best3+errorbudget,facecolor=color3,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-    plt.xlim([0.0, 7.0])
+    plt.xlim([0.0, 10.0])
     plt.ylim([-20.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
@@ -136,16 +134,13 @@ for filt, color in zip(filts,colors):
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
         l = plt.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=3, prop={'size':32})
+                mode="expand", borderaxespad=0, ncol=3, prop={'size':38})
     elif not cnt == len(filts):
         plt.setp(ax2.get_xticklabels(), visible=False)
-
-    plt.tick_params(direction='out', length=15, width=3, colors='k', labelsize = 14)
-    plt.tick_params(direction='out', which = "minor", length=8, width=1.5, colors='k', labelsize = 14)
     plt.xticks(fontsize=32)
     plt.yticks(fontsize=32)
 
 ax1.set_zorder(1)
-plt.xlabel('Rest frame time since burst [days]',fontsize=48)
+plt.xlabel('Time [days]',fontsize=48)
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
