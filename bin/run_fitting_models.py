@@ -60,6 +60,7 @@ def parse_commandline():
     parser.add_option("--doJointLambda",  action="store_true", default=False)
     parser.add_option("--doJointDisk",  action="store_true", default=False)
     parser.add_option("--doJointGRB",  action="store_true", default=False)
+    parser.add_option("--doJointNSBH",  action="store_true", default=False)
     parser.add_option("--doJointSpin",  action="store_true", default=False)
     parser.add_option("--doJointWang",  action="store_true", default=False)
     parser.add_option("--doLoveC",  action="store_true", default=False)
@@ -217,6 +218,14 @@ def myprior_bns_JointFitDisk(cube, ndim, nparams):
         cube[4] = cube[4]*0.17 + 2.0
         #cube[4] = cube[4]*4.0
 
+def myprior_nsbh_JointFitDisk(cube, ndim, nparams):
+        cube[0] = cube[0]*7.0 + 3.0
+        cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
+        cube[2] = cube[2]*2.0 - 2.0
+        cube[3] = cube[3]*0.5
+        cube[4] = cube[4]*2.0 - 1.0
+        #cube[4] = cube[4]*4.0
+
 def myprior_GRB(cube, ndim, nparams):
         cube[0] = cube[0]*20.0 - 20.0
         #cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
@@ -252,6 +261,19 @@ def myprior_Wang(cube, ndim, nparams):
         cube[3] = cube[3]*3.0 - 4.0
         #cube[4] = cube[4]*0.5
         cube[4] = cube[4]*0.6
+
+def myprior_NSBH(cube, ndim, nparams):
+        cube[0] = cube[0]*20.0 - 20.0
+        #cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
+        cube[1] = cube[1]*(100+lambdamax-lambdamin) + lambdamin-50
+        cube[2] = cube[2]*1.0
+        #cube[3] = cube[3]*1.0 + 1.0
+        cube[3] = cube[3]*7.2 + 2.9
+        cube[4] = cube[4]*2.0 - 1.0
+        #cube[4] = cube[4]*0.27 + 1.95
+        #cube[4] = cube[4]*4.0
+        #cube[5] = cube[5]*0.5
+        cube[5] = cube[5]*0.6
 
 def myprior_combined_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*5.0 - 5.0
@@ -442,10 +464,6 @@ def myloglike_bns_JointFit(cube, ndim, nparams):
             prob = -np.inf
             return prob
 
-        #if (lambdatilde<400.0) or (lambdatilde>800.0):
-        #    prob = -np.inf
-        #    return prob
-
         mc = 1.186
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
@@ -572,6 +590,66 @@ def myloglike_bns_JointFitDisk(cube, ndim, nparams):
 
         if prior == 0.0:
             prob = -np.inf
+        if mej1 == 0.0:
+            prob = -np.inf
+        if mej2 == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_nsbh_JointFitDisk(cube, ndim, nparams):
+        q = cube[0]
+        lambdatilde = cube[1]
+        alpha = cube[2]
+        zeta = cube[3]
+        chi_eff = cube[4]
+        mc = 1.186
+
+        lambda2 = (13.0/16.0) * (lambdatilde) * ((1 + q)**5)/(1 + 12*q)
+        c = 0.371 - 0.0391*np.log(lambda2) + 0.001056*(np.log(lambda2)**2)
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        a, n = 0.8858, 1.2082
+        mb = (1+a*c**n)*m2
+
+        mej1, vej1 = bhns_model(q,chi_eff,m2,mb,c) 
+        mej1 = mej1/(10**alpha)
+
+        if (lambdatilde<0):
+            prob = -np.inf
+            return prob
+
+        Z1 = 1 + ((1-chi_eff**2)**(1.0/3.0)) * ((1+chi_eff)**(1.0/3.0) + (1-chi_eff)**(1.0/3.0))
+        Z2 = np.sqrt(3.0*chi_eff**2 + Z1**2)
+        Risco = 3+Z2-np.sign(chi_eff)*np.sqrt((3-Z1)*(3+Z1+2*Z2))
+
+        alpha_fit, beta_fit, gamma_fit, delta_fit = 0.406, 0.139, 0.255, 1.761
+        term1 = alpha_fit*(1-2*c)/(eta**(1.0/3.0))
+        term2 = beta_fit*Risco*c/eta
+
+        mdisk = (np.max(term1-term2+gamma_fit,0))**delta_fit
+        mtot = m1+m2
+        mej2 = zeta*mdisk
+
+        if np.isnan(mej2):
+            prob = -np.inf
+            return prob
+
+        if (mej1+mej2)>(m2):
+            prob = -np.inf
+            return prob
+
+        #prob = calc_prob(mej1,vej1)
+        prob = calc_prob_disk(mej1,vej1,mej2)
+        #prob = calc_prob_mej2(mej2)
+        if np.isnan(prob):
+            prob = -np.inf
+            return prob
+
+        print(q, lambdatilde, alpha, zeta, chi_eff, prob)
+
         if mej1 == 0.0:
             prob = -np.inf
         if mej2 == 0.0:
@@ -732,6 +810,57 @@ def myloglike_SGRB(cube, ndim, nparams):
         prob2 = calc_prob_KN(q, lambdatilde, zeta, mTOV)
  
         prob = prob + prob2
+
+        return prob
+
+def myloglike_NSBH(cube, ndim, nparams):
+        epsilon = 10**cube[0]
+        lambdatilde = cube[1]
+        E0_unit = cube[2]
+        q = cube[3]
+        chi_eff = cube[4]
+        zeta = cube[5]
+        mc = 1.186
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        if (lambdatilde<0):
+            prob = -np.inf
+            return prob
+
+        Z1 = 1 + ((1-chi_eff**2)**(1.0/3.0)) * ((1+chi_eff)**(1.0/3.0) + (1-chi_eff)**(1.0/3.0))
+        Z2 = np.sqrt(3.0*chi_eff**2 + Z1**2)
+        Risco = 3+Z2-np.sign(chi_eff)*np.sqrt((3-Z1)*(3+Z1+2*Z2))
+
+        alpha_fit, beta_fit, gamma_fit, delta_fit = 0.406, 0.139, 0.255, 1.761
+        term1 = alpha_fit*(1-2*c)/(eta**(1.0/3.0))
+        term2 = beta_fit*Risco*c/eta
+
+        mdisk = (np.max(term1-term2+gamma_fit,0))**delta_fit
+        mtot = m1+m2
+        mej2 = zeta*mdisk
+
+        E0_mu, E0_std = 50.30, 0.84
+        E0 = scipy.stats.norm(E0_mu, E0_std).ppf(E0_unit)
+        Eiso = 10**E0
+
+        menergy = 1.989*1e30*9.0*1e16*1e7*mdisk
+
+        Eiso_estimate = epsilon * menergy * (1-zeta)
+        Eiso_sigma = 0.67*Eiso_estimate
+
+        prob = - 0.5 * (((Eiso_estimate - Eiso) ** 2) / Eiso_sigma ** 2)
+
+        prob2 = calc_prob_KN_NSBH(q, lambdatilde, zeta, chi_eff)
+
+        prob = prob + prob2
+
+        if np.isnan(prob):
+            prob = -np.inf
+            return prob
+
+        print(epsilon,lambdatilde,Eiso,q,chi_eff,zeta,prob)
 
         return prob
 
@@ -904,6 +1033,22 @@ def calc_prob_KN(q, lambdatilde, zeta, mtov):
         #    print mej, vej, prob
         return prob
 
+def calc_prob_KN_NSBH(q, lambdatilde, zeta, chi_eff):
+
+        if (q==0.0) or (lambdatilde==0.0) or (zeta==0.0) or (chi_eff==0.0):
+            prob = np.nan
+        else:
+            vals = np.array([q, lambdatilde, zeta, chi_eff]).T
+            kdeeval = kde_eval(kdedir_pts_KN,vals)[0]
+            prob = np.log(kdeeval)
+
+        if np.isnan(prob):
+            prob = -np.inf
+
+        #if np.isfinite(prob):
+        #    print mej, vej, prob
+        return prob
+
 def calc_prob_gw(m1, m2):
 
         if (m1==0.0) or (m2==0.0):
@@ -1021,6 +1166,8 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plotDir = os.path.join(plotDir,'joinl')
     elif opts.doJointDisk:
         plotDir = os.path.join(plotDir,'joind')
+    elif opts.doJointNSBH:
+        plotDir = os.path.join(plotDir,'joinn')
     elif opts.doJointGRB:
         plotDir = os.path.join(plotDir,'joing')
     elif opts.doJointSpin:
@@ -1047,6 +1194,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             dataDir = dataDir.replace("joind/","").replace("_EOSFit","").replace("_BNSFit","")
         else:
             dataDir = dataDir.replace("joind","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+    elif opts.doJointNSBH:
+        if opts.model == "Ka2017_TrPi2018":
+            dataDir = dataDir.replace("joinn/","").replace("_EOSFit","").replace("_BNSFit","")
+        else:
+            dataDir = dataDir.replace("joinn","ejecta").replace("_EOSFit","").replace("_BNSFit","")
     elif opts.doJointGRB:
         if opts.model == "Ka2017_TrPi2018":
             dataDir = dataDir.replace("joing/","").replace("_EOSFit","").replace("_BNSFit","")
@@ -1064,7 +1216,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             dataDir = dataDir.replace("joinw","ejecta").replace("_EOSFit","").replace("_BNSFit","")
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
-    if opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+    if opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
         plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.lambdamin,opts.lambdamax))    
 
 if not os.path.isdir(plotDir):
@@ -1109,7 +1261,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         data_out, truths = lightcurve_utils.massgap(opts.dataDir,opts.name)
         m1, m2 = data_out["m1"], data_out["m2"]
     elif opts.doEvent:
-        if opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+        if opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
             #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_EOS")
             data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_SourceProperties")
             if data_out:
@@ -1192,7 +1344,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             mej = 10**data[:,1]
             vej = data[:,2]
         pts = np.vstack((mej,vej)).T
-    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
         if opts.model == "Ka2017x2":
             mej1 = 10**data[:,1]
             vej1 = data[:,2]
@@ -1226,7 +1378,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
         mej_true = truths_mej_vej[0]
         vej_true = truths_mej_vej[1]
-    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
         if opts.model == "Ka2017x2":
             mej1_em = data[:,1]
             vej1_em = data[:,2]
@@ -1344,6 +1496,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             labels = [r"q",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{TOV}$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_JointFitDisk, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+        elif opts.doJointNSBH:
+            parameters = ["q","lambdatilde","alpha","zeta","chieff"]
+            labels = [r"q",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$\chi_{\rm eff}$"]
+            n_params = len(parameters)
+            pymultinest.run(myloglike_nsbh_JointFitDisk, myprior_nsbh_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         else:
             parameters = ["m1","mb1","c1","m2","mb2","c2"]
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
@@ -1461,7 +1618,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             for m1,c1,m2,c2 in data[:,:-1]:
                 mej_em[ii], vej_em[ii] = bns2_model(m1,c1,m2,c2)
                 ii = ii + 1
-        elif opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+        elif opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
             q_em = data[:,0]
             lambdatilde_em = data[:,1]
             alpha_em = data[:,2]
@@ -1488,6 +1645,26 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
                 kdedir = greedy_kde_areas_2d(pts_KN_all)
                 kdedir_pts_KN = copy.deepcopy(kdedir)
+            elif opts.doJointNSBH:
+                mchirp_em = 1.186
+                zeta_em = data[:,3]
+                chieff_em = data[:,4]
+
+                zeta_em_sort = np.sort(zeta_em)
+
+                pts_KN = np.vstack((q_em,lambdatilde_em,zeta_em,chieff_em)).T
+                iis = [0,1,2,3,3]
+                boundaries = [1,1140,0.5,-1.0,1.0]
+                pts_KN_all = copy.deepcopy(pts_KN)
+                pts_KN_2 = copy.deepcopy(pts_KN)
+                for ii,boundary1 in zip(iis,boundaries):
+                    pts_KN_2 = copy.deepcopy(pts_KN)
+                    pts_KN_2[:,ii] = 2*boundary1 - pts_KN_2[:,ii]
+                    pts_KN_all = np.vstack((pts_KN_all,pts_KN_2))
+
+                kdedir = greedy_kde_areas_2d(pts_KN_all)
+                kdedir_pts_KN = copy.deepcopy(kdedir)
+
  
             eta = lightcurve_utils.q2eta(q_em)
             (m1,m2) = lightcurve_utils.mc2ms(mchirp_em,eta)
@@ -1572,6 +1749,38 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                     ii = ii + 1
                     fid.write('%.10f %.10f\n'%(q,lambdatilde))
 
+            elif opts.doJointNSBH:
+                labels = [r"q",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$\chi_{\rm eff}$"]
+                #for q,lambda1,A,zeta_em in data[:,:-1]:
+                for q,lambdatilde,alpha,zeta_em,chi_eff in data[:,:-1]:
+
+                    lambda2 = (13.0/16.0) * (lambdatilde) * ((1 + q)**5)/(1 + 12*q)
+                    c = 0.371 - 0.0391*np.log(lambda2) + 0.001056*(np.log(lambda2)**2)
+
+                    eta = lightcurve_utils.q2eta(q)
+                    (m1,m2) = lightcurve_utils.mc2ms(mchirp_em,eta)
+
+                    a, n = 0.8858, 1.2082
+                    mb = (1+a*c**n)*m2
+
+                    mej_em[ii], vej_em[ii] = bhns_model(q,chi_eff,m2,mb,c)
+                    mej_em[ii] = mej_em[ii]/(10**alpha)
+                    lambdatilde_em[ii] = lambdatilde
+
+                    Z1 = 1 + ((1-chi_eff**2)**(1.0/3.0)) * ((1+chi_eff)**(1.0/3.0) + (1-chi_eff)**(1.0/3.0))
+                    Z2 = np.sqrt(3.0*chi_eff**2 + Z1**2)
+                    Risco = 3+Z2-np.sign(chi_eff)*np.sqrt((3-Z1)*(3+Z1+2*Z2))
+
+                    alpha_fit, beta_fit, gamma_fit, delta_fit = 0.406, 0.139, 0.255, 1.761
+                    term1 = alpha_fit*(1-2*c)/(eta**(1.0/3.0))
+                    term2 = beta_fit*Risco*c/eta
+
+                    mdisk = (np.max(term1-term2+gamma_fit,0))**delta_fit
+                    mej2_em[ii] = zeta_em*mdisk
+
+                    ii = ii + 1
+                    fid.write('%.10f %.10f\n'%(q,lambdatilde))
+
             fid.close()
             data[:,1] = lambdatilde_em
 
@@ -1649,7 +1858,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plt.savefig(plotName)
         plt.close()
 
-    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
+    elif opts.doJointDisk or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH:
 
         pts_em = np.vstack((q_em,lambdatilde_em)).T
         pts_gw = np.vstack((q_gw,lambdatilde_gw)).T
@@ -1818,6 +2027,52 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
             #labels_sgrb = [r"$q$",r"$\tilde{\Lambda}$",r"$m_{TOV}$"]
             labels_sgrb = [r"$\sigma$",r"$\tilde{\Lambda}$",r"$q$",r"$M_{TOV}$",r"$\zeta$"]
+            plotName = "%s/corner_sgrb.pdf"%(plotDir)
+            figure = corner.corner(data_sgrb, labels=labels_sgrb,
+                   quantiles=[0.16, 0.5, 0.84],
+                   show_titles=True, title_kwargs={"fontsize": 24},
+                   label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                   color='forestgreen',
+                   smooth=3)
+            figure.set_size_inches(14.0,14.0)
+            plt.savefig(plotName)
+            plt.close()
+
+        elif opts.doJointNSBH:
+            parameters = ["epsilon","lambdatilde","E0","q","chieff","zeta"]
+            n_params = len(parameters)
+
+            pymultinest.run(myloglike_NSBH, myprior_NSBH, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%grbDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+
+            multifile = lightcurve_utils.get_post_file(grbDir)
+            data_sgrb = np.loadtxt(multifile)
+
+            idx = np.where((data_sgrb[:,1]>=lambdamin) & (data_sgrb[:,1]<=lambdamax))[0]
+            data_sgrb = data_sgrb[idx,:]
+            idx = np.where((data_sgrb[:,3]>=1.0) & (data_sgrb[:,3]<=10.0))[0]
+            data_sgrb = data_sgrb[idx,:]
+            idx = np.where((data_sgrb[:,4]>=-1.0) & (data_sgrb[:,4]<=1.0))[0]
+            data_sgrb = data_sgrb[idx,:]
+            idx = np.where((data_sgrb[:,5]>=0.0) & (data_sgrb[:,5]<=0.5))[0]
+            data_sgrb = data_sgrb[idx,:]
+
+            epsilon_sgrb = data_sgrb[:,0]
+            lambdatilde_sgrb= data_sgrb[:,1]
+            E0_sgrb = data_sgrb[:,2]
+            q_sgrb = data_sgrb[:,3]
+            chieff_sgrb = data_sgrb[:,4]
+            zeta_sgrb = data_sgrb[:,5]
+
+            E0_mu, E0_std = 50.30, 0.84
+            E0_sgrb = scipy.stats.norm(E0_mu, E0_std).ppf(E0_sgrb)
+            E0_sgrb = 10**E0_sgrb
+
+            #data_sgrb = np.vstack((epsilon_sgrb,lambdatilde_sgrb,thetaj_sgrb,thetac_sgrb,q_sgrb,mTOV_sgrb)).T
+
+            #labels_sgrb = [r"$\log_{\rm 10} \epsilon$",r"$\tilde{\Lambda}$","$\Theta_{j}$","$\Theta_{c}$",r"$q$",r"$m_{TOV}$"]
+
+            data_sgrb = np.vstack((epsilon_sgrb,lambdatilde_sgrb,q_sgrb,chieff_sgrb,zeta_sgrb)).T
+            labels_sgrb = [r"$\log_{\rm 10} \epsilon$",r"$\tilde{\Lambda}$",r"$q$",r"$\chi_{\rm eff}$",r"$\zeta$"]
             plotName = "%s/corner_sgrb.pdf"%(plotDir)
             figure = corner.corner(data_sgrb, labels=labels_sgrb,
                    quantiles=[0.16, 0.5, 0.84],
