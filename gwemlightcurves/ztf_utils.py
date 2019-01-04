@@ -11,7 +11,7 @@ except:
     print('Please install penquins')
     pass
 
-def get_ztf(filename, name, username, password):
+def get_ztf(filename, name, username, password, filetype = "default"):
 
     k = Kowalski(username=username, password=password, verbose=True)
 
@@ -51,8 +51,18 @@ def get_ztf(filename, name, username, password):
     idx = np.argsort(jd)
 
     fid = open(filename,'w')
-    for ii in idx:
-        t = Time(jd[ii], format='jd').isot
-        fid.write('%s %s %.5f %.5f\n'%(t,filtname[ii],mag[ii],magerr[ii]))
+    if filetype == "default":
+        for ii in idx:
+            t = Time(jd[ii], format='jd').isot
+            fid.write('%s %s %.5f %.5f\n'%(t,filtname[ii],mag[ii],magerr[ii]))
+    elif filetype == "snmachine":
+        z, zerr = 0.1, 0.01
+        fid.write('HOST_GALAXY_PHOTO-Z:   %.4f  +- %.4f\n'%(z,zerr))
+        fid.write('SIM_COMMENT:  SN Type = II\n')
+        for ii in idx:
+            t = Time(jd[ii], format='jd').mjd
+            flux = 10**(mag[ii]/(-2.5))
+            fluxerr = magerr[ii]*flux
+            fid.write('OBS: %.3f %s NULL %.3e %.3e %.2f %.5f %.5f\n'%(t,filtname[ii],flux,fluxerr,flux/fluxerr,mag[ii],magerr[ii]))
     fid.close()
 

@@ -666,7 +666,7 @@ def myloglike_TrPi2018(cube, ndim, nparams):
 
     tmag, lbol, mag = TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
     return prob
 
@@ -688,7 +688,7 @@ def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
 
     tmag, lbol, mag = Ka2017_TrPi2018_model(mej, vej, Xlan, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
     print(prob)
 
     return prob
