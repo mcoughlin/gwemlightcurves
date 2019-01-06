@@ -63,7 +63,7 @@ def get_ztf(filename, name, username, password,
         fid.write('SIM_COMMENT:  SN Type = %s\n'%SN_Type)
         for ii in idx:
             t = Time(jd[ii], format='jd').mjd
-            flux = 1e9 * 10**(mag[ii]/(-2.5))
+            flux = 10**((mag[ii]+48.60)/(-2.5))
             fluxerr = magerr[ii]*flux
             fid.write('OBS: %.3f %s NULL %.3e %.3e %.2f %.5f %.5f\n'%(t,filtname[ii],flux,fluxerr,flux/fluxerr,mag[ii],magerr[ii]))
     fid.close()
@@ -112,7 +112,7 @@ def get_ztf_lc(filename, name, username, password,
         fid.write('SIM_COMMENT:  SN Type = %s\n'%SN_Type)
         for ii in idx:
             t = Time(jd[ii], format='jd').mjd
-            flux = 1e9 * 10**(mag[ii]/(-2.5))
+            flux = 10**((mag[ii]+48.60)/(-2.5))
             fluxerr = magerr[ii]*flux
             if np.isclose(fluxerr,0.0,atol=1e-12):
                 snr = np.inf
