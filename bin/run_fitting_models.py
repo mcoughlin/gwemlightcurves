@@ -228,7 +228,8 @@ def myprior_nsbh_JointFitDisk(cube, ndim, nparams):
         #cube[4] = cube[4]*4.0
 
 def myprior_bns_Lambda2(cube, ndim, nparams):
-        cube[0] = cube[0]*1.0 + 1.0
+        #cube[0] = cube[0]*1.0 + 1.0
+        cube[0] = cube[0]*6.2 + 0.9
         cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
         cube[2] = cube[2]*2.0 - 2.0
         cube[3] = cube[3]*0.5
@@ -276,7 +277,8 @@ def myprior_BNS_Lambda2GRB(cube, ndim, nparams):
         cube[1] = cube[1]*(100+lambdamax-lambdamin) + lambdamin-50
         cube[2] = cube[2]*1.0
         #cube[3] = cube[3]*1.0 + 1.0
-        cube[3] = cube[3]*1.1 + 0.9
+        #cube[3] = cube[3]*1.1 + 0.9
+        cube[3] = cube[3]*6.2 + 0.9        
         #cube[4] = cube[4]*0.17 + 2.0
         cube[4] = cube[4]*0.27 + 1.95
         #cube[5] = cube[5]*0.5
@@ -572,6 +574,8 @@ def myloglike_bns_Lambda2(cube, ndim, nparams):
         mej1, vej1 = bns2_model(m1,c1,m2,c2)
         mej1 = mej1/(10**alpha)
 
+        print(m1,mTOV,lambdatilde,q,lambda2)
+
         if (m1)>(mTOV):
             prob = -np.inf
             return prob
@@ -609,6 +613,8 @@ def myloglike_bns_Lambda2(cube, ndim, nparams):
             prob = -np.inf
         if mej2 == 0.0:
             prob = -np.inf
+
+        print(prob)
 
         return prob
 
@@ -693,6 +699,10 @@ def myloglike_nsbh_JointFitDisk(cube, ndim, nparams):
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        if (m2<0.89):
+            prob = -np.inf
+            return prob
 
         a, n = 0.8858, 1.2082
         mb = (1+a*c**n)*m2
@@ -964,6 +974,10 @@ def myloglike_NSBH(cube, ndim, nparams):
 
         eta = lightcurve_utils.q2eta(q)
         (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        if (m2<0.89):
+            prob = -np.inf
+            return prob            
 
         c = 0.371 - 0.0391*np.log(lambda2) + 0.001056*(np.log(lambda2)**2)
 
@@ -2337,7 +2351,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                    label_kwargs={"fontsize": 28}, title_fmt=".2f",
                    color='forestgreen',
                    smooth=3)
-            figure.set_size_inches(14.0,14.0)
+            figure.set_size_inches(12.0,12.0)
             plt.savefig(plotName)
             plt.close()
 
@@ -2485,7 +2499,7 @@ else:
                        label_kwargs={"fontsize": 28}, title_fmt=".2f",
                        color="coral",
                        smooth = 3)
-figure.set_size_inches(14.0,14.0)
+figure.set_size_inches(12.0,12.0)
 plt.savefig(plotName)
 plt.close()
 

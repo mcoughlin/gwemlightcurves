@@ -89,7 +89,7 @@ tt = np.arange(tini,tmax+dt,dt)
 #colors = ['coral','cornflowerblue','palegreen','goldenrod']
 keys = data_out.keys()
 colors=cm.rainbow(np.linspace(0,1,len(keys)))
-colors = ['coral','cornflowerblue','palegreen','goldenrod']
+colors = ['coral','cornflowerblue','forestgreen','darkmagenta']
 plotName = "%s/mag_panels.pdf"%(plotDir)
 plt.figure(figsize=(20,48))
 

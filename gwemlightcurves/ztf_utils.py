@@ -53,6 +53,18 @@ def get_ztf(filename, name, username, password,
                 filtname.append('i')
     idx = np.argsort(jd)
 
+    if filetype == "lc":
+        mjds, fluxs, fluxerrs, passband = [], [], [], []
+        for ii in idx:
+            t = Time(jd[ii], format='jd').mjd
+            flux = 10**((mag[ii]+48.60)/(-2.5))
+            fluxerr = magerr[ii]*flux
+            mjds.append(t)
+            fluxs.append(flux)
+            fluxerrs.append(fluxerr)
+            passband.append(filtname[ii])
+        return mjds, fluxs, fluxerrs, passband
+
     fid = open(filename,'w')
     if filetype == "default":
         for ii in idx:
@@ -101,6 +113,18 @@ def get_ztf_lc(filename, name, username, password,
             mag.append(float(magpsf))
             magerr.append(float(sigmamagpsf))
     idx = np.argsort(jd)
+
+    if filetype == "lc":
+        mjds, fluxs, fluxerrs, passband = [], [], [], []
+        for ii in idx:
+            t = Time(jd[ii], format='jd').mjd
+            flux = 10**((mag[ii]+48.60)/(-2.5))
+            fluxerr = magerr[ii]*flux
+            mjds.append(t)
+            fluxs.append(flux)
+            fluxerrs.append(fluxerr)
+            passband.append(filtname[ii])
+        return mjds, mag, magerr, fluxs, fluxerrs, passband 
 
     fid = open(filename,'w')
     if filetype == "default":
