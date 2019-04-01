@@ -190,11 +190,11 @@ elif opts.doMasses:
     samples['mb1'] = mb
     samples['mb2'] = mb
 else:
-    print "Enable --doEjecta or --doMasses"
+    print("Enable --doEjecta or --doMasses")
     exit(0)
 
 ModelPath = '%s/svdmodels'%(opts.outputDir)
-ModelPath = '%s/svdmodels_remove'%(opts.outputDir)
+#ModelPath = '%s/svdmodels_remove'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 
@@ -221,73 +221,46 @@ if opts.model == "KaKy2016":
         name = "KaKy2016_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sQ%.0fa%.0f"%(opts.eos,opts.massratio,opts.chi_eff*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "DiUj2017":
     if opts.doEjecta:
         name = "DiUj2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "Me2017":
     if opts.doEjecta:
         name = "Me2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "SmCh2017":
     if opts.doEjecta:
         name = "SmCh2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "WoKo2017":
     if opts.doEjecta:
         name = "WoKo2017_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "BaKa2016":
     if opts.doEjecta:
         name = "BaKa2016_%sM%03dV%02d"%(opts.eos,opts.mej*1000,opts.vej*100)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "Ka2017":
     if opts.doEjecta:
         name = "Ka2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "Ka2017x2":
     if opts.doEjecta:
         name = "Ka2017x2_M%03dV%02dX%d_M%03dV%02dX%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "RoFe2017":
     if opts.doEjecta:
         name = "FoFe2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Ye))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
-    else:
-        print "Enable --doEjecta or --doMasses"
-        exit(0)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0
@@ -308,16 +281,16 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow"
+   print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow")
    exit(0)
 
 if opts.doAB:
     if np.sum(lbol) == 0.0:
-        print "No luminosity..."
+        print("No luminosity...")
         exit(0)
 elif opts.doSpec:
     if np.sum(spec) == 0.0:
-        print "No spectra..."
+        print("No spectra...")
         exit(0)
 
 baseoutputDir = opts.outputDir

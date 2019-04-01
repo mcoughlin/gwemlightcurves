@@ -74,7 +74,7 @@ if opts.doLightcurves:
 
     lambdamin, lambdamax = 0, 1140
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)
-    print(system_command )
+    print(system_command)
     print(stop)
     os.system(system_command)
 

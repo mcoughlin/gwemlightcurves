@@ -40,16 +40,17 @@ else:
 model = "Ka2017"
 system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
 print(system_command)
-os.system(system_command)
+#os.system(system_command)
 
 model = "TrPi2018"
 system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
 print(system_command)
-os.system(system_command)
+#os.system(system_command)
 
 model = "Ka2017_TrPi2018"
 system_command = "python run_lightcurves_models.py --doEvent --model %s --name %s --tmin 0.0 --tmax 10.0 --distance %.5f --T0 %.5f --filters %s --errorbudget %.2f --doFixZPT0 --doEjecta %s"%(model,grb,dist,mjd,filts,errorbudget,doExtrapolate)
 print(system_command)
+print(stop)
 os.system(system_command)
 print(stop)
 

@@ -587,9 +587,13 @@ for filt, color in zip(filters,colors):
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+
     if opts.name == "GW170817":
         plt.xlim([0.0, 18.0])
         plt.ylim([-18.0,-10.0])
+    elif opts.doZTF:
+        plt.xlim([0.0, 7.0])
+        plt.ylim([18.0,22.0])
     else:
         plt.xlim([0.0, 7.0])
         plt.ylim([-22.0,-8.0])

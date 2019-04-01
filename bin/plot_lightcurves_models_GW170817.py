@@ -60,6 +60,55 @@ tt = np.arange(tini,tmax,dt)
 color2 = 'coral'
 color1 = 'cornflowerblue'
 
+plotName = "%s/data_panels.pdf"%(plotDir)
+#plt.figure(figsize=(20,18))
+plt.figure(figsize=(20,28))
+
+tini, tmax, dt = 0.0, 21.0, 0.1
+tt = np.arange(tini,tmax,dt)
+
+cnt = 0
+for filt, color, magidx in zip(filts,colors,magidxs):
+    cnt = cnt+1
+    vals = "%d%d%d"%(len(filts),1,cnt)
+    if cnt == 1:
+        ax1 = plt.subplot(eval(vals))
+    else:
+        ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+
+    if not filt in data_out: continue
+    samples = data_out[filt]
+    t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+    idx = np.where(~np.isnan(y))[0]
+    t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    if len(t) == 0: continue
+
+    idx = np.where(np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color, markersize=16)
+
+    idx = np.where(~np.isfinite(sigma_y))[0]
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=16)
+
+    plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+    plt.xlim([0.0, 14.0])
+    plt.ylim([-17.0,-11.0])
+    plt.gca().invert_yaxis()
+    plt.grid()
+
+    if cnt == 1:
+        ax1.set_yticks([-18,-16,-14,-12,-10])
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
+    elif not cnt == len(filts):
+        plt.setp(ax2.get_xticklabels(), visible=False)
+    plt.xticks(fontsize=32)
+    plt.yticks(fontsize=32)
+
+ax1.set_zorder(1)
+plt.xlabel('Time [days]',fontsize=48)
+plt.savefig(plotName, bbox_inches='tight')
+plt.close()
+
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))
 plt.figure(figsize=(20,28))
