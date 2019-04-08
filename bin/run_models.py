@@ -179,6 +179,9 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     # covert time to days
     times = times/3600.0/24.0
 
+    tmin = 0.0
+    tmax = 5.0
+
     # specific luminosity (ergs/s/Hz) 
     # this is a 2D array, Lnu[times][nu]
     Lnu_all   = np.array(fin['Lnu'],dtype='d')
@@ -197,8 +200,8 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     Lnu_all_thresh = np.max(Lnu_all_max)/100.0
 
     for t in times[:-1]:
-        #if (t < 0) or (t > 7): continue
-        if (t < 0) or (t > 21): continue
+        if (t < 0) or (t > 14.0): continue
+        #if (t < 0) or (t > 21): continue
 
         # index corresponding to t
         it = bisect.bisect(times,t)
@@ -242,8 +245,17 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
 
-    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1)
-    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1)
+    ii = np.where(np.isfinite(np.log10(L_d)))[0]
+    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    L_d = 10**f(t_d)
+
+    ii = np.where(~np.isnan(mag_d))[0]
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
+    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.2, missing='none')
+    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.2, missing='none')
 
     mag_d = mag_d_lowess[:,1]
     L_d = 10**L_d_lowess[:,1]
@@ -267,11 +279,11 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
 
     peakmag = np.min(mag_d)
     ii = np.where(mag_d<=peakmag+3.0)[0]
-    ii = np.arange(ii[-1]-1).astype(int)
-    if len(ii) > 1:
+    if len(ii) > 2:
+        ii = np.arange(ii[-1]-1).astype(int)
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
- 
+
     L_d_diff = np.diff(np.log10(L_d))
     ii = np.where(L_d_diff < -0.5)[0]
     if len(L_d[0:-1:2]) > len(L_d[1:-1:2]):
@@ -281,8 +293,9 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     ii = np.where(L_d_diff > 0.2)[0]
     ii = ii*2
 
-    if len(ii) > 0 and (not ii[0] < 10):
+    if len(ii) > 0 and (not ii[0] < tmax):
         ii = np.arange(ii[0]).astype(int)
+
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
 
@@ -291,14 +304,14 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
 
     mag_d_diff = np.diff(mag_d)
     ii = np.where(mag_d_diff<-1)[0]
-    if len(ii) > 0 and (not ii[0] < 10):
+    if len(ii) > 0 and (not ii[0] < tmax):
         ii = np.arange(ii[0]-1).astype(int)
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
 
     mag_d_diff = np.diff(mag_d)
     ii = np.where(mag_d_diff>1)[0]
-    if len(ii) > 0 and (not ii[0] < 10):
+    if len(ii) > 0 and (not ii[0] < 5):
         ii = np.arange(ii[0]-1).astype(int)
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
@@ -307,13 +320,19 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
     L_d = 10**f(t_d)
 
-    ii = np.where(t_d<=7.0)[0]
+    ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
     f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
     L_d = 10**f(t_d)
 
+    ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
     ii = np.where(~np.isnan(mag_d))[0]
-    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    mag_d = f(t_d)
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
 
     #peakL = np.max(L_d)
     #ii = np.where(L_d>=peakL/100.0)[0]
@@ -607,7 +626,8 @@ if opts.doAB:
     fid.close()
     
     mag_ds = np.loadtxt(filename)
-    mag1 = mag_ds[:,1]
+    mag1 = mag_ds[:,2]
+
     indexes = np.where(~np.isnan(mag1))[0]
     index1 = indexes[0]
     index2 = indexes[-1]
@@ -618,7 +638,10 @@ if opts.doAB:
     colors=cm.rainbow(np.linspace(0,1,len(filts)))
     magidxs = [1,2,3,4,5,6,7,8,9]
 
-    plotName = "%s/%s.pdf"%(plotDir,opts.name)
+    if np.isnan(opts.theta):
+        plotName = "%s/%s.pdf"%(plotDir,opts.name)
+    else:
+        plotName = "%s/%s_%.1f.pdf"%(plotDir,opts.name, opts.theta)
     plt.figure(figsize=(10,12))
     for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
@@ -628,7 +651,10 @@ if opts.doAB:
     plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
-    plotName = "%s/%s.png"%(plotDir,opts.name)
+    if np.isnan(opts.theta):
+        plotName = "%s/%s.png"%(plotDir,opts.name)
+    else:
+        plotName = "%s/%s_%.1f.png"%(plotDir,opts.name, opts.theta)
     plt.savefig(plotName)
     plt.close()
     
@@ -645,8 +671,12 @@ if opts.doAB:
     Lbol_ds = np.loadtxt(filename)
     t = Lbol_ds[:,0]
     Lbol = Lbol_ds[:,1]
-    
-    plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
+   
+    if np.isnan(opts.theta):
+        plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
+    else:
+        plotName = "%s/%s_%.1f_Lbol.pdf"%(plotDir,opts.name, opts.theta)
+ 
     plt.figure(figsize=(10,12))
     plt.semilogy(t,Lbol,'k--')
     plt.xlabel('Time [days]')

@@ -58,6 +58,9 @@ def parse_commandline():
     parser.add_option("--vej2",default=0.2,type=float)
     parser.add_option("--Xlan2",default=1e-3,type=float)
 
+    parser.add_option("--iota",default=0.0,type=float)
+    parser.add_option("--colormodel",default="a2.0")
+
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
@@ -88,6 +91,7 @@ kappa_r = opts.kappa_r
 slope_r = opts.slope_r
 Xlan = opts.Xlan
 Ye = opts.Ye
+iota = opts.iota
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -95,6 +99,8 @@ Xlan1 = opts.Xlan1
 mej2 = opts.mej2
 vej2 = opts.vej2
 Xlan2 = opts.Xlan2
+
+colormodel = opts.colormodel
 
 if opts.eos == "APR4":
     c = 0.180
@@ -176,6 +182,8 @@ samples['Xlan_1'] = Xlan1
 samples['mej_2'] = mej2
 samples['vej_2'] = vej2
 samples['Xlan_2'] = Xlan2
+samples['iota'] = iota
+samples['colormodel'] = colormodel
 
 if opts.doEjecta:
     samples['mej'] = opts.mej
@@ -251,6 +259,11 @@ elif opts.model == "Ka2017":
         name = "Ka2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+elif opts.model == "Ka2017inc":
+    if opts.doEjecta:
+        name = "Ka2017_%sM%03dV%02dX%di%.0f"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan),opts.iota)
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0fi%.0f"%(opts.eos,opts.m1*100,opts.m2*100,opts.iota)
 elif opts.model == "Ka2017x2":
     if opts.doEjecta:
         name = "Ka2017x2_M%03dV%02dX%d_M%03dV%02dX%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2))

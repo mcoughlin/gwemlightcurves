@@ -288,6 +288,26 @@ def Ka2017_model_ejecta(mej,vej,Xlan):
 
     return t, lbol, mag
 
+def Ka2017inc_model_ejecta(mej,vej,Xlan,iota):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['vej'] = vej
+    samples['Xlan'] = Xlan
+    samples['iota'] = iota
+
+    model = "Ka2017inc"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
 
     tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej_1,vej_1,Xlan_1)
@@ -298,6 +318,18 @@ def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
     mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
 
     return tmag, lbol, mag
+
+def Ka2017x2inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,iota):
+
+    tmag_1, lbol_1, mag_1 = Ka2017inc_model_ejecta(mej_1,vej_1,Xlan_1,iota)
+    tmag_2, lbol_2, mag_2 = Ka2017inc_model_ejecta(mej_2,vej_2,Xlan_2,iota)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag_1
+
 
 def Ka2017x3_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3):
 

@@ -261,6 +261,102 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
     return svd_model
 
+def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
+
+    print("Calculating SVD model of inclination colors...")
+
+    fileDir = "../output/kasen_kilonova_2D/%s" % model
+
+    filenames_all = glob.glob('%s/*.dat'%fileDir)
+    idxs = []
+    for ii,filename in enumerate(filenames_all):
+        if "_Lbol.dat" in filename: continue
+        if "_spec.dat" in filename: continue
+        idxs.append(ii)
+    filenames = [filenames_all[idx] for idx in idxs]
+
+    mags, names = lightcurve_utils.read_files(filenames)
+    magkeys = mags.keys()
+
+    tt = np.arange(tini,tmax+dt,dt)
+    filters = ["u","g","r","i","z","y","J","H","K"]
+
+    for key in magkeys:
+        keySplit = key.split("_")
+        mags[key]["iota"] = float(keySplit[-1])
+
+        mags[key]["data"] = np.zeros((len(tt),len(filters)))
+        for jj,filt in enumerate(filters):
+            ii = np.where(np.isfinite(mags[key][filt]))[0]
+            f = interp.interp1d(mags[key]["t"][ii], mags[key][filt][ii], fill_value='extrapolate')
+            maginterp = f(tt)
+            mags[key]["data"][:,jj] = maginterp
+
+        mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+
+    magkeys = mags.keys()
+    param_array = []
+    for key in magkeys:
+        param_array.append(mags[key]["iota"])
+
+    param_array_postprocess = np.array(param_array)
+    param_mins, param_maxs = np.min(param_array_postprocess,axis=0), np.max(param_array_postprocess,axis=0)
+    param_array_postprocess = (param_array_postprocess-param_mins)/(param_maxs-param_mins)
+    #for i in range(len(param_mins)):
+    #    param_array_postprocess[:,i] = (param_array_postprocess[:,i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+    svd_model = {}
+    for jj,filt in enumerate(filters):
+        mag_array = []
+        for key in magkeys:
+            mag_array.append(mags[key]["data"][:,jj])
+
+        mag_array_postprocess = np.array(mag_array)
+        mins,maxs = np.min(mag_array_postprocess,axis=0),np.max(mag_array_postprocess,axis=0)
+        for i in range(len(mins)):
+            mag_array_postprocess[:,i] = (mag_array_postprocess[:,i]-mins[i])/(maxs[i]-mins[i])
+        mag_array_postprocess[np.isnan(mag_array_postprocess)]=0.0
+        UA, sA, VA = np.linalg.svd(mag_array_postprocess, full_matrices=True)
+        VA = VA.T
+
+        n, n = UA.shape
+        m, m = VA.shape
+
+        cAmat = np.zeros((n_coeff,n))
+        cAvar = np.zeros((n_coeff,n))
+        for i in range(n):
+            ErrorLevel = 1.0
+            cAmat[:,i] = np.dot(mag_array_postprocess[i,:],VA[:,:n_coeff])
+            errors = ErrorLevel*np.ones_like(mag_array_postprocess[i,:])
+            cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
+        cAstd = np.sqrt(cAvar)
+
+        nsvds, nparams = np.atleast_2d(param_array_postprocess).shape
+        kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+        gps = []
+        for i in range(n_coeff):
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
+            gp.fit(np.atleast_2d(param_array_postprocess).T, cAmat[i,:])
+            gps.append(gp)
+
+        svd_model[filt] = {}
+        svd_model[filt]["n_coeff"] = n_coeff
+        svd_model[filt]["param_array"] = param_array
+        svd_model[filt]["cAmat"] = cAmat
+        svd_model[filt]["cAstd"] = cAstd
+        svd_model[filt]["VA"] = VA
+        svd_model[filt]["param_mins"] = param_mins
+        svd_model[filt]["param_maxs"] = param_maxs
+        svd_model[filt]["mins"] = mins
+        svd_model[filt]["maxs"] = maxs
+        svd_model[filt]["gps"] = gps
+        svd_model[filt]["tt"] = tt
+
+    print("Finished calculating SVD model of inclination colors...")
+
+    return svd_model
+
+
 def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, model = "BaKa2016"):
 
     print("Calculating SVD model of lightcurve spectra...")
@@ -385,6 +481,58 @@ def calc_svd_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda, n_coeff = 100, mo
     print("Finished calculating SVD model of lightcurve spectra...")
 
     return svd_model
+
+def calc_color(tini,tmax,dt,param_list,svd_mag_color_model=None, model = "a2.0"):
+
+    tt = np.arange(tini,tmax+dt,dt)
+
+    if svd_mag_color_model == None:
+        svd_mag_color_model = calc_svd_color_mag(tini,tmax,dt,model=model)
+
+    filters = ["u","g","r","i","z","y","J","H","K"]
+    mAB = np.zeros((9,len(tt)))
+    for jj,filt in enumerate(filters):
+        n_coeff = svd_mag_color_model[filt]["n_coeff"]
+        param_array = svd_mag_color_model[filt]["param_array"]
+        cAmat = svd_mag_color_model[filt]["cAmat"]
+        VA = svd_mag_color_model[filt]["VA"]
+        param_mins = svd_mag_color_model[filt]["param_mins"]
+        param_maxs = svd_mag_color_model[filt]["param_maxs"]
+        mins = svd_mag_color_model[filt]["mins"]
+        maxs = svd_mag_color_model[filt]["maxs"]
+        gps = svd_mag_color_model[filt]["gps"]
+        tt_interp = svd_mag_color_model[filt]["tt"]
+
+        param_list_postprocess = np.atleast_2d(np.array(param_list))
+        #for i in range(len(param_mins)):
+        #    param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+        param_list_postprocess = (param_list_postprocess-param_mins)/(param_maxs-param_mins)
+
+        cAproj = np.zeros((n_coeff,))
+        cAstd = np.zeros((n_coeff,))
+        for i in range(n_coeff):
+            gp = gps[i]
+            y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            cAproj[i] = y_pred
+            cAstd[i] = sigma2_pred
+
+        coverrors = np.dot(VA[:,:n_coeff],np.dot(np.power(np.diag(cAstd[:n_coeff]),2),VA[:,:n_coeff].T))
+        errors = np.diag(coverrors)
+
+        mag_back = np.dot(VA[:,:n_coeff],cAproj)
+        mag_back = mag_back*(maxs-mins)+mins
+        #mag_back = scipy.signal.medfilt(mag_back,kernel_size=3)
+
+        ii = np.where(~np.isnan(mag_back))[0]
+        if len(ii) < 2:
+            maginterp = np.nan*np.ones(tt.shape)
+        else:
+            f = interp.interp1d(tt_interp[ii], mag_back[ii], fill_value='extrapolate')
+            maginterp = f(tt)
+        mAB[jj,:] = maginterp
+
+    return np.squeeze(tt), mAB
+
 
 def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, model = "BaKa2016"):
 

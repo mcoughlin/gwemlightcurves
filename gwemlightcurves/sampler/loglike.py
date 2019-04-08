@@ -117,6 +117,21 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Ka2017inc_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    vej = cube[2]  
+    Xlan = 10**cube[3]
+    iota = cube[4]
+    zp = cube[5]
+
+    tmag, lbol, mag = Ka2017inc_model_ejecta(mej,vej,Xlan,iota)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
 def myloglike_Ka2017_A_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej = 10**cube[1]
@@ -150,7 +165,33 @@ def myloglike_Ka2017x2_ejecta(cube, ndim, nparams):
         return -np.inf
 
     tmag, lbol, mag = Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2)
-    prob = calc_prob(tmag, lbol, mag, t0, zp)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    return prob
+
+def myloglike_Ka2017x2inc_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    iota = cube[7]
+    zp = cube[8]
+
+    prior = prior_2Component(Xlan_1,Xlan_2)
+    if prior == 0.0:
+        return -np.inf
+    prior = prior_2ComponentVel(vej_1,vej_2)
+    #prior = prior_2ComponentVel(vej_2,vej_1)
+    if prior == 0.0:
+        return -np.inf
+
+    tmag, lbol, mag = Ka2017x2inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,iota)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
 
     return prob
 
@@ -848,6 +889,7 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
                 gaussprobsum = 0.0
 
             chisquaresum = np.sum(chisquarevals)
+
             if np.isnan(chisquaresum):
                 chisquare = np.nan
                 break
