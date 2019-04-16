@@ -269,6 +269,11 @@ elif opts.model == "Ka2017x2":
         name = "Ka2017x2_M%03dV%02dX%d_M%03dV%02dX%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+elif opts.model == "Ka2017x2inc":
+    if opts.doEjecta:
+        name = "Ka2017x2inc_M%03dV%02dX%d_M%03dV%02dX%d_i%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2),opts.iota)
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
 elif opts.model == "RoFe2017":
     if opts.doEjecta:
         name = "FoFe2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Ye))
@@ -337,15 +342,19 @@ if opts.doAB:
     magidxs = [0,1,2,3,4,5,6,7,8]
 
     plotName = "%s/%s.pdf"%(plotDir,name)
-    plt.figure(figsize=(10,12))
+    plt.figure(figsize=(4,6))
     for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
     plt.ylim([-16,0])
+    if opts.model == "Ka2017x2inc":
+        plt.title('Iota = %.1f' % opts.iota) 
     plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
+    plotNamePNG = "%s/%s.png"%(plotDir,name)
+    plt.savefig(plotNamePNG, bbox_inches='tight')
     plt.close()   
 
     color1 = 'coral'
