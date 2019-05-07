@@ -913,7 +913,10 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
             #prob = scipy.stats.chi2.logpdf(chisquare, count, loc=0, scale=1)
             #prob = -chisquare/2.0
             #prob = chisquare
-            chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
+            if chisquare == 0:
+                chiprob = 0 
+            else:
+                chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
 
             prob = chiprob + gaussprob - (nsamples/2.0)*np.log(2.0*np.pi*errorbudget**2)
         if np.isnan(prob):

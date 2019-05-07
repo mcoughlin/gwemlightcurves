@@ -39,6 +39,8 @@ def parse_commandline():
     parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--doFixedLimit",  action="store_true", default=False)
+    parser.add_option("--limits",default="20.4,20.4")
     parser.add_option("--doZTF",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
@@ -84,6 +86,7 @@ else:
     T0Range = 14.0
 
 filters = opts.filters.split(",")
+limits = [float(x) for x in opts.limits.split(",")]
 
 baseplotDir = opts.plotDir
 if opts.doModels:
@@ -92,6 +95,8 @@ elif opts.doGoingTheDistance:
     basename = 'going-the-distance'
 elif opts.doMassGap:
     basename = 'massgap'
+elif opts.doFixedLimit:
+    basename = 'limits'
 else:
     basename = 'gws'
 plotDir = os.path.join(baseplotDir,basename)
@@ -155,7 +160,7 @@ maxt = opts.tmax
 dt = opts.dt
 tt = np.arange(mint,maxt,dt)
 
-if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
+if opts.doModels or opts.doGoingTheDistance or opts.doMassGap or opts.doFixedLimit:
     if opts.doModels:
         data_out = lightcurve_utils.loadModels(opts.outputDir,opts.name)
         if not opts.name in data_out:
@@ -242,6 +247,13 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         data_out["H"] = mag[7]
         data_out["K"] = mag[8]
 
+    elif opts.doFixedLimit:
+        tt = np.arange(mint,maxt,dt)
+        data_out = {}
+        data_out["t"] = tt
+        for filt, limit in zip(filters,limits):
+            data_out[filt] = limit*np.ones(tt.shape)
+
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
             continue
@@ -267,9 +279,12 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
                 f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
             maginterp = f(tt)
 
-            data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
+            if opts.doFixedLimit:
+                data_out[key] = np.vstack((tt,maginterp,np.inf*np.ones(tt.shape))).T
+                data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+            else:
+                data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
            
-
     del data_out["t"]
 
     if opts.doReduced:
