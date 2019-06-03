@@ -84,14 +84,12 @@ def get_ztf_lc(filename, name, username, password,
                filetype = "default", z=0.0, zerr=0.0001, SN_Type="Ia"):
 
     r = requests.post('http://skipper.caltech.edu:8080/cgi-bin/growth/print_lc.cgi', auth=(username, password), data={'name' : name})
-    print(r.text)
     lines = r.text.replace(" ","").replace("\n","").replace('"','').split("isdiffpos")[-1].split("<br>")
     jd, filtname, mag, magerr = [], [], [], []
     
     for line in lines:
         lineSplit = line.split(",")
         lineSplit = list(filter(None,lineSplit))
-        print(lineSplit)
         if not lineSplit: continue
         if len(lineSplit) > 11:
             lineSplit = lineSplit[:11]
