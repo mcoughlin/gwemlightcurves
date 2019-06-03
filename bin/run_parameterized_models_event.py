@@ -44,20 +44,25 @@ def parse_commandline():
     #parser.add_argument("--name",default="GW170817")
     #parser.add_argument("--name",default="3G_1000")
 
-    parser.add_argument("-a","--analysisType",default="cbclist")
-    #parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat,../plots/gws/Ka2017x2_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    #parser.add_argument("-m","--model",default="Ka2017,Ka2017x2", help="Ka2017,Ka2017x2")
+    parser.add_argument("-a","--analysisType",default="multinest")
 
-    parser.add_argument("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    #parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
-    parser.add_argument("-m","--model",default="Me2017")
+    parser.add_argument("--multinest_samples", default="../plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/GW170817/1.00/2-post_equal_weights.dat")
+    parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
 
     parser.add_argument("--doEvent",  action="store_true", default=False)
-    parser.add_argument("-e","--event",default="GW170817")
-    parser.add_argument("--distance",default=40.0,type=float)
+    parser.add_argument("-e","--event",default="GW190425")
+    parser.add_argument("--distance",default=125.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
     parser.add_argument("--nsamples",default=-1,type=int)
+
+    parser.add_argument("--doFixedLimit",  action="store_true", default=False)
+    parser.add_argument("--limits",default="20.4,20.4")
+
+    parser.add_argument("-f","--filters",default="g,r")
+    parser.add_argument("--tmax",default=7.0,type=float)
+    parser.add_argument("--tmin",default=0.05,type=float)
+    parser.add_argument("--dt",default=0.05,type=float)
 
     args = parser.parse_args()
  
@@ -92,6 +97,14 @@ np.random.seed(0)
 # Parse command line
 opts = parse_commandline()
 
+mint = opts.tmin
+maxt = opts.tmax
+dt = opts.dt
+tt = np.arange(mint,maxt,dt)
+
+filters = opts.filters.split(",")
+limits = [float(x) for x in opts.limits.split(",")]
+
 models = opts.model.split(",")
 for model in models:
     if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
@@ -123,6 +136,20 @@ kappa_r = 0.1
 slope_r = -1.2
 theta_r = 0.0
 Ye = 0.3
+
+baseplotDir = opts.plotDir
+plotDir = os.path.join(baseplotDir,"_".join(models))
+plotDir = os.path.join(plotDir,"event")
+plotDir = os.path.join(plotDir,opts.event)
+if opts.analysisType == "cbclist":
+    plotDir = os.path.join(plotDir,opts.cbc_type)
+    plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
+
+if not os.path.isdir(plotDir):
+    os.makedirs(plotDir)
+datDir = os.path.join(plotDir,"dat")
+if not os.path.isdir(datDir):
+    os.makedirs(datDir)
 
 if opts.analysisType == "posterior":
     # read in samples
@@ -237,6 +264,55 @@ elif opts.analysisType == "cbclist":
 
     print(np.min(samples['mej']),np.max(samples['mej']))
 
+bounds = [-3.0,-1.0]
+xlims = [-2.8,-1.0]
+ylims = [1e-1,2]
+
+plotName = "%s/mej.pdf"%(plotDir)
+plt.figure(figsize=(15,10))
+ax = plt.gca()
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(np.log10(samples["mej"]),Nbins=20,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
+    lim = np.percentile(np.log10(samples["mej"]), 90)
+    plt.plot([lim,lim],ylims,'k--')
+plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+#plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+ax.set_yscale('log')
+plt.savefig(plotName)
+plt.close()
+
+print(stop)
+
+bounds = [0.0,1.0]
+xlims = [0.0,1.0]
+ylims = [1e-1,20]
+
+plotName = "%s/vej.pdf"%(plotDir)
+plt.figure(figsize=(10,8))
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(samples["vej"],Nbins=25,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name)
+
+plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+plt.savefig(plotName)
+plt.close()
+
+print(stop)
+
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 
@@ -272,31 +348,16 @@ for model in models:
     model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
     #model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
 
-baseplotDir = opts.plotDir
-plotDir = os.path.join(baseplotDir,"_".join(models))
-plotDir = os.path.join(plotDir,"event")
-plotDir = os.path.join(plotDir,opts.name)
-if opts.analysisType == "cbclist":
-    plotDir = os.path.join(plotDir,opts.cbc_type)
-    plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
-
-if not os.path.isdir(plotDir):
-    os.makedirs(plotDir)
-datDir = os.path.join(plotDir,"dat")
-if not os.path.isdir(datDir):
-    os.makedirs(datDir)
-
 if opts.analysisType == "cbclist":
     fid = open(os.path.join(plotDir,'cbcratio.dat'),'w')
     fid.write('%d %.10f'%(cbccnt,cbcratio))
     fid.close()    
 
-filts = ["u","g","r","i","z","y","J","H","K"]
+#filts = ["u","g","r","i","z","y","J","H","K"]
+#magidxs = [0,1,2,3,4,5,6,7,8]
+filts = ["g","r"]
+magidxs = [1,2]
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
-magidxs = [0,1,2,3,4,5,6,7,8]
-
-tini, tmax, dt = 0.1, 14.0, 0.1
-tt = np.arange(tini,tmax+dt,dt)
 
 mag_all = {}
 lbol_all = {}
@@ -345,6 +406,12 @@ if opts.doEvent:
         else:
             data_out[key][:,0] = data_out[key][:,0] - opts.T0
             data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+elif opts.doFixedLimit:
+    data_out = {}
+    data_out["t"] = tt
+    for filt, limit in zip(filters,limits):
+        data_out[filt] = np.vstack((tt,limit*np.ones(tt.shape),np.inf*np.ones(tt.shape))).T
+        data_out[filt][:,1] = data_out[filt][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
 
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
 color2 = 'coral'
@@ -354,7 +421,7 @@ colors_names=[color1,color2]
 linestyles = ['-', '-.', ':','--','-']
 
 plotName = "%s/mag.pdf"%(plotDir)
-plt.figure()
+plt.figure(figsize=(10,8))
 cnt = 0
 for ii, model in enumerate(models):
     maglen, ttlen = lbol_all[model].shape
@@ -365,6 +432,21 @@ for ii, model in enumerate(models):
             else:
                 plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,linestyle=linestyles[ii])
         cnt = cnt + 1
+
+    if opts.doEvent or opts.doFixedLimit:
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            if not filt in data_out: continue
+            samples = data_out[filt]
+            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+            idx = np.where(~np.isnan(y))[0]
+            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+
+            idx = np.where(np.isfinite(sigma_y))[0]
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
+            idx = np.where(~np.isfinite(sigma_y))[0]
+            #plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
+            plt.plot(t[idx],y[idx],'--',c=color)
+
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
 plt.legend(loc="best")
@@ -405,42 +487,38 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
-bounds = [15,35]
-xlims = [15.0,35.0]
-ylims = [1,100000]
+if opts.analysisType == "cbclist":
+    bounds = [15,35]
+    xlims = [15.0,35.0]
+    ylims = [1,100000]
 
-plotName = "%s/rates.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for ii,model in enumerate(models):
-    legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["peak_appmag_i"],Nbins=25,bounds=bounds)
-    hist1_cumsum = float(cbccnt)*hist1 / np.sum(hist1)
-    hist1_cumsum = np.cumsum(hist1_cumsum)
-    plt.semilogy(bins,hist1_cumsum,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+    plotName = "%s/rates.pdf"%(plotDir)
+    plt.figure(figsize=(10,8))
+    for ii,model in enumerate(models):
+        legend_name = get_legend(model)
+        bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["peak_appmag_i"],Nbins=25,bounds=bounds)
+        hist1_cumsum = float(cbccnt)*hist1 / np.sum(hist1)
+        hist1_cumsum = np.cumsum(hist1_cumsum)
+        plt.semilogy(bins,hist1_cumsum,'-',color=colors_names[ii],linewidth=3,label=legend_name)
+    plt.xlabel(r"Apparent Magnitude [mag]",fontsize=24)
+    plt.ylabel("Rate of apparent magnitude [per year]",fontsize=24)
+    plt.legend(loc="best",prop={'size':24})
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
+    plt.xlim(xlims)
+    #plt.ylim(ylims)
+    plt.savefig(plotName)
+    plt.close()
 
-plt.xlabel(r"Apparent Magnitude [mag]",fontsize=24)
-plt.ylabel("Rate of apparent magnitude [per year]",fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-plt.xlim(xlims)
-#plt.ylim(ylims)
-plt.savefig(plotName)
-plt.close()
+    for model in models:
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            fid = open(os.path.join(datDir,'%s_%s_list.dat'%(model,filt)),'w')
+            for row in model_tables[model]:
+                q = np.max([row["m1"]/row["m2"],row["m2"]/row["m1"]])
+                fid.write("%.5f %.5f %.5f %.5f %.5f\n"%(q,row["dist"],row["peak_tt_%s"%filt],row["peak_mag_%s"%filt],row["peak_appmag_%s"%filt]))
+            fid.close()
 
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
-
-filts = ["u","g","r","i","z","y","J","H","K"]
-colors=cm.jet(np.linspace(0,1,len(filts)))
-magidxs = [0,1,2,3,4,5,6,7,8]
-
-for model in models:
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        fid = open(os.path.join(datDir,'%s_%s_list.dat'%(model,filt)),'w')
-        for row in model_tables[model]:
-            q = np.max([row["m1"]/row["m2"],row["m2"]/row["m1"]])
-            fid.write("%.5f %.5f %.5f %.5f %.5f\n"%(q,row["dist"],row["peak_tt_%s"%filt],row["peak_mag_%s"%filt],row["peak_appmag_%s"%filt]))
-        fid.close()  
 
 for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
@@ -468,7 +546,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
     else:
         ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
 
-    if opts.doEvent:
+    if opts.doEvent or opts.doFixedLimit:
         if not filt in data_out: continue
         samples = data_out[filt]
         t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
@@ -532,15 +610,15 @@ ax2.set_xlabel('Time [days]',fontsize=48,labelpad=30)
 plt.savefig(plotName)
 plt.close()
 
-plotName = "%s/gminusi.pdf"%(plotDir)
+plotName = "%s/gminusr.pdf"%(plotDir)
 plt.figure()
 cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    magmed = np.median(mag_all[model]["g"]-mag_all[model]["i"],axis=0)
-    magmax = np.max(mag_all[model]["g"]-mag_all[model]["i"],axis=0) + opts.errorbudget
-    magmin = np.min(mag_all[model]["g"]-mag_all[model]["i"],axis=0) - opts.errorbudget
+    magmed = np.median(mag_all[model]["g"]-mag_all[model]["r"],axis=0)
+    magmax = np.max(mag_all[model]["g"]-mag_all[model]["r"],axis=0) + opts.errorbudget
+    magmin = np.min(mag_all[model]["g"]-mag_all[model]["r"],axis=0) - opts.errorbudget
 
     plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],alpha=0.2)
@@ -569,47 +647,6 @@ plt.xlim([0.0, 50.0])
 plt.legend(loc="best")
 plt.xlabel('Time [days]')
 plt.ylabel('Bolometric Luminosity [erg/s]')
-plt.savefig(plotName)
-plt.close()
-
-bounds = [-3.0,-1.0]
-xlims = [-3.0,-1.0]
-ylims = [1e-1,10]
-
-plotName = "%s/mej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for ii,model in enumerate(models):
-    legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(np.log10(model_tables[model]["mej"]),Nbins=25,bounds=bounds)
-    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
-plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-plt.xlim(xlims)
-plt.ylim(ylims)
-plt.savefig(plotName)
-plt.close()
-
-bounds = [0.0,1.0]
-xlims = [0.0,1.0]
-ylims = [1e-1,20]
-
-plotName = "%s/vej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-for ii,model in enumerate(models):
-    legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(model_tables[model]["vej"],Nbins=25,bounds=bounds)
-    plt.semilogy(bins,hist1,'-',color=colors_names[ii],linewidth=3,label=legend_name)
-
-plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-plt.xlim(xlims)
-plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 

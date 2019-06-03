@@ -64,6 +64,8 @@ def parse_commandline():
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
 
+    parser.add_option("--colormodel",default="a2.0")
+
     parser.add_option("--username",default="username")
     parser.add_option("--password",default="password")
 
@@ -87,6 +89,9 @@ else:
 
 filters = opts.filters.split(",")
 limits = [float(x) for x in opts.limits.split(",")]
+colormodel = opts.colormodel.split(",")
+if len(colormodel) == 1:
+    colormodel = colormodel[0]
 
 baseplotDir = opts.plotDir
 if opts.doModels:
@@ -115,6 +120,8 @@ else:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
+if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+    plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017"]:
@@ -391,11 +398,18 @@ if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A
         svd_lbol_model = pickle.load(handle)
     Global.svd_lbol_model = svd_lbol_model
 
-    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
-        modelfile = os.path.join(ModelPath,'a2.0.pkl')
+    if opts.model in ["Ka2017inc"]:
+        modelfile = os.path.join(ModelPath,'%s.pkl' % colormodel)
         with open(modelfile, 'rb') as handle:
             svd_mag_color_model = pickle.load(handle)
         Global.svd_mag_color_model = svd_mag_color_model
+    elif opts.model in ["Ka2017x2inc"]:
+        Global.svd_mag_color_models = []
+        for colorm in colormodel:
+            modelfile = os.path.join(ModelPath,'%s.pkl' % colorm)
+            with open(modelfile, 'rb') as handle:
+                svd_mag_color_model = pickle.load(handle)
+            Global.svd_mag_color_models.append(svd_mag_color_model)
 
 data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)

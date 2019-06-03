@@ -2,7 +2,7 @@
 import numpy as np
 from gwemlightcurves.KNModels import KNTable
 from astropy.table import Table, Column
-from gwemlightcurves import SALT2, BOXFit, TrPi2018
+from gwemlightcurves import SALT2, BOXFit, TrPi2018, Global
 
 def generate_lightcurve(model,samples):
 
@@ -321,7 +321,9 @@ def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
 
 def Ka2017x2inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,iota):
 
+    Global.svd_mag_color_model = Global.svd_mag_color_models[0]
     tmag_1, lbol_1, mag_1 = Ka2017inc_model_ejecta(mej_1,vej_1,Xlan_1,iota)
+    Global.svd_mag_color_model = Global.svd_mag_color_models[1]
     tmag_2, lbol_2, mag_2 = Ka2017inc_model_ejecta(mej_2,vej_2,Xlan_2,iota)
 
     tmag = tmag_1

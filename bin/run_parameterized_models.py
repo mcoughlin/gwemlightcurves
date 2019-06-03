@@ -100,7 +100,7 @@ mej2 = opts.mej2
 vej2 = opts.vej2
 Xlan2 = opts.Xlan2
 
-colormodel = opts.colormodel
+colormodel = opts.colormodel.split(",")
 
 if opts.eos == "APR4":
     c = 0.180
@@ -183,7 +183,11 @@ samples['mej_2'] = mej2
 samples['vej_2'] = vej2
 samples['Xlan_2'] = Xlan2
 samples['iota'] = iota
-samples['colormodel'] = colormodel
+
+if len(colormodel) == 1:
+    samples['colormodel'] = colormodel[0]
+else:
+    samples['colormodel'] = colormodel
 
 if opts.doEjecta:
     samples['mej'] = opts.mej
@@ -261,7 +265,7 @@ elif opts.model == "Ka2017":
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
 elif opts.model == "Ka2017inc":
     if opts.doEjecta:
-        name = "Ka2017_%sM%03dV%02dX%di%.0f"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan),opts.iota)
+        name = "Ka2017inc_M%03dV%02dX%d_i%.0f"%(opts.mej*1000,opts.vej*100,np.log10(opts.Xlan),opts.iota)
     elif opts.doMasses:
         name = "%sM%.0fm%.0fi%.0f"%(opts.eos,opts.m1*100,opts.m2*100,opts.iota)
 elif opts.model == "Ka2017x2":
@@ -342,19 +346,21 @@ if opts.doAB:
     magidxs = [0,1,2,3,4,5,6,7,8]
 
     plotName = "%s/%s.pdf"%(plotDir,name)
-    plt.figure(figsize=(4,6))
+    plt.figure(figsize=(10,12))
     for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
-    plt.ylim([-16,0])
-    if opts.model == "Ka2017x2inc":
-        plt.title('Iota = %.1f' % opts.iota) 
+    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+        plt.xlim([0,7])
+    plt.ylim([-20,10])
+    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+        plt.title('Inclination: %.1f' % opts.iota) 
     plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
-    plt.savefig(plotName)
+    plt.savefig(plotName, bbox_inches='tight')
     plotNamePNG = "%s/%s.png"%(plotDir,name)
-    plt.savefig(plotNamePNG, bbox_inches='tight')
+    plt.savefig(plotNamePNG)
     plt.close()   
 
     color1 = 'coral'
@@ -372,7 +378,7 @@ if opts.doAB:
     plotName = "%s/%s_panels.pdf"%(plotDir,name)
     plotNamePNG = "%s/%s_panels.png"%(plotDir,name)
     plt.figure(figsize=(20,28))
-    
+   
     cnt = 0
     for filt, color, magidx in zip(filts,colors,magidxs):
         cnt = cnt+1

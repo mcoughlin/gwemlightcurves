@@ -237,7 +237,7 @@ def myprior_Ka2017inc_ejecta(cube, ndim, nparams):
         cube[2] = cube[2]*0.3
         #cube[2] = cube[2]*1.0
         cube[3] = cube[3]*8.0 - 9.0
-        cube[4] = cube[4]*18.0
+        cube[4] = cube[4]*180.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
 
 def myprior_Ka2017_A_ejecta(cube, ndim, nparams):

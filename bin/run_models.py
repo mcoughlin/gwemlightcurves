@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
 import statsmodels.api as sm
+from scipy.ndimage.filters import gaussian_filter
 
 def parse_commandline():
     """
@@ -180,17 +181,23 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     times = times/3600.0/24.0
 
     tmin = 0.0
-    if filtname in ["g","r","i","z","y","J","H","K"]:
-        tmax = 7.0
-    else:
-        if (theta > 0) and (theta < 45):
-            tmax = 2.0
-        else:
-            tmax = 3.0
+    #if filtname in ["g","r","i","z","y","J","H","K"]:
+    #    tmax = 7.0
+    #else:
+    #    if (theta > 0) and (theta < 45):
+    #        tmax = 2.0
+    #    else:
+    #        tmax = 3.0
+    tmax = 7.0
 
     # specific luminosity (ergs/s/Hz) 
     # this is a 2D array, Lnu[times][nu]
     Lnu_all   = np.array(fin['Lnu'],dtype='d')
+
+    if Lnu_all.ndim > 2:
+        idx = np.where(times > 0)[0]
+        Lnu_all = Lnu_all[idx,:,:]
+        times = times[idx]
 
     S = 0.1089/band[:,0]**2
 
@@ -202,11 +209,55 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     mag_d = []
     L_d = []
 
-    Lnu_all_max = np.max(Lnu_all,axis=1)
-    Lnu_all_thresh = np.max(Lnu_all_max)/100.0
+    #Lnu_all_max = np.max(Lnu_all,axis=1)
+    #Lnu_all_thresh = np.max(Lnu_all_max)/100.0
+
+    ntimes, nfreq, ninc = Lnu_all.shape
+    if ninc > 0:
+        mu = fin['mu']
+        thetas = np.rad2deg(np.arccos(mu))
+        idx = np.argmin(np.abs(thetas-theta)) 
+        Lnu_all = Lnu_all[:,:,idx]
+
+    #plt.figure()
+    #plt.imshow(np.log10(Lnu_all)) 
+    #plt.savefig('before.png')
+    #plt.close()
+
+    #print(np.max(Lnu_all)/1000)
+
+    Lnu_all[Lnu_all==0] = 1e20
+    Lnu_all = 10**gaussian_filter(np.log10(Lnu_all), 5.0)
+    #plt.figure()
+    #plt.imshow(np.log10(Lnu_all))
+    #plt.savefig('after.png')
+    #plt.close()
+
+    #for ii in range(nfreq):
+    #    vals = np.log10(Lnu_all[:,ii,idx])
+    #    jj = np.where(np.isfinite(vals))[0]
+    #    kk = np.where(~np.isfinite(vals))[0]
+    #    if len(jj) > 2:
+    #        tt, vals = times[jj], vals[jj]
+    #        Lnu_thresh = np.max(vals)/100.0
+    #        jj = np.where(vals>Lnu_thresh)[0]
+    #        tt, vals = times[jj], vals[jj]
+    #        Lnu_all_lowess = sm.nonparametric.lowess(vals, tt, frac=0.2, missing='none')[:,1]
+    #        if np.argmax(Lnu_all_lowess) == len(Lnu_all_lowess)-1:
+    #            tt = np.vstack((tt,times[np.max(jj)+1]))
+    #            vals = np.vstack((vals,-10))
+    #        f = interp.interp1d(tt, Lnu_all_lowess, fill_value='extrapolate')
+    #        Lnu_all[:,ii,idx] = 10**f(times)
+    #    else:
+    #        Lnu_all[:,ii,idx] = 0.0
+    #    elif len(jj) > 2:
+    #        vals[kk] = -10.0
+    #        Lnu_all_lowess = sm.nonparametric.lowess(vals, times, frac=0.2, missing='none')[:,1]
+    #        f = interp.interp1d(times, Lnu_all_lowess, fill_value='extrapolate')
+    #        Lnu_all[:,ii,idx] = 10**f(times)
 
     for t in times[:-1]:
-        if (t < 0) or (t > 14.0): continue
+        if (t < 0) or (t > 7.0): continue
         #if (t < 0) or (t > 21): continue
 
         # index corresponding to t
@@ -214,7 +265,7 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
         # spectrum at this epoch
         Lnu = np.flipud(Lnu_all[it,:])
 
-        if np.max(Lnu) < Lnu_all_thresh: continue
+        #if np.max(Lnu) < Lnu_all_thresh: continue
 
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
@@ -260,11 +311,16 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
 
-    mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1, missing='none')
-    L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1, missing='none')
+    #mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1, missing='none')
+    #L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1, missing='none')
 
-    mag_d = mag_d_lowess[:,1]
-    L_d = 10**L_d_lowess[:,1]
+    #mag_d = mag_d_lowess[:,1]
+    #L_d = 10**L_d_lowess[:,1]
+
+    #if np.argmin(mag_d)==len(mag_d)-1:
+    #    ii = np.argmax(mag_d)
+    #    slope = (mag_d[ii] - mag_d[0]) / (t_d[ii] - t_d[0])
+    #    mag_d[ii:] = mag_d[0] + slope*(t_d[ii:]-t_d[0])
 
     #ii = np.where(mag_d>0)[0]
     #if len(ii) > 0:
@@ -315,30 +371,31 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
     #    mag_d = f(t_d)
 
-    mag_d_diff = np.diff(mag_d)
-    ii = np.where(mag_d_diff<0)[0]
-    if len(ii) > 0 and (not ii[0] < tmax):
-        ii = np.arange(ii[0]-1).astype(int)
-        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-        mag_d = f(t_d)
-
-    ii = np.where(np.isfinite(np.log10(L_d)))[0]
-    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-    L_d = 10**f(t_d)
-
-    ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
-    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-    L_d = 10**f(t_d)
-
-    ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
-    if len(ii) > 1:
-        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-        mag_d = f(t_d)
-
-    ii = np.where(~np.isnan(mag_d))[0]
-    if len(ii) > 1:
-        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-        mag_d = f(t_d)
+    if False:
+        mag_d_diff = np.diff(mag_d)
+        ii = np.where(mag_d_diff<0)[0]
+        if len(ii) > 0 and (not ii[0] < tmax):
+            ii = np.arange(ii[0]-1).astype(int)
+            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+            mag_d = f(t_d)
+    
+        ii = np.where(np.isfinite(np.log10(L_d)))[0]
+        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+        L_d = 10**f(t_d)
+    
+        ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
+        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+        L_d = 10**f(t_d)
+    
+        ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
+        if len(ii) > 1:
+            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+            mag_d = f(t_d)
+    
+        ii = np.where(~np.isnan(mag_d))[0]
+        if len(ii) > 1:
+            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+            mag_d = f(t_d)
 
     #peakL = np.max(L_d)
     #ii = np.where(L_d>=peakL/100.0)[0]

@@ -212,6 +212,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
     svd_model = {}
     for jj,filt in enumerate(filters):
+        print('Computing filter %s...' % filt)
         mag_array = []
         for key in magkeys:
             mag_array.append(mags[key]["data"][:,jj])
@@ -240,6 +241,9 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
         gps = []
         for i in range(n_coeff):
+            if np.mod(i,5) == 0:
+                print('Coefficient %d/%d...' % (i, n_coeff))
+
             gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
             gp.fit(param_array_postprocess, cAmat[i,:])
             gps.append(gp)
@@ -312,6 +316,11 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
             mag_array.append(mags[key]["data"][:,jj])
 
         mag_array_postprocess = np.array(mag_array)
+        nmag, ntime = mag_array_postprocess.shape
+        mag_array_postprocess_mean = np.median(mag_array_postprocess,axis=0)
+        for i in range(nmag):
+            mag_array_postprocess[i,:] = mag_array_postprocess[i,:] - mag_array_postprocess_mean
+
         mins,maxs = np.min(mag_array_postprocess,axis=0),np.max(mag_array_postprocess,axis=0)
         for i in range(len(mins)):
             mag_array_postprocess[:,i] = (mag_array_postprocess[:,i]-mins[i])/(maxs[i]-mins[i])
@@ -325,7 +334,7 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
         cAmat = np.zeros((n_coeff,n))
         cAvar = np.zeros((n_coeff,n))
         for i in range(n):
-            ErrorLevel = 1.0
+            ErrorLevel = 0.01
             cAmat[:,i] = np.dot(mag_array_postprocess[i,:],VA[:,:n_coeff])
             errors = ErrorLevel*np.ones_like(mag_array_postprocess[i,:])
             cAvar[:,i] = np.diag(np.dot(VA[:,:n_coeff].T,np.dot(np.diag(np.power(errors,2.)),VA[:,:n_coeff])))
@@ -506,8 +515,8 @@ def calc_color(tini,tmax,dt,param_list,svd_mag_color_model=None, model = "a2.0")
         param_list_postprocess = np.atleast_2d(np.array(param_list))
         #for i in range(len(param_mins)):
         #    param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
-        param_list_postprocess = (param_list_postprocess-param_mins)/(param_maxs-param_mins)
 
+        param_list_postprocess = (param_list_postprocess-param_mins)/(param_maxs-param_mins)
         cAproj = np.zeros((n_coeff,))
         cAstd = np.zeros((n_coeff,))
         for i in range(n_coeff):
@@ -521,7 +530,7 @@ def calc_color(tini,tmax,dt,param_list,svd_mag_color_model=None, model = "a2.0")
 
         mag_back = np.dot(VA[:,:n_coeff],cAproj)
         mag_back = mag_back*(maxs-mins)+mins
-        #mag_back = scipy.signal.medfilt(mag_back,kernel_size=3)
+        mag_back = scipy.signal.medfilt(mag_back,kernel_size=3)
 
         ii = np.where(~np.isnan(mag_back))[0]
         if len(ii) < 2:
