@@ -58,6 +58,9 @@ def parse_commandline():
     parser.add_option("--vej2",default=0.2,type=float)
     parser.add_option("--Xlan2",default=1e-3,type=float)
 
+    parser.add_option("--iota",default=0.0,type=float)
+    parser.add_option("--colormodel",default="a2.0")
+
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
@@ -88,6 +91,7 @@ kappa_r = opts.kappa_r
 slope_r = opts.slope_r
 Xlan = opts.Xlan
 Ye = opts.Ye
+iota = opts.iota
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -95,6 +99,8 @@ Xlan1 = opts.Xlan1
 mej2 = opts.mej2
 vej2 = opts.vej2
 Xlan2 = opts.Xlan2
+
+colormodel = opts.colormodel.split(",")
 
 if opts.eos == "APR4":
     c = 0.180
@@ -176,6 +182,12 @@ samples['Xlan_1'] = Xlan1
 samples['mej_2'] = mej2
 samples['vej_2'] = vej2
 samples['Xlan_2'] = Xlan2
+samples['iota'] = iota
+
+if len(colormodel) == 1:
+    samples['colormodel'] = colormodel[0]
+else:
+    samples['colormodel'] = colormodel
 
 if opts.doEjecta:
     samples['mej'] = opts.mej
@@ -251,9 +263,19 @@ elif opts.model == "Ka2017":
         name = "Ka2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Xlan))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+elif opts.model == "Ka2017inc":
+    if opts.doEjecta:
+        name = "Ka2017inc_M%03dV%02dX%d_i%.0f"%(opts.mej*1000,opts.vej*100,np.log10(opts.Xlan),opts.iota)
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0fi%.0f"%(opts.eos,opts.m1*100,opts.m2*100,opts.iota)
 elif opts.model == "Ka2017x2":
     if opts.doEjecta:
         name = "Ka2017x2_M%03dV%02dX%d_M%03dV%02dX%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2))
+    elif opts.doMasses:
+        name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+elif opts.model == "Ka2017x2inc":
+    if opts.doEjecta:
+        name = "Ka2017x2inc_M%03dV%02dX%d_M%03dV%02dX%d_i%d"%(opts.mej1*1000,opts.vej1*100,np.log10(opts.Xlan1),opts.mej2*1000,opts.vej2*100,np.log10(opts.Xlan2),opts.iota)
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
 elif opts.model == "RoFe2017":
@@ -329,10 +351,16 @@ if opts.doAB:
         plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')
-    plt.ylim([-16,0])
+    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+        plt.xlim([0,7])
+    plt.ylim([-20,10])
+    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+        plt.title('Inclination: %.1f' % opts.iota) 
     plt.legend(loc="lower center",ncol=5)
     plt.gca().invert_yaxis()
-    plt.savefig(plotName)
+    plt.savefig(plotName, bbox_inches='tight')
+    plotNamePNG = "%s/%s.png"%(plotDir,name)
+    plt.savefig(plotNamePNG)
     plt.close()   
 
     color1 = 'coral'
@@ -350,7 +378,7 @@ if opts.doAB:
     plotName = "%s/%s_panels.pdf"%(plotDir,name)
     plotNamePNG = "%s/%s_panels.png"%(plotDir,name)
     plt.figure(figsize=(20,28))
-    
+   
     cnt = 0
     for filt, color, magidx in zip(filts,colors,magidxs):
         cnt = cnt+1

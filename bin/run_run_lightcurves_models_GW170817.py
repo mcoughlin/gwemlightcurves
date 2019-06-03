@@ -30,8 +30,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018_A"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017x2,Ka2017x3,RoFe2017,BoxFit,TrPi2018,Ka2017_TrPi2018_A"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018_A"]:
+    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017inc,Ka2017x2,Ka2017x2inc,Ka2017x3,RoFe2017,BoxFit,TrPi2018,Ka2017_TrPi2018_A"
     exit(0)
 
 if opts.doEOSFit:
@@ -70,7 +70,7 @@ if opts.doLightcurves:
     system_command = "python run_lightcurves_models.py --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag)
     #os.system(system_command)
     print(system_command)
-    #print(stop)
+    print(stop)
 
     lambdamin, lambdamax = 0, 1140
     system_command = "python run_fitting_models.py --doLightcurves --doEvent --model %s --name GW170817 --tmin 0.0 --tmax 14.0 --filters %s --errorbudget %.2f %s %s %s --lambdamin %.0f --lambdamax %.0f"%(opts.model,opts.filters,opts.errorbudget,eosfitFlag,fixzpt0Flag,typeFlag,lambdamin, lambdamax)

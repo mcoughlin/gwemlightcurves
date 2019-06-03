@@ -39,6 +39,8 @@ def parse_commandline():
     parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
     parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--doFixedLimit",  action="store_true", default=False)
+    parser.add_option("--limits",default="20.4,20.4")
     parser.add_option("--doZTF",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
@@ -62,6 +64,8 @@ def parse_commandline():
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
 
+    parser.add_option("--colormodel",default="a2.0")
+
     parser.add_option("--username",default="username")
     parser.add_option("--password",default="password")
 
@@ -72,8 +76,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017_A, Ka2017x2, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
     exit(0)
 
 if opts.doFixZPT0:
@@ -84,6 +88,10 @@ else:
     T0Range = 14.0
 
 filters = opts.filters.split(",")
+limits = [float(x) for x in opts.limits.split(",")]
+colormodel = opts.colormodel.split(",")
+if len(colormodel) == 1:
+    colormodel = colormodel[0]
 
 baseplotDir = opts.plotDir
 if opts.doModels:
@@ -92,6 +100,8 @@ elif opts.doGoingTheDistance:
     basename = 'going-the-distance'
 elif opts.doMassGap:
     basename = 'massgap'
+elif opts.doFixedLimit:
+    basename = 'limits'
 else:
     basename = 'gws'
 plotDir = os.path.join(baseplotDir,basename)
@@ -110,9 +120,11 @@ else:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
+if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+    plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017x2","Ka2017x3","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -155,7 +167,7 @@ maxt = opts.tmax
 dt = opts.dt
 tt = np.arange(mint,maxt,dt)
 
-if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
+if opts.doModels or opts.doGoingTheDistance or opts.doMassGap or opts.doFixedLimit:
     if opts.doModels:
         data_out = lightcurve_utils.loadModels(opts.outputDir,opts.name)
         if not opts.name in data_out:
@@ -242,6 +254,13 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
         data_out["H"] = mag[7]
         data_out["K"] = mag[8]
 
+    elif opts.doFixedLimit:
+        tt = np.arange(mint,maxt,dt)
+        data_out = {}
+        data_out["t"] = tt
+        for filt, limit in zip(filters,limits):
+            data_out[filt] = limit*np.ones(tt.shape)
+
     for ii,key in enumerate(data_out.iterkeys()):
         if key == "t":
             continue
@@ -267,9 +286,12 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap:
                 f = interp.interp1d(data_out[key][ii,0], data_out[key][ii,1], fill_value=np.nan, bounds_error=False)
             maginterp = f(tt)
 
-            data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
+            if opts.doFixedLimit:
+                data_out[key] = np.vstack((tt,maginterp,np.inf*np.ones(tt.shape))).T
+                data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+            else:
+                data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
            
-
     del data_out["t"]
 
     if opts.doReduced:
@@ -363,7 +385,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
+if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
@@ -375,6 +397,19 @@ if opts.model == "Ka2017" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2
     with open(modelfile, 'rb') as handle:
         svd_lbol_model = pickle.load(handle)
     Global.svd_lbol_model = svd_lbol_model
+
+    if opts.model in ["Ka2017inc"]:
+        modelfile = os.path.join(ModelPath,'%s.pkl' % colormodel)
+        with open(modelfile, 'rb') as handle:
+            svd_mag_color_model = pickle.load(handle)
+        Global.svd_mag_color_model = svd_mag_color_model
+    elif opts.model in ["Ka2017x2inc"]:
+        Global.svd_mag_color_models = []
+        for colorm in colormodel:
+            modelfile = os.path.join(ModelPath,'%s.pkl' % colorm)
+            with open(modelfile, 'rb') as handle:
+                svd_mag_color_model = pickle.load(handle)
+            Global.svd_mag_color_models.append(svd_mag_color_model)
 
 data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)
