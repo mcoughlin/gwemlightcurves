@@ -134,6 +134,17 @@ def get_ztf_lc(filename, name, username, password,
             fluxs.append(flux)
             fluxerrs.append(fluxerr)
             passband.append(filtname[ii])
+
+        maxfluxes = {}
+        for filt in list(set(passband)):
+            maxfluxes[filt] = -1
+            for flux, thisfilt in zip(fluxs,passband):
+                if thisfilt == filt:
+                    if maxfluxes[filt] < flux:
+                        maxfluxes[filt] = flux*1.0
+        fluxs = [flux/maxfluxes[filt] for flux, filt in zip(fluxs,passband)]
+        fluxerrs = [fluxerr/maxfluxes[filt] for fluxerr, filt in zip(fluxerrs,passband)]
+
         return mjds, mag, magerr, fluxs, fluxerrs, passband 
 
     fid = open(filename,'w')
