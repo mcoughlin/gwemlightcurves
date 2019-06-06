@@ -91,20 +91,27 @@ def get_ztf_lc(filename, name, username, password,
         lineSplit = line.split(",")
         lineSplit = list(filter(None,lineSplit))
         if not lineSplit: continue
-        if len(lineSplit) > 11:
-            lineSplit = lineSplit[:11]
+        if len(lineSplit) > 14:
+            lineSplit = lineSplit[:14]
 
-        if len(lineSplit) == 10:
-            date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,reducedby,refsys,issub = lineSplit
+        if len(lineSplit) == 12:
+            date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         else:
-            date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,reducedby,refsys,issub = lineSplit
+            date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
 
-        jd.append(float(jdobs))
-        filtname.append(filt)
+        if not isdiffpos == "True":
+            continue
+
         if float(magpsf) < -100:
             magpsf = "99.0"
         if float(limmag) < -100:
             limmag = "99.0"
+
+        if np.isclose(float(magpsf),99.0):
+            continue
+
+        jd.append(float(jdobs))
+        filtname.append(filt)
 
         if np.isclose(float(magpsf),99.0):
             mag.append(float(limmag))
