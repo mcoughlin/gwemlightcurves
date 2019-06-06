@@ -91,13 +91,15 @@ def get_ztf_lc(filename, name, username, password,
         lineSplit = line.split(",")
         lineSplit = list(filter(None,lineSplit))
         if not lineSplit: continue
-        if len(lineSplit) > 14:
-            lineSplit = lineSplit[:14]
+        if len(lineSplit) > 13:
+            lineSplit = lineSplit[:13]
 
         if len(lineSplit) == 12:
             date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         else:
             date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
+
+        if not instrument in ["P48+ZTF","P60+SEDM"]: continue
 
         if not isdiffpos == "True":
             continue
