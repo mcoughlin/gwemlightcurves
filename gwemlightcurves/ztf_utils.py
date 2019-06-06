@@ -84,27 +84,34 @@ def get_ztf_lc(filename, name, username, password,
                filetype = "default", z=0.0, zerr=0.0001, SN_Type="Ia"):
 
     r = requests.post('http://skipper.caltech.edu:8080/cgi-bin/growth/print_lc.cgi', auth=(username, password), data={'name' : name})
-    lines = r.text.replace(" ","").replace("\n","").replace('"','').split("issub")[-1].split("<br>")
+    lines = r.text.replace(" ","").replace("\n","").replace('"','').split("isdiffpos")[-1].split("<br>")
     jd, filtname, mag, magerr = [], [], [], []
     
     for line in lines:
         lineSplit = line.split(",")
         lineSplit = list(filter(None,lineSplit))
         if not lineSplit: continue
-        if len(lineSplit) > 11:
-            lineSplit = lineSplit[:11]
+        if len(lineSplit) > 14:
+            lineSplit = lineSplit[:14]
 
-        if len(lineSplit) == 10:
-            date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,reducedby,refsys,issub = lineSplit
+        if len(lineSplit) == 12:
+            date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         else:
-            date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,reducedby,refsys,issub = lineSplit
+            date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
 
-        jd.append(float(jdobs))
-        filtname.append(filt)
+        if not isdiffpos == "True":
+            continue
+
         if float(magpsf) < -100:
             magpsf = "99.0"
         if float(limmag) < -100:
             limmag = "99.0"
+
+        if np.isclose(float(magpsf),99.0):
+            continue
+
+        jd.append(float(jdobs))
+        filtname.append(filt)
 
         if np.isclose(float(magpsf),99.0):
             mag.append(float(limmag))
