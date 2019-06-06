@@ -30,6 +30,8 @@ from . import (  # pylint: disable=unused-import
     Ka2017x2, # Kasen (2017) Model (2-component)
     Ka2017inc, # Kasen (2017) Model + inclination
     Ka2017x2inc, # Kasen (2017) Model (2-component) + inclination
+    Ka2017x3, # Kasen (2017) Model (3-component)
+    Ka2017x3inc, # Kasen (2017) Model (3-component) + inclination
     RoFe2017 # Rosswog et al. (2017) Model
 )
 
