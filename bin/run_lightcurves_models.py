@@ -76,8 +76,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
     exit(0)
 
 if opts.doFixZPT0:
@@ -120,11 +120,11 @@ else:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s'%opts.model)
-if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
     plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -385,7 +385,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
+if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
@@ -403,13 +403,16 @@ if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A
         with open(modelfile, 'rb') as handle:
             svd_mag_color_model = pickle.load(handle)
         Global.svd_mag_color_model = svd_mag_color_model
-    elif opts.model in ["Ka2017x2inc"]:
+    elif opts.model in ["Ka2017x2inc","Ka2017x3inc"]:
         Global.svd_mag_color_models = []
         for colorm in colormodel:
-            modelfile = os.path.join(ModelPath,'%s.pkl' % colorm)
-            with open(modelfile, 'rb') as handle:
-                svd_mag_color_model = pickle.load(handle)
-            Global.svd_mag_color_models.append(svd_mag_color_model)
+            if colorm == "a1.0":
+                Global.svd_mag_color_models.append("a1.0")
+            else:
+                modelfile = os.path.join(ModelPath,'%s.pkl' % colorm)
+                with open(modelfile, 'rb') as handle:
+                    svd_mag_color_model = pickle.load(handle)
+                Global.svd_mag_color_models.append(svd_mag_color_model)
 
 data, tmag, lbol, mag, t0_best, zp_best, n_params, labels, best = run.multinest(opts,plotDir)
 truths = lightcurve_utils.get_truths(opts.name,opts.model,n_params,opts.doEjecta)

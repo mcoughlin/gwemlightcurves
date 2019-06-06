@@ -330,8 +330,7 @@ def Ka2017x2inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,iota):
     lbol = lbol_1 + lbol_2
     mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
 
-    return tmag, lbol, mag_1
-
+    return tmag, lbol, mag
 
 def Ka2017x3_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3):
 
@@ -344,6 +343,22 @@ def Ka2017x3_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan
     mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4) + 10**(-mag_3*0.4))
 
     return tmag, lbol, mag
+
+def Ka2017x3inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3,iota):
+
+    Global.svd_mag_color_model = Global.svd_mag_color_models[0]
+    tmag_1, lbol_1, mag_1 = Ka2017inc_model_ejecta(mej_1,vej_1,Xlan_1,iota)
+    Global.svd_mag_color_model = Global.svd_mag_color_models[1]
+    tmag_2, lbol_2, mag_2 = Ka2017inc_model_ejecta(mej_2,vej_2,Xlan_2,iota)
+    Global.svd_mag_color_model = Global.svd_mag_color_models[2]
+    iota_mod = np.mod(iota-90,180)
+    tmag_3, lbol_3, mag_3 = Ka2017inc_model_ejecta(mej_3,vej_3,Xlan_3,iota_mod)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2 + lbol_3
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4) + 10**(-mag_3*0.4))
+
+    return tmag, lbol, mag_1
 
 def RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye):
 
