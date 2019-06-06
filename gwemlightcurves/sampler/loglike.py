@@ -17,6 +17,18 @@ def prior_2ComponentVel(vej_1,vej_2):
     else:
         return 0.0
 
+def prior_3Component(Xlan1,Xlan2,Xlan3):
+    if (Xlan1 > Xlan2) and (Xlan3 > Xlan2):
+        return 1.0
+    else:
+        return 0.0
+
+def prior_3ComponentVel(vej_1,vej_2,vej_3):
+    if (vej_1 < vej_2) and (vej_1 < vej_3):
+        return 1.0
+    else:
+        return 0.0
+
 def prior_DiUj2017(m1,mb1,c1,m2,mb2,c2):
     if m1 < m2:
         return 0.0
@@ -189,6 +201,35 @@ def myloglike_Ka2017x2inc_ejecta(cube, ndim, nparams):
         return -np.inf
 
     tmag, lbol, mag = Ka2017x2inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,iota)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
+def myloglike_Ka2017x3inc_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    vej_1 = cube[2]
+    Xlan_1 = 10**cube[3]
+    mej_2 = 10**cube[4]
+    vej_2 = cube[5]
+    Xlan_2 = 10**cube[6]
+    mej_3 = 10**cube[7]
+    vej_3 = cube[8]
+    Xlan_3 = 10**cube[9]
+    iota = cube[10]
+    zp = cube[11]
+
+    prior = prior_3Component(Xlan_1,Xlan_2,Xlan_3)
+    if prior == 0.0:
+        return -np.inf
+    prior = prior_3ComponentVel(vej_1,vej_2,vej_3)
+    #prior = prior_2ComponentVel(vej_2,vej_1)
+    if prior == 0.0:
+        return -np.inf
+
+    tmag, lbol, mag = Ka2017x3inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,Xlan_3,iota)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
     print(prob)

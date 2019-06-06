@@ -35,14 +35,11 @@ def parse_commandline():
     parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_median_12.txt")
     parser.add_argument("--cbc_type", default="BNS")
 
-    parser.add_argument("--name",default="3G")
     parser.add_argument("--mindistance",default=1.0,type=float)
     parser.add_argument("--maxdistance",default=1000.0,type=float)
 
     parser.add_argument("-s","--spectraDir",default="../spectra")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
-    #parser.add_argument("--name",default="GW170817")
-    #parser.add_argument("--name",default="3G_1000")
 
     parser.add_argument("-a","--analysisType",default="multinest")
 
@@ -108,7 +105,7 @@ limits = [float(x) for x in opts.limits.split(",")]
 models = opts.model.split(",")
 for model in models:
     if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
-        print "Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016,Ka2017,RoFe2017"
+        print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016,Ka2017,RoFe2017")
         exit(0)
 
 lightcurvesDir = opts.lightcurvesDir
@@ -141,6 +138,8 @@ baseplotDir = opts.plotDir
 plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.event)
+plotDir = os.path.join(plotDir,"_".join(filters))
+plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 if opts.analysisType == "cbclist":
     plotDir = os.path.join(plotDir,opts.cbc_type)
     plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
@@ -159,8 +158,8 @@ if opts.analysisType == "posterior":
     
     samples["dist"] = opts.distance   
  
-    print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
-    print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
+    print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
+    print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
     
     # Downsample 
     samples = samples.downsample(Nsamples=100)
@@ -181,7 +180,7 @@ if opts.analysisType == "posterior":
         # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
         erroropt = 'none'
         if erroropt == 'none':
-            print "Not applying an error to mass ejecta"
+            print("Not applying an error to mass ejecta")
         elif erroropt == 'log':
             samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
         elif erroropt == 'lin':
@@ -219,8 +218,8 @@ elif opts.analysisType == "cbclist":
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
 
-    print "m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"]))
-    print "m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"]))
+    print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
+    print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
 
     # Downsample 
     #samples = samples.downsample(Nsamples=1000)
@@ -288,8 +287,6 @@ ax.set_yscale('log')
 plt.savefig(plotName)
 plt.close()
 
-print(stop)
-
 bounds = [0.0,1.0]
 xlims = [0.0,1.0]
 ylims = [1e-1,20]
@@ -310,8 +307,6 @@ plt.xlim(xlims)
 plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
-
-print(stop)
 
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
@@ -353,10 +348,16 @@ if opts.analysisType == "cbclist":
     fid.write('%d %.10f'%(cbccnt,cbcratio))
     fid.close()    
 
-#filts = ["u","g","r","i","z","y","J","H","K"]
-#magidxs = [0,1,2,3,4,5,6,7,8]
-filts = ["g","r"]
-magidxs = [1,2]
+filts = ["u","g","r","i","z","y","J","H","K"]
+magidxs = [0,1,2,3,4,5,6,7,8]
+
+idxs = []
+for filt in filters:
+    idxs.append(filts.index(filt))
+
+filts = [filts[i] for i in idxs]
+magidxs = [magidxs[i] for i in idxs]
+
 colors=cm.rainbow(np.linspace(0,1,len(filts)))
 
 mag_all = {}

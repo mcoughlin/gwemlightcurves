@@ -109,6 +109,7 @@ def get_ztf_lc(filename, name, username, password,
         if np.isclose(float(magpsf),99.0):
             mag.append(float(limmag))
             magerr.append(np.inf)
+            continue
         else:
             mag.append(float(magpsf))
             magerr.append(float(sigmamagpsf))
