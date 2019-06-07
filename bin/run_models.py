@@ -29,6 +29,7 @@ def parse_commandline():
     parser.add_option("-m","--model",default="barnes_kilonova_spectra") 
     parser.add_option("-n","--name",default="rpft_m001_v1")
     parser.add_option("-t","--theta",default=np.nan,type=float)
+    parser.add_option("-r","--redshift",default=np.nan,type=float)
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)    
 
@@ -171,7 +172,7 @@ def getMagAB(filename,band,model):
 
     return t_d, mag_d, L_d
 
-def getMagSpecH5(filename,band,model,filtname,theta=0.0):
+def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
     fin    = h5py.File(filename,'r')
     # frequency in Hz
     nu    = np.array(fin['nu'],dtype='d')
@@ -181,13 +182,6 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     times = times/3600.0/24.0
 
     tmin = 0.0
-    #if filtname in ["g","r","i","z","y","J","H","K"]:
-    #    tmax = 7.0
-    #else:
-    #    if (theta > 0) and (theta < 45):
-    #        tmax = 2.0
-    #    else:
-    #        tmax = 3.0
     tmax = 7.0
 
     # specific luminosity (ergs/s/Hz) 
@@ -209,15 +203,21 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     mag_d = []
     L_d = []
 
-    #Lnu_all_max = np.max(Lnu_all,axis=1)
-    #Lnu_all_thresh = np.max(Lnu_all_max)/100.0
-
     ntimes, nfreq, ninc = Lnu_all.shape
     if ninc > 0:
         mu = fin['mu']
         thetas = np.rad2deg(np.arccos(mu))
         idx = np.argmin(np.abs(thetas-theta)) 
         Lnu_all = Lnu_all[:,:,idx]
+
+    for ii in range(len(Lnu_all.T)):
+        vals = Lnu_all[:,ii]
+        idxmax = np.argmax(vals)
+        valstmp = vals*1.0
+        valstmp[:int(idxmax)] = np.max(vals)
+        idx = np.where(valstmp==0)[0]
+        vals[int(idx[0]):] = 0.0
+        Lnu_all[:,ii] = vals
 
     #plt.figure()
     #plt.imshow(np.log10(Lnu_all)) 
@@ -227,37 +227,15 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     #print(np.max(Lnu_all)/1000)
 
     Lnu_all[Lnu_all==0] = 1e20
-    Lnu_all = 10**gaussian_filter(np.log10(Lnu_all), 5.0)
+    Lnu_all = 10**gaussian_filter(np.log10(Lnu_all), 3.0)
+    #Lnu_all = gaussian_filter(Lnu_all, 3.0)
     #plt.figure()
     #plt.imshow(np.log10(Lnu_all))
     #plt.savefig('after.png')
     #plt.close()
 
-    #for ii in range(nfreq):
-    #    vals = np.log10(Lnu_all[:,ii,idx])
-    #    jj = np.where(np.isfinite(vals))[0]
-    #    kk = np.where(~np.isfinite(vals))[0]
-    #    if len(jj) > 2:
-    #        tt, vals = times[jj], vals[jj]
-    #        Lnu_thresh = np.max(vals)/100.0
-    #        jj = np.where(vals>Lnu_thresh)[0]
-    #        tt, vals = times[jj], vals[jj]
-    #        Lnu_all_lowess = sm.nonparametric.lowess(vals, tt, frac=0.2, missing='none')[:,1]
-    #        if np.argmax(Lnu_all_lowess) == len(Lnu_all_lowess)-1:
-    #            tt = np.vstack((tt,times[np.max(jj)+1]))
-    #            vals = np.vstack((vals,-10))
-    #        f = interp.interp1d(tt, Lnu_all_lowess, fill_value='extrapolate')
-    #        Lnu_all[:,ii,idx] = 10**f(times)
-    #    else:
-    #        Lnu_all[:,ii,idx] = 0.0
-    #    elif len(jj) > 2:
-    #        vals[kk] = -10.0
-    #        Lnu_all_lowess = sm.nonparametric.lowess(vals, times, frac=0.2, missing='none')[:,1]
-    #        f = interp.interp1d(times, Lnu_all_lowess, fill_value='extrapolate')
-    #        Lnu_all[:,ii,idx] = 10**f(times)
-
     for t in times[:-1]:
-        if (t < 0) or (t > 7.0): continue
+        if (t < 0) or (t > 10.0): continue
         #if (t < 0) or (t > 21): continue
 
         # index corresponding to t
@@ -270,6 +248,8 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
         # if you want thing in Flambda (ergs/s/Angstrom)
         c    = 2.99e10
         lam  = np.flipud(c/nu*1e8)
+        if not np.isnan(redshift):
+            lam = lam*(1+redshift)
 
         if Lnu.ndim == 2:
             mu = fin['mu']
@@ -310,103 +290,6 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0):
     if len(ii) > 1:
         f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
         mag_d = f(t_d)
-
-    #mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.1, missing='none')
-    #L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.1, missing='none')
-
-    #mag_d = mag_d_lowess[:,1]
-    #L_d = 10**L_d_lowess[:,1]
-
-    #if np.argmin(mag_d)==len(mag_d)-1:
-    #    ii = np.argmax(mag_d)
-    #    slope = (mag_d[ii] - mag_d[0]) / (t_d[ii] - t_d[0])
-    #    mag_d[ii:] = mag_d[0] + slope*(t_d[ii:]-t_d[0])
-
-    #ii = np.where(mag_d>0)[0]
-    #if len(ii) > 0:
-    #    ii = np.arange(ii[0]+1).astype(int)
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-    #else:
-    #    peakmag = np.min(mag_d)
-    #    ii = np.where(mag_d<=peakmag+5.0)[0]
-    #    ii = np.arange(ii[-1]-1).astype(int)
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-
-    #if not filtname == "u":
-    #    ii = np.where(mag_d<0)[0]
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-
-    #peakmag = np.min(mag_d)
-    #ii = np.where(mag_d<=peakmag+3.0)[0]
-    #if len(ii) > 2:
-    #    ii = np.arange(ii[-1]-1).astype(int)
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-
-    #L_d_diff = np.diff(np.log10(L_d))
-    #ii = np.where(L_d_diff < -0.5)[0]
-    #if len(L_d[0:-1:2]) > len(L_d[1:-1:2]):
-    #    L_d_diff = np.log10(L_d[0:-2:2]) - np.log10(L_d[1:-1:2])
-    #else:
-    #    L_d_diff = np.log10(L_d[0:-1:2]) - np.log10(L_d[1:-1:2])
-    #ii = np.where(L_d_diff > 0.2)[0]
-    #ii = ii*2
-
-    #if len(ii) > 0 and (not ii[0] < tmax):
-    #    ii = np.arange(ii[0]).astype(int)
-    #
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-    #
-    #    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-    #    L_d = 10**f(t_d)
-
-    #mag_d_diff = np.diff(mag_d)
-    #ii = np.where(mag_d_diff<-0.1)[0]
-    #if len(ii) > 0 and (not ii[0] < tmax):
-    #    ii = np.arange(ii[0]-1).astype(int)
-    #    f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-    #    mag_d = f(t_d)
-
-    if False:
-        mag_d_diff = np.diff(mag_d)
-        ii = np.where(mag_d_diff<0)[0]
-        if len(ii) > 0 and (not ii[0] < tmax):
-            ii = np.arange(ii[0]-1).astype(int)
-            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-            mag_d = f(t_d)
-    
-        ii = np.where(np.isfinite(np.log10(L_d)))[0]
-        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-        L_d = 10**f(t_d)
-    
-        ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
-        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-        L_d = 10**f(t_d)
-    
-        ii = np.where((t_d<=tmax) & (t_d>=tmin))[0]
-        if len(ii) > 1:
-            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-            mag_d = f(t_d)
-    
-        ii = np.where(~np.isnan(mag_d))[0]
-        if len(ii) > 1:
-            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-            mag_d = f(t_d)
-
-    #peakL = np.max(L_d)
-    #ii = np.where(L_d>=peakL/100.0)[0]
-    #f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-    #L_d = 10**f(t_d)
-
-    #mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.2, missing='none')
-    #L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.2, missing='none')
-
-    #mag_d = mag_d_lowess[:,1]
-    #L_d = 10**L_d_lowess[:,1]
 
     return t_d, mag_d, L_d
 
@@ -669,7 +552,7 @@ if opts.doAB:
         elif opts.model in spech5models:
             fin    = h5py.File(filename,'r')
             Lnu_all   = np.array(fin['Lnu'],dtype='d')
-            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii],theta=opts.theta)
+            t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii],theta=opts.theta,redshift=opts.redshift)
             L_d = scipy.signal.medfilt(L_d,kernel_size=5)         
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
@@ -681,10 +564,19 @@ if opts.doAB:
         print "0's in bolometric luminosity.... quitting."
         exit(0)
 
-    if np.isnan(opts.theta):
-        filename = "%s/%s.dat"%(outputDir,opts.name)
+    if np.isnan(opts.redshift):
+        if np.isnan(opts.theta):
+            basename = "%s"%(opts.name)
+        else:
+            basename = "%s_%.1f"%(opts.name,opts.theta)
     else:
-        filename = "%s/%s_%.1f.dat"%(outputDir,opts.name,opts.theta)
+        if np.isnan(opts.theta):
+            basename = "%s_%.2f"%(opts.name,opts.redshift)
+        else:
+            basename = "%s_%.1f_%.2f"%(opts.name,opts.theta,opts.redshift)
+
+    filename = "%s/%s.dat"%(outputDir,basename)
+
     fid = open(filename,'w')
     fid.write('# t[days] u g r i z y J H K\n')
     for ii in xrange(len(t_d)):
@@ -707,10 +599,7 @@ if opts.doAB:
     colors=cm.rainbow(np.linspace(0,1,len(filts)))
     magidxs = [1,2,3,4,5,6,7,8,9]
 
-    if np.isnan(opts.theta):
-        plotName = "%s/%s.pdf"%(plotDir,opts.name)
-    else:
-        plotName = "%s/%s_%.1f.pdf"%(plotDir,opts.name, opts.theta)
+    plotName = "%s/%s.pdf"%(plotDir,basename)
     plt.figure(figsize=(10,12))
     for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
@@ -718,21 +607,19 @@ if opts.doAB:
     plt.ylabel('Absolute AB Magnitude')
     plt.ylim([-20,10])
     plt.legend(loc="lower center",ncol=5)
+    title_name = []
     if not np.isnan(opts.theta):
-        plt.title('Inclination: %.1f' %  opts.theta)
+        title_name.append('Inclination: %.1f' %  opts.theta)
+    if not np.isnan(opts.redshift):
+        title_name.append('Redshift: %.2f' %  opts.redshift)
+    plt.title(", ".join(title_name))
     plt.gca().invert_yaxis()
     plt.savefig(plotName)
-    if np.isnan(opts.theta):
-        plotName = "%s/%s.png"%(plotDir,opts.name)
-    else:
-        plotName = "%s/%s_%.1f.png"%(plotDir,opts.name, opts.theta)
+    plotName = "%s/%s.png"%(plotDir,basename)
     plt.savefig(plotName)
     plt.close()
-    
-    if np.isnan(opts.theta):
-        filename = "%s/%s_Lbol.dat"%(outputDir,opts.name)
-    else:
-        filename = "%s/%s_%.1f_Lbol.dat"%(outputDir,opts.name,opts.theta)
+   
+    filename = "%s/%s_Lbol.dat"%(outputDir,basename)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
     for ii in xrange(len(t_d)):
@@ -742,12 +629,8 @@ if opts.doAB:
     Lbol_ds = np.loadtxt(filename)
     t = Lbol_ds[:,0]
     Lbol = Lbol_ds[:,1]
-   
-    if np.isnan(opts.theta):
-        plotName = "%s/%s_Lbol.pdf"%(plotDir,opts.name)
-    else:
-        plotName = "%s/%s_%.1f_Lbol.pdf"%(plotDir,opts.name, opts.theta)
- 
+  
+    plotName = "%s/%s_Lbol.pdf"%(plotDir,basename) 
     plt.figure(figsize=(10,12))
     plt.semilogy(t,Lbol,'k--')
     plt.xlabel('Time [days]')
