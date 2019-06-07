@@ -124,26 +124,27 @@ def get_ztf_lc(filename, name, username, password,
             magerr.append(float(sigmamagpsf))
     idx = np.argsort(jd)
 
+    zeropoint = 26.2
     if filetype == "lc":
         mjds, fluxs, fluxerrs, passband = [], [], [], []
         for ii in idx:
             t = Time(jd[ii], format='jd').mjd
-            flux = 10**((mag[ii]+48.60)/(-2.5))
-            fluxerr = magerr[ii]*flux
+            flux = 10. ** (-0.4 * (mag[ii] - zeropoint))
+            fluxerr = np.abs(flux * magerr[ii] * (np.log(10.) / 2.5))
             mjds.append(t)
             fluxs.append(flux)
             fluxerrs.append(fluxerr)
             passband.append(filtname[ii])
 
-        maxfluxes = {}
-        for filt in list(set(passband)):
-            maxfluxes[filt] = -1
-            for flux, thisfilt in zip(fluxs,passband):
-                if thisfilt == filt:
-                    if maxfluxes[filt] < flux:
-                        maxfluxes[filt] = flux*1.0
-        fluxs = [flux/maxfluxes[filt] for flux, filt in zip(fluxs,passband)]
-        fluxerrs = [fluxerr/maxfluxes[filt] for fluxerr, filt in zip(fluxerrs,passband)]
+        #maxfluxes = {}
+        #for filt in list(set(passband)):
+        #    maxfluxes[filt] = -1
+        #    for flux, thisfilt in zip(fluxs,passband):
+        #        if thisfilt == filt:
+        #            if maxfluxes[filt] < flux:
+        #                maxfluxes[filt] = flux*1.0
+        #fluxs = [flux/maxfluxes[filt] for flux, filt in zip(fluxs,passband)]
+        #fluxerrs = [fluxerr/maxfluxes[filt] for fluxerr, filt in zip(fluxerrs,passband)]
 
         return mjds, mag, magerr, fluxs, fluxerrs, passband 
 
