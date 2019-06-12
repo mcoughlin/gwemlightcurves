@@ -43,6 +43,7 @@ def parse_commandline():
     parser.add_option("--limits",default="20.4,20.4")
     parser.add_option("--doZTF",  action="store_true", default=False)
     parser.add_option("--distance",default=40.0,type=float)
+    parser.add_option("--distance_uncertainty",default=-1.0,type=float)
     parser.add_option("--T0",default=57982.5285236896,type=float)
     parser.add_option("--doCoverage",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
@@ -86,6 +87,9 @@ if opts.doFixZPT0:
 else:
     ZPRange = 50.0
     T0Range = 14.0
+
+if opts.distance_uncertainty > 0:
+    ZPRange = np.abs(5*(opts.distance_uncertainty/opts.distance)/np.log(10))
 
 filters = opts.filters.split(",")
 limits = [float(x) for x in opts.limits.split(",")]
@@ -627,8 +631,12 @@ for filt, color in zip(filters,colors):
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
 
     if opts.name == "GW170817":
-        plt.xlim([0.0, 18.0])
-        plt.ylim([-18.0,-10.0])
+        if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+            plt.xlim([0.0, 7.0])
+            plt.ylim([-18.0,-10.0])
+        else:
+            plt.xlim([0.0, 18.0])
+            plt.ylim([-18.0,-10.0])
     elif opts.doZTF:
         plt.xlim([0.0, 7.0])
         plt.ylim([18.0,22.0])
