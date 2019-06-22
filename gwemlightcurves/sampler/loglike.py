@@ -120,7 +120,10 @@ def myloglike_Ka2017_ejecta(cube, ndim, nparams):
     mej = 10**cube[1]
     vej = cube[2]
     Xlan = 10**cube[3]
-    zp = cube[4]
+    zp_unit = cube[4]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
 
     tmag, lbol, mag = Ka2017_model_ejecta(mej,vej,Xlan)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)

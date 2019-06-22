@@ -203,12 +203,14 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
     mag_d = []
     L_d = []
 
-    ntimes, nfreq, ninc = Lnu_all.shape
-    if ninc > 0:
+    try:
+        ntimes, nfreq, ninc = Lnu_all.shape
         mu = fin['mu']
         thetas = np.rad2deg(np.arccos(mu))
         idx = np.argmin(np.abs(thetas-theta)) 
         Lnu_all = Lnu_all[:,:,idx]
+    except:
+        ntimes, nfreq = Lnu_all.shape
 
     for ii in range(len(Lnu_all.T)):
         vals = Lnu_all[:,ii]
@@ -216,8 +218,9 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
         valstmp = vals*1.0
         valstmp[:int(idxmax)] = np.max(vals)
         idx = np.where(valstmp==0)[0]
-        vals[int(idx[0]):] = 0.0
-        Lnu_all[:,ii] = vals
+        if len(idx) > 0: 
+            vals[int(idx[0]):] = 0.0
+            Lnu_all[:,ii] = vals
 
     #plt.figure()
     #plt.imshow(np.log10(Lnu_all)) 
@@ -618,6 +621,60 @@ if opts.doAB:
     plotName = "%s/%s.png"%(plotDir,basename)
     plt.savefig(plotName)
     plt.close()
+
+    plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
+    fig, axs = plt.subplots(1,2,figsize=(20,12))
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        axs[0].plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
+    axs[0].set_xlabel('Time [days]')
+    axs[0].set_ylabel('Absolute AB Magnitude')
+    axs[0].set_ylim([-20,10])
+    axs[0].legend(loc="lower center",ncol=5)
+    axs[0].invert_yaxis()
+
+    for filt, color, magidx in zip(filts,colors,magidxs):
+        dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
+        dm_dt = dm/dt
+        axs[1].plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
+    axs[1].set_xlabel('Time [days]')
+    axs[1].set_ylabel('dm/dt [magnitude / day]')
+    axs[1].set_ylim([-3,3])
+    axs[1].legend(loc="lower center",ncol=5)
+    axs[1].invert_yaxis()
+
+    title_name = []
+    if not np.isnan(opts.theta):
+        title_name.append('Inclination: %.1f' %  opts.theta)
+    if not np.isnan(opts.redshift):
+        title_name.append('Redshift: %.2f' %  opts.redshift)
+
+    plt.suptitle(", ".join(title_name))
+    plt.savefig(plotName)
+    plotName = "%s/%s_dmdt.png"%(plotDir,basename)
+    plt.savefig(plotName)
+    plt.close()
+
+    #plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
+    #plt.figure(figsize=(10,12))
+    #for filt, color, magidx in zip(filts,colors,magidxs):
+    #    dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
+    #    dm_dt = dm/dt
+    #    plt.plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
+    #plt.xlabel('Time [days]')
+    #plt.ylabel('Absolute AB Magnitude')
+    #plt.ylim([-3,3])
+    #plt.legend(loc="lower center",ncol=5)
+    #title_name = []
+    #if not np.isnan(opts.theta):
+    #    title_name.append('Inclination: %.1f' %  opts.theta)
+    #if not np.isnan(opts.redshift):
+    #    title_name.append('Redshift: %.2f' %  opts.redshift)
+    #plt.title(", ".join(title_name))
+    #plt.gca().invert_yaxis()
+    #plt.savefig(plotName)
+    #plotName = "%s/%s_dmdt.png"%(plotDir,basename)
+    #plt.savefig(plotName)
+    #plt.close()
    
     filename = "%s/%s_Lbol.dat"%(outputDir,basename)
     fid = open(filename,'w')
