@@ -109,6 +109,7 @@ def get_ztf_lc(filename, name, username, password,
         if float(limmag) < -100:
             limmag = "99.0"
 
+        # do not include undetected points after first detection
         if np.isclose(float(magpsf),99.0):
             continue
 
@@ -118,7 +119,6 @@ def get_ztf_lc(filename, name, username, password,
         if np.isclose(float(magpsf),99.0):
             mag.append(float(limmag))
             magerr.append(np.inf)
-            continue
         else:
             mag.append(float(magpsf))
             magerr.append(float(sigmamagpsf))
@@ -136,15 +136,71 @@ def get_ztf_lc(filename, name, username, password,
             fluxerrs.append(fluxerr)
             passband.append(filtname[ii])
 
-        #maxfluxes = {}
-        #for filt in list(set(passband)):
-        #    maxfluxes[filt] = -1
-        #    for flux, thisfilt in zip(fluxs,passband):
-        #        if thisfilt == filt:
-        #            if maxfluxes[filt] < flux:
-        #                maxfluxes[filt] = flux*1.0
-        #fluxs = [flux/maxfluxes[filt] for flux, filt in zip(fluxs,passband)]
-        #fluxerrs = [fluxerr/maxfluxes[filt] for fluxerr, filt in zip(fluxerrs,passband)]
+        passbands = list(set(passband))
+        ncounts = {}
+        nmax, filtmax = -1, 'n'
+        for filt in passbands:
+            ncounts[filt] = 0
+            for thisfilt in passband:
+                if thisfilt == filt:
+                    ncounts[filt] += 1
+            if nmax < ncounts[filt]:
+                nmax = ncounts[filt]*1.0
+                filtmax = filt
+
+        t0 = mjds[0]
+        dts = np.arange(-14,0,0.5)
+        for filt in passbands:
+            for dt in dts:
+                flux = 1.0
+                fluxerr = 1.0
+                mjds.append(t0+dt)
+                mag.append(zeropoint)
+                magerr.append(1.0)
+                fluxs.append(flux)
+                fluxerrs.append(fluxerr)
+                passband.append(filt) 
+            
+        idx = np.argsort(mjds)
+        mjds = np.array(mjds)[idx]
+        mag = np.array(mag)[idx]
+        magerr = np.array(magerr)[idx]
+        fluxs = np.array(fluxs)[idx]
+        fluxerrs = np.array(fluxerrs)[idx]
+        passband = np.array(passband)[idx]   
+
+        idx = np.empty((0,1))
+        for filt in passbands:
+            if ncounts[filt] < nmax/4.0:
+                continue
+            idx = np.append(idx, np.where(passband == filt)[0])
+
+        idx = idx.astype(int)
+        mjds = mjds[idx]
+        mag = mag[idx]
+        magerr = magerr[idx]
+        fluxs = fluxs[idx]
+        fluxerrs = fluxerrs[idx]
+        passband = passband[idx]
+
+        for filt in passbands:
+            idx = np.where(passband == filt)[0]
+            if len(idx) > 0: continue
+            idx = np.where(passband == filtmax)[0]
+            mjds = np.append(mjds, mjds)
+            mag = np.append(mag, mag)
+            magerr = np.append(magerr, magerr)
+            fluxs = np.append(fluxs, fluxs)
+            fluxerrs = np.append(fluxerrs, fluxerrs)
+            passband = np.append(passband, [filt]*len(passband))
+
+        idx = np.argsort(mjds)
+        mjds = mjds[idx]
+        mag = mag[idx]
+        magerr = magerr[idx]
+        fluxs = fluxs[idx]
+        fluxerrs = fluxerrs[idx]
+        passband = passband[idx]
 
         return mjds, mag, magerr, fluxs, fluxerrs, passband 
 
