@@ -77,8 +77,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc")
     exit(0)
 
 if opts.doFixZPT0:
@@ -128,7 +128,7 @@ if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
     plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -389,18 +389,39 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
-if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A":
+if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
-    modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
-    with open(modelfile, 'rb') as handle:
-        svd_mag_model = pickle.load(handle)
-    Global.svd_mag_model = svd_mag_model    
-
-    modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
-    with open(modelfile, 'rb') as handle:
-        svd_lbol_model = pickle.load(handle)
-    Global.svd_lbol_model = svd_lbol_model
+    if opts.model == "Bu2019":
+        modelfile = os.path.join(ModelPath,'Bu2019_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model    
+            
+        modelfile = os.path.join(ModelPath,'Bu2019_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019inc":
+        modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model    
+            
+        modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    else:
+        modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model    
+    
+        modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
 
     if opts.model in ["Ka2017inc"]:
         modelfile = os.path.join(ModelPath,'%s.pkl' % colormodel)

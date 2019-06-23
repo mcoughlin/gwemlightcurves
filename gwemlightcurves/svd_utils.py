@@ -25,6 +25,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/kasen_kilonova_grid"
     elif model == "RoFe2017":
         fileDir = "../output/macronovae-rosswog_wind"
+    elif model == "Bu2019":
+        fileDir = "../output/bulla_1D"
+    elif model == "Bu2019inc":
+        fileDir = "../output/bulla_2D"
 
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
@@ -60,6 +64,14 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif keySplit[0] == "nsns":
+            mej0 = float(keySplit[2].replace("mej",""))
+            phi0 = float(keySplit[3].replace("phi",""))
+            T0 = float(keySplit[4].replace("T",""))
+
+            lbols[key]["mej"] = mej0
+            lbols[key]["phi"] = phi0
+            lbols[key]["T"] = T0
 
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
@@ -78,6 +90,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["vej"]),np.log10(lbols[key]["Xlan"])])
         elif model == "RoFe2017":
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["vej"],lbols[key]["Ye"]]) 
+        elif model == "Bu2019":
+            param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
+        elif model == "Bu2019inc":
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -140,6 +156,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/kasen_kilonova_grid"
     elif model == "RoFe2017":
         fileDir = "../output/macronovae-rosswog_wind"
+    elif model == "Bu2019":
+        fileDir = "../output/bulla_1D"
+    elif model == "Bu2019inc":
+        fileDir = "../output/bulla_2D"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -184,6 +204,14 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif keySplit[0] == "nsns":
+            mej0 = float(keySplit[2].replace("mej",""))
+            phi0 = float(keySplit[3].replace("phi",""))
+            T0 = float(keySplit[4].replace("T",""))
+
+            mags[key]["mej"] = mej0
+            mags[key]["phi"] = phi0
+            mags[key]["T"] = T0
 
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
 
@@ -204,6 +232,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["vej"]),np.log10(mags[key]["Xlan"])])
         elif model == "RoFe2017":
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["vej"],mags[key]["Ye"]])    
+        elif model == "Bu2019":
+            param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
+        elif model == "Bu2019inc":
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -243,7 +275,6 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         for i in range(n_coeff):
             if np.mod(i,5) == 0:
                 print('Coefficient %d/%d...' % (i, n_coeff))
-
             gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
             gp.fit(param_array_postprocess, cAmat[i,:])
             gps.append(gp)

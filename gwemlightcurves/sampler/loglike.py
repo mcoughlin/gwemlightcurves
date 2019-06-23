@@ -322,6 +322,38 @@ def myloglike_Ka2017_EOSFit(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Bu2019_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    T = 10**cube[2]
+    zp_unit = cube[3]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+
+    tmag, lbol, mag = Bu2019_model_ejecta(mej,T)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
+def myloglike_Bu2019inc_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    phi = cube[2]
+    zp_unit = cube[3]
+    
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+    
+    tmag, lbol, mag = Bu2019inc_model_ejecta(mej,phi)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
 def myloglike_Me2017(cube, ndim, nparams):
 
     t0 = cube[0]
