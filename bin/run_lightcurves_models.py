@@ -655,6 +655,9 @@ for filt, color in zip(filters,colors):
         if opts.model in ["Ka2017inc","Ka2017x2inc"]:
             plt.xlim([0.0, 7.0])
             plt.ylim([-18.0,-10.0])
+        elif opts.model in ["Bu2019","Bu2019inc"]:
+            plt.xlim([0.0, 10.0])
+            plt.ylim([-18.0,-10.0])
         else:
             plt.xlim([0.0, 18.0])
             plt.ylim([-18.0,-10.0])

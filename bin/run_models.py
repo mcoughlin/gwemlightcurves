@@ -296,7 +296,7 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
 
     return t_d, mag_d, L_d
 
-def getMagSpec(filename,band,model):
+def getMagSpec(filename,band,model,theta=0.0):
     #u = np.genfromtxt(opts.name)
 
     if "bulla" in filename:
@@ -305,11 +305,23 @@ def getMagSpec(filename,band,model):
         lineSplit = lines[2].split(" ")
         nt, t0, tf = int(lineSplit[0]), float(lineSplit[1]), float(lineSplit[2])
         tt = np.linspace(t0, tf, nt)
-        u = []
-        for ii, t in enumerate(tt):
-            for row in u2:
-                u.append([t,row[0],row[int(ii+1)]])
-        u = np.array(u)
+        ntheta, nwave = int(lines[0]), int(lines[1])
+        if not np.isnan(theta) and ntheta > 1:
+            costhetas = np.linspace(0,1,ntheta)
+            thetas = np.rad2deg(np.arccos(costhetas))
+            idx = np.argmin(np.abs(thetas-theta))
+            istart, iend = int(idx*nwave), int((idx+1)*nwave)
+            u = []
+            for ii, t in enumerate(tt):
+                for row in u2[istart:iend]:
+                    u.append([t,row[0],row[int(ii+1)]])
+            u = np.array(u)
+        else:
+            u = []
+            for ii, t in enumerate(tt):
+                for row in u2:
+                    u.append([t,row[0],row[int(ii+1)]])
+            u = np.array(u)
     else:
         u = np.loadtxt(filename,skiprows=1)
     if model == "kilonova_wind_spectra":
@@ -565,7 +577,7 @@ if opts.doAB:
     #for ii in [6]:
         band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
         if opts.model in specmodels:
-            t_d, mag_d, L_d = getMagSpec(filename,band,opts.model)
+            t_d, mag_d, L_d = getMagSpec(filename,band,opts.model,theta=opts.theta)
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
         elif opts.model in spech5models:

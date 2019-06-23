@@ -342,12 +342,13 @@ def myloglike_Bu2019inc_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej = 10**cube[1]
     phi = cube[2]
-    zp_unit = cube[3]
+    theta = cube[3]
+    zp_unit = cube[4]
     
     zp_mu, zp_std = 0.0, Global.ZPRange
     zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
     
-    tmag, lbol, mag = Bu2019inc_model_ejecta(mej,phi)
+    tmag, lbol, mag = Bu2019inc_model_ejecta(mej,phi,theta)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
     print(prob)
@@ -995,6 +996,7 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
                 chiprob = scipy.stats.chi2.logpdf(chisquare, 1, loc=0, scale=1)
 
             prob = chiprob + gaussprob - (nsamples/2.0)*np.log(2.0*np.pi*errorbudget**2)
+
         if np.isnan(prob):
             prob = -np.inf
 

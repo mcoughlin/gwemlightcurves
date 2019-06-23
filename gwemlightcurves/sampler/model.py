@@ -378,7 +378,7 @@ def Bu2019_model_ejecta(mej,T):
 
     return t, lbol, mag
 
-def Bu2019inc_model_ejecta(mej,phi):
+def Bu2019inc_model_ejecta(mej,phi,theta):
 
     tini = 0.1
     tmax = 50.0
@@ -390,6 +390,7 @@ def Bu2019inc_model_ejecta(mej,phi):
     samples['dt'] = dt
     samples['mej'] = mej
     samples['phi'] = phi
+    samples['theta'] = theta
 
     model = "Bu2019inc"
     t, lbol, mag = generate_lightcurve(model,samples)

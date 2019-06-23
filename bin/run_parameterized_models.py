@@ -179,6 +179,7 @@ samples['theta_r'] = theta_r
 samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs
+samples['theta'] = theta_0
 
 samples['mej_1'] = mej1
 samples['vej_1'] = vej1
