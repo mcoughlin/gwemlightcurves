@@ -58,6 +58,8 @@ def parse_commandline():
     parser.add_option("--vej2",default=0.2,type=float)
     parser.add_option("--Xlan2",default=1e-3,type=float)
 
+    parser.add_option("--T",default=6000.0,type=float)
+    parser.add_option("--phi",default=0.0,type=float)
     parser.add_option("--iota",default=0.0,type=float)
     parser.add_option("--colormodel",default="a2.0")
 
@@ -92,6 +94,8 @@ slope_r = opts.slope_r
 Xlan = opts.Xlan
 Ye = opts.Ye
 iota = opts.iota
+phi = opts.phi
+T = opts.T
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -175,6 +179,7 @@ samples['theta_r'] = theta_r
 samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs
+samples['theta'] = theta_0
 
 samples['mej_1'] = mej1
 samples['vej_1'] = vej1
@@ -183,6 +188,8 @@ samples['mej_2'] = mej2
 samples['vej_2'] = vej2
 samples['Xlan_2'] = Xlan2
 samples['iota'] = iota
+samples['phi'] = phi
+samples['T'] = T
 
 if len(colormodel) == 1:
     samples['colormodel'] = colormodel[0]
@@ -283,6 +290,12 @@ elif opts.model == "RoFe2017":
         name = "FoFe2017_%sM%03dV%02dX%d"%(opts.eos,opts.mej*1000,opts.vej*100,np.log10(opts.Ye))
     elif opts.doMasses:
         name = "%sM%.0fm%.0f"%(opts.eos,opts.m1*100,opts.m2*100)
+elif opts.model == "Bu2019":
+    if opts.doEjecta:
+        name = "Bu2019_%sM%03dT%d"%(opts.eos,opts.mej*1000,np.log10(opts.T))
+elif opts.model == "Bu2019inc":
+    if opts.doEjecta:
+        name = "Bu2019_%sM%03dP%d"%(opts.eos,opts.mej*1000,opts.phi)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0

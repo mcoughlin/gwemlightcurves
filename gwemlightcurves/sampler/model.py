@@ -360,6 +360,43 @@ def Ka2017x3inc_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2,mej_3,vej_3,X
 
     return tmag, lbol, mag_1
 
+def Bu2019_model_ejecta(mej,T):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['T'] = T
+
+    model = "Bu2019"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019inc_model_ejecta(mej,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019inc"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye):
 
     tini = 0.1

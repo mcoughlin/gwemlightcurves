@@ -316,6 +316,23 @@ def myprior_Ka2017x3inc_ejecta(cube, ndim, nparams):
         cube[10] = cube[10]*180.0
         cube[11] = cube[11]*2*Global.ZPRange - Global.ZPRange
 
+def myprior_Bu2019_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0
+        cube[1] = cube[1]*2.0 - 2.0
+        cube[2] = cube[2]*1.0 + 3.0
+        #cube[3] = cube[3]*2*Global.ZPRange - Global.ZPRange
+        cube[3] = cube[3]*1.0
+
+def myprior_Bu2019inc_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0
+        cube[1] = cube[1]*1.0 - 2.0
+        cube[2] = cube[2]*90.0
+        cube[3] = cube[3]*90.0
+        #cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
+        cube[4] = cube[4]*1.0
+
 def myprior_RoFe2017_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
         cube[1] = cube[1]*5.0 - 5.0

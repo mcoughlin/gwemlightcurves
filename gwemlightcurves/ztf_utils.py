@@ -160,6 +160,19 @@ def get_ztf_lc(filename, name, username, password,
                 fluxs.append(flux)
                 fluxerrs.append(fluxerr)
                 passband.append(filt) 
+
+        t0 = np.max(mjds)
+        dts = np.arange(0,14,0.5)
+        for filt in passbands:
+            for dt in dts:
+                flux = 1.0
+                fluxerr = 1.0
+                mjds.append(t0+dt)
+                mag.append(zeropoint)
+                magerr.append(1.0)
+                fluxs.append(flux)
+                fluxerrs.append(fluxerr)
+                passband.append(filt)
             
         idx = np.argsort(mjds)
         mjds = np.array(mjds)[idx]
