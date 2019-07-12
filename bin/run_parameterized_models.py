@@ -229,11 +229,12 @@ for key, val in samples.iteritems():
     t.add_column(Column(data=[val],name=key))
 samples = t
 
-model_table = KNTable.model(opts.model, samples, **kwargs)
-if opts.doAB:
-    t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0] 
-elif opts.doSpec:
-    t, lambdas, spec = model_table["t"][0], model_table["lambda"][0], model_table["spec"][0]
+if not opts.model in ["SN", "Afterglow"]:
+    model_table = KNTable.model(opts.model, samples, **kwargs)
+    if opts.doAB:
+        t, lbol, mag = model_table["t"][0], model_table["lbol"][0], model_table["mag"][0] 
+    elif opts.doSpec:
+        t, lambdas, spec = model_table["t"][0], model_table["lambda"][0], model_table["spec"][0]
 
 if opts.model == "KaKy2016":
     if opts.doEjecta:
@@ -300,7 +301,7 @@ elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     t0 = 0.0
     t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,opts.redshift,t0,opts.x0,opts.x1,opts.c)
-    name = "z%.0fx0%.0fx1%.0fc%.0f"%(opts.redshift*100,opts.x0*10000,opts.x1*10000,opts.c*10000)
+    name = "z%.0fx0%.0fx1%.0fc%.0f"%(opts.redshift*100.0,opts.x0*10000.0,opts.x1*10000.0,opts.c*10000.0)
 
 elif opts.model == "Afterglow":
     tini = 0.0
@@ -405,12 +406,13 @@ if opts.doAB:
         magave2 = mag_d_comparison[filt]
 
         ii = np.where(~np.isnan(magave1))[0]
-        f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')
-        maginterp1 = f(tt)
-        plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='1 Component')
-        plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
-        plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
-        plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
+        if len(ii) > 1:
+            f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')
+            maginterp1 = f(tt)
+            plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='1 Component')
+            plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
+            plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
+            plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
     
         ii = np.where(~np.isnan(magave2))[0]
         f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
