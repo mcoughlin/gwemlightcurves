@@ -223,11 +223,14 @@ def myprior_BaKa2016_ejecta(cube, ndim, nparams):
 
 def myprior_Ka2017_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
-        #cube[1] = cube[1]*5.0 - 5.0
-        cube[1] = cube[1]*4.0 - 5.0
+        cube[1] = cube[1]*5.0 - 5.0
+        #cube[1] = cube[1]*4.0 - 5.0
         cube[2] = cube[2]*0.3
         #cube[2] = cube[2]*1.0
-        cube[3] = cube[3]*8.0 - 9.0
+        if not Global.Xlan==0:
+            cube[3] = cube[3]*0.1 + Global.Xlan - 0.05  
+        else:
+            cube[3] = cube[3]*8.0 - 9.0
         #cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
         cube[4] = cube[4]*1.0
 
