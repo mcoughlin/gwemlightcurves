@@ -65,6 +65,9 @@ def parse_commandline():
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
 
+    parser.add_option("--doFixXlan",  action="store_true", default=False) 
+    parser.add_option("--Xlan",default=1e-9,type=float) 
+
     parser.add_option("--colormodel",default="a2.0")
 
     parser.add_option("--username",default="username")
@@ -144,6 +147,8 @@ else:
         plotDir = os.path.join(plotDir,'sphere')
     else:
         plotDir = os.path.join(plotDir,opts.name)
+if opts.doFixXlan:
+    plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.Xlan)))
 if opts.doFitSigma:
     plotDir = os.path.join(plotDir,"fit")
 else:
@@ -388,6 +393,9 @@ Global.T0Range = T0Range
 Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
+
+if opts.doFixXlan:
+    Global.Xlan = np.log10(opts.Xlan)
 
 if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc":
     ModelPath = '%s/svdmodels'%(opts.outputDir)

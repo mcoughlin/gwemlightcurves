@@ -116,6 +116,7 @@ def get_Ka2017_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
+        print('Generating model %d/%d' % (isample+1, len(table)))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),np.log10(table['vej'][isample]),np.log10(table['Xlan'][isample])],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Ka2017")
         elif doSpec:
