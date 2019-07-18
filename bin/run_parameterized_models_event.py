@@ -520,6 +520,7 @@ if opts.analysisType == "cbclist":
             fid.close()
 
 colors_names=cm.rainbow(np.linspace(0,1,len(models)))
+colors_names= [color1] * len(models)
 
 for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
@@ -536,10 +537,14 @@ for model in models:
         fid.close()
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
-plt.figure(figsize=(20,28))
+if len(models) < 4:
+    plt.figure(figsize=(20,20))
+else:
+    plt.figure(figsize=(20,28))
 
 cnt = 0
 for filt, color, magidx in zip(filts,colors,magidxs):
+    color = color1 
     cnt = cnt+1
     vals = "%d%d%d"%(len(filts),1,cnt)
     if cnt == 1:
@@ -575,17 +580,23 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(tt,magmax,'-',c=colors_names[ii],linewidth=4)
         plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],edgecolor=colors_names[ii],alpha=0.2,linewidth=3)
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-    plt.xlim([0.0, 14.0])
-    plt.ylim([-18.0,-10.0])
+    plt.xlim([0.0, 2.0])
+    if opts.event == "GW190510":
+        plt.ylim([-16.0,-8.0])
+    else:
+        plt.ylim([-18.0,-10.0])
     plt.gca().invert_yaxis()
     plt.grid()
     plt.xticks(fontsize=36)
     plt.yticks(fontsize=36)
 
     if cnt == 1:
-        ax1.set_yticks([-18,-16,-14,-12,-10])
+        if opts.event == "GW190510":
+            ax1.set_yticks([-16,-14,-12,-10,-8])
+        else:
+            ax1.set_yticks([-18,-16,-14,-12,-10])
         plt.setp(ax1.get_xticklabels(), visible=False)
-        l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
+        #l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
 
         #ax3 = ax1.twinx()   # mirror them
         #ax3.set_yticks([16,12,8,4,0])
