@@ -35,9 +35,9 @@ def parse_commandline():
     parser.add_option("--m1",default=1.35,type=float)
     parser.add_option("--m2",default=1.35,type=float)
     parser.add_option("-z","--redshift",default=0.001,type=float)
-    parser.add_option("--x0",default=1.0,type=float)
-    parser.add_option("--x1",default=1.0,type=float)
-    parser.add_option("-c","--c",default=1.0,type=float)
+    parser.add_option("--x0",default=1e-5,type=float)
+    parser.add_option("--x1",default=0.1,type=float)
+    parser.add_option("-c","--c",default=0.01,type=float)
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
     parser.add_option("--theta_0",default=0.1,type=float)
@@ -299,8 +299,9 @@ elif opts.model == "Bu2019inc":
         name = "Bu2019_%sM%03dP%d"%(opts.eos,opts.mej*1000,opts.phi)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
-    t0 = 0.0
+    #t0 = 0.0
     t, lbol, mag = SALT2.lightcurve(tini,tmax,dt,opts.redshift,t0,opts.x0,opts.x1,opts.c)
+    t = t - t[0]
     name = "z%.0fx0%.0fx1%.0fc%.0f"%(opts.redshift*100.0,opts.x0*10000.0,opts.x1*10000.0,opts.c*10000.0)
 
 elif opts.model == "Afterglow":
@@ -367,7 +368,8 @@ if opts.doAB:
     plt.ylabel('Absolute AB Magnitude')
     if opts.model in ["Ka2017inc","Ka2017x2inc"]:
         plt.xlim([0,7])
-    plt.ylim([-20,10])
+    if not opts.model in ["SN"]:
+        plt.ylim([-20,10])
     if opts.model in ["Ka2017inc","Ka2017x2inc"]:
         plt.title('Inclination: %.1f' % opts.iota) 
     plt.legend(loc="lower center",ncol=5)
