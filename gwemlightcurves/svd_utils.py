@@ -308,7 +308,10 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
 
     print("Calculating SVD model of inclination colors...")
 
-    fileDir = "../output/kasen_kilonova_2D/%s" % model
+    if model in ["DZ2","gamA2","gamB2"]:
+        fileDir = "../output/wollaeger/%s" % model
+    else:
+        fileDir = "../output/kasen_kilonova_2D/%s" % model
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -326,14 +329,21 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
 
     for key in magkeys:
         keySplit = key.split("_")
-        mags[key]["iota"] = float(keySplit[-1])
+        if model in ["DZ2","gamA2","gamB2"]:
+            incl = float(keySplit[1].split("=")[1])*360.0/(2*np.pi)
+            mags[key]["iota"] = incl
+        else:
+            mags[key]["iota"] = float(keySplit[-1])
 
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
         for jj,filt in enumerate(filters):
             ii = np.where(np.isfinite(mags[key][filt]))[0]
-            f = interp.interp1d(mags[key]["t"][ii], mags[key][filt][ii], fill_value='extrapolate')
-            maginterp = f(tt)
-            mags[key]["data"][:,jj] = maginterp
+            if len(ii) > 1:
+                f = interp.interp1d(mags[key]["t"][ii], mags[key][filt][ii], fill_value='extrapolate')
+                maginterp = f(tt)
+                mags[key]["data"][:,jj] = maginterp
+            else:
+                mags[key]["data"][:,jj] = 0.0
 
         mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
 
