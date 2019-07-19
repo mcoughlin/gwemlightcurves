@@ -124,10 +124,14 @@ mns = 1.35
 tini = 0.1
 dt = 0.5
 
-if opts.doAB:
-    tmax = 21.0
-elif opts.doSpec:
-    tmax = 10.0
+if opts.model == "SN":
+    tmax = 50.0
+else:
+    if opts.doAB:
+        tmax = 21.0
+    elif opts.doSpec:
+        tmax = 10.0
+
 
 lambdaini = 5000
 #lambdaini = 3500
