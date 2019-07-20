@@ -165,7 +165,7 @@ for ii in range(len(vej_unique)):
         ax.set_xscale('log')
 
 fig.text(0.5, 0.04, 'Ejecta Mass [solar mass]', ha='center')
-fig.text(0.04, 0.5, 'Ejecta Velocity', va='center', rotation='vertical')
+fig.text(0.04, 0.5, 'Absolute Magnitude', va='center', rotation='vertical')
 plt.show()
 plotName = os.path.join(plotDir,'fitall.pdf')
 plt.savefig(plotName)
