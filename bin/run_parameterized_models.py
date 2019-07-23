@@ -367,7 +367,6 @@ if opts.doAB:
     plotName = "%s/%s.pdf"%(plotDir,name)
     plt.figure(figsize=(10,12))
     for filt, color, magidx in zip(filts,colors,magidxs):
-        print(t,mag[magidx,:])
         plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
     plt.xlabel('Time [days]')
     plt.ylabel('Absolute AB Magnitude')

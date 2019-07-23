@@ -67,6 +67,8 @@ def parse_commandline():
 
     parser.add_option("--doFixXlan",  action="store_true", default=False) 
     parser.add_option("--Xlan",default=1e-9,type=float) 
+    parser.add_option("--doFixT",  action="store_true", default=False)
+    parser.add_option("--T",default=1e4,type=float)
 
     parser.add_option("--colormodel",default="a2.0")
 
@@ -149,6 +151,8 @@ else:
         plotDir = os.path.join(plotDir,opts.name)
 if opts.doFixXlan:
     plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.Xlan)))
+if opts.doFixT:
+    plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.T)))
 if opts.doFitSigma:
     plotDir = os.path.join(plotDir,"fit")
 else:
@@ -396,6 +400,9 @@ Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 
 if opts.doFixXlan:
     Global.Xlan = np.log10(opts.Xlan)
+
+if opts.doFixT:
+    Global.T = np.log10(opts.T)
 
 if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
@@ -645,16 +652,16 @@ for filt, color in zip(filters,colors):
     if len(t) == 0: continue
 
     idx = np.where(np.isfinite(sigma_y))[0]
-    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,label='%s-band'%filt)
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color, markersize=16, label='%s-band'%filt)
 
     idx = np.where(~np.isfinite(sigma_y))[0]
-    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=10)
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=16)
 
     magave = lightcurve_utils.get_mag(mag,filt)
     ii = np.where(~np.isnan(magave))[0]
     f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
     maginterp = f(tt)
-    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=2)
+    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=3)
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
@@ -687,10 +694,11 @@ for filt, color in zip(filters,colors):
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
     elif not cnt == len(filters):
         plt.setp(ax2.get_xticklabels(), visible=False)
-    plt.xticks(fontsize=30)
-    plt.yticks(fontsize=30)
+    plt.xticks(fontsize=36)
+    plt.yticks(fontsize=36)
 
 ax1.set_zorder(1)
 plt.xlabel('Time [days]',fontsize=48)
+plt.tight_layout()
 plt.savefig(plotName)
 plt.close()
