@@ -65,8 +65,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
         elif keySplit[0] == "nsns":
-            mej0 = float(keySplit[2].replace("mej",""))
-            phi0 = float(keySplit[3].replace("phi",""))
+            mej0 = float(keySplit[3].replace("mej",""))
+            phi0 = float(keySplit[2].replace("opang",""))
             T0 = float(keySplit[4].replace("T",""))
             if len(keySplit) == 6:
                 theta = float(keySplit[5])
@@ -209,8 +209,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
         elif keySplit[0] == "nsns":
-            mej0 = float(keySplit[2].replace("mej",""))
-            phi0 = float(keySplit[3].replace("phi",""))
+            mej0 = float(keySplit[3].replace("mej",""))
+            phi0 = float(keySplit[2].replace("opang",""))
             T0 = float(keySplit[4].replace("T",""))
             if len(keySplit) == 6:
                 theta = float(keySplit[5])
