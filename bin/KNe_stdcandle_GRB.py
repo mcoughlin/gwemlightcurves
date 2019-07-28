@@ -531,8 +531,8 @@ plt.close()
 
 H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50), np.percentile(H0_EM,84)
 
-print('Distance: %.1f +%.1f -%.1f' % (dist_50, dist_50-dist_16, dist_84-dist_50))
-print('H0 EM: %.1f +%.1f -%.1f' % (H0_EM_50, H0_EM_50-H0_EM_16, H0_EM_84-H0_EM_50))
+print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
+print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
 
 pcklFile = os.path.join(plotDir,"H0.pkl")
 f = open(pcklFile, 'wb')

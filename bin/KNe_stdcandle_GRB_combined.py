@@ -200,3 +200,6 @@ plotName = os.path.join(baseplotDir,'H0.pdf')
 plt.savefig(plotName)
 plt.close()
 
+H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50), np.percentile(H0_EM,84)
+
+print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))

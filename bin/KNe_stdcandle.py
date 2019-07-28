@@ -524,7 +524,7 @@ for ii, key in enumerate(samples_all.keys()):
         linestyle='-.'
     plt.step(bins_1, hist_1, color = color_names[ii], linestyle=linestyle,label=label)
 
-gwdist = samples_all['low']['luminosity_distance_Mpc']
+gwdist = samples_all['high']['luminosity_distance_Mpc']
 kdedir_gwdist = greedy_kde_areas_1d(gwdist)
 
 plt.legend()
@@ -663,10 +663,10 @@ H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50),
 H0_GW_16, H0_GW_50, H0_GW_84 = np.percentile(H0_GW,16), np.percentile(H0_GW,50), np.percentile(H0_GW,84)
 H0_GWEM_16, H0_GWEM_50, H0_GWEM_84 = np.percentile(H0_GWEM,16), np.percentile(H0_GWEM,50), np.percentile(H0_GWEM,84)
 
-print('Distance: %.1f +%.1f -%.1f' % (dist_50, dist_50-dist_16, dist_84-dist_50))
-print('H0 EM: %.1f +%.1f -%.1f' % (H0_EM_50, H0_EM_50-H0_EM_16, H0_EM_84-H0_EM_50))
-print('H0 GW: %.1f +%.1f -%.1f' % (H0_GW_50, H0_GW_50-H0_GW_16, H0_GW_84-H0_GW_50))
-print('H0 GW-EM: %.1f +%.1f -%.1f' % (H0_GWEM_50, H0_GWEM_50-H0_GWEM_16, H0_GWEM_84-H0_GWEM_50))
+print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
+print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
+print('H0 GW: %.0f +%.0f -%.0f' % (H0_GW_50, H0_GW_84-H0_GW_50, H0_GW_50-H0_GW_16))
+print('H0 GW-EM: %.0f +%.0f -%.0f' % (H0_GWEM_50, H0_GWEM_84-H0_GWEM_50, H0_GWEM_50-H0_GWEM_16))
 
 pcklFile = os.path.join(plotDir,"H0.pkl")
 f = open(pcklFile, 'wb')

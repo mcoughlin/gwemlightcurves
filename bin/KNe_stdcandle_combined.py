@@ -402,7 +402,7 @@ ax1.set_ylabel('Probability')
 ax1.grid(True)
 ax1.legend()
 ax1.set_xlim([20,150])
-ax1.set_ylim([0,0.04])
+ax1.set_ylim([0,0.05])
 
 ax2.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW', linewidth=3, zorder=10)
 ax2.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (inferred)', linewidth=3, zorder=10)
@@ -427,7 +427,7 @@ ax2.errorbar(superluminal_mu, 0.008, xerr=superluminal_std, fmt='o', color='c',l
 
 plt.setp( ax2.get_yticklabels(), visible=False)
 ax2.set_xlim([55,85])
-ax2.set_ylim([0,0.04])
+ax2.set_ylim([0,0.05])
 
 plt.show()
 plotName = os.path.join(baseplotDir,'H0.pdf')
