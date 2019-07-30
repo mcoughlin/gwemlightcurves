@@ -536,5 +536,5 @@ print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_1
 
 pcklFile = os.path.join(plotDir,"H0.pkl")
 f = open(pcklFile, 'wb')
-pickle.dump((dist,H0_EM), f)
+pickle.dump((dist,H0_EM,distance), f)
 f.close()

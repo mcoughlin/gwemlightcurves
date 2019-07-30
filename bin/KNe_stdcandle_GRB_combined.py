@@ -107,13 +107,20 @@ baseplotDir = os.path.join(opts.plotDir,'standard_candles','all')
 if not os.path.isdir(baseplotDir):
     os.makedirs(baseplotDir)
 
+color1 = 'cornflowerblue'
+color2 = 'coral'
+color3 = 'palegreen'
+color4 = 'pink'
+
+color_names = [color1, color2, color3, color4]
+
 pickle_samples = opts.pickle_samples.split(",")
 data_struct = {}
 for pickle_sample in pickle_samples:
     pickle_sample_split = pickle_sample.split("/")
     f = open(pickle_sample, 'r')
     if pickle_sample_split[-4] == "GRB": 
-        (dist,H0_EM) = pickle.load(f)
+        (dist,H0_EM,distance) = pickle.load(f)
         name = pickle_sample_split[-3]
         data_struct[name] = {}
         data_struct[name]["dist"] = dist
@@ -121,11 +128,39 @@ for pickle_sample in pickle_samples:
     else:
         (dist,samples_all,H0_EM,H0_GW,H0_GWEM,Mag,M,sigma_best) = pickle.load(f)
         name = "GW170817"
+        distance = 40.0
         data_struct[name] = {}
         data_struct[name]["dist"] = dist
         data_struct[name]["H0"] = H0_EM
+    data_struct[name]["distance"] = (dist-distance)/np.median(dist)
+    data_struct[name]["kdedir_dist"] = greedy_kde_areas_1d(data_struct[name]["distance"])
     data_struct[name]["kdedir_H0"] = greedy_kde_areas_1d(H0_EM)
     f.close()
+
+    print('%s: %.2f +%.2f' % (name, np.median(data_struct[name]["distance"]),np.std(data_struct[name]["distance"])))
+
+    H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50), np.percentile(H0_EM,84)
+    print('%s: %.0f +%.0f -%.0f' % (name,H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
+
+bins = np.arange(-1.5,1.5,0.1)
+
+fig = plt.figure(figsize=(9,6))
+ax = plt.subplot(111)
+for ii, name in enumerate(data_struct.keys()):
+    color_name = color_names[ii]
+
+    kdedir = data_struct[name]["kdedir_dist"]
+    plt.plot(bins, [kde_eval_single(kdedir,[d])[0] for d in bins], color = color_name, linestyle='-.',label=name, linewidth=3, zorder=10)
+
+plt.legend(loc=2)
+plt.xlabel('Relative Error in Distance')
+plt.ylabel('Probability')
+#plt.ylim([0,0.10])
+plt.grid(True)
+plt.show()
+plotName = os.path.join(baseplotDir,'dist.pdf')
+plt.savefig(plotName)
+plt.close()
 
 n_live_points = 1000
 evidence_tolerance = 0.5
@@ -146,27 +181,19 @@ H0_EM, loglikelihood = data[:,0], data[:,1]
 idx = np.argmax(loglikelihood)
 H0_best = data[idx,0:-1]
 
-color1 = 'cornflowerblue'
-color2 = 'coral'
-color3 = 'palegreen'
-color4 = 'pink'
-
-color_names = [color1, color2, color3, color4]
-
-bin_edges = np.arange(5,150,5)
-bins = (bin_edges[:-1] + bin_edges[1:])/2.0
-
-bins_small = np.arange(5,150,1)
+bins = np.arange(5,150,1)
 
 fig = plt.figure(figsize=(9,6))
 ax = plt.subplot(111)
 for ii, name in enumerate(data_struct.keys()):
     color_name = color_names[ii]
-    hist_1, bin_edges_1 = np.histogram(data_struct[name]["H0"], bin_edges, density=True)
-    plt.step(bins, hist_1, color = color_name, linestyle='-.',label=name, linewidth=3, zorder=10)
 
-hist_1, bin_edges_1 = np.histogram(H0_EM, bin_edges, density=True)
-plt.step(bins, hist_1, color = 'k', linestyle='-.',label="Combined", linewidth=3, zorder=10)
+    kdedir = data_struct[name]["kdedir_H0"]
+    plt.plot(bins, [kde_eval_single(kdedir,[d])[0] for d in bins], color = color_name, linestyle='-.',label=name, linewidth=3, zorder=10)
+
+hist_1, bin_edges_1 = np.histogram(H0_EM, bins, density=True)
+kdedir = greedy_kde_areas_1d(H0_EM)
+plt.plot(bins, [kde_eval_single(kdedir,[d])[0] for d in bins], color = 'k', linestyle='-',label="Combined", linewidth=3, zorder=10)
 
 boxes = []
 planck_mu, planck_std = 67.74, 0.46 
