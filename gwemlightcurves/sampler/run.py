@@ -514,6 +514,8 @@ def multinest(opts,plotDir):
             t0, mej, vej, Xlan, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], 10**data[:,3], data[:,4], data[:,5]
             idx = np.argmax(loglikelihood)
             t0_best, mej_best, vej_best, Xlan_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4]
+            zp_mu, zp_std = 0.0, Global.ZPRange
+            zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
             tmag, lbol, mag = Ka2017_model_ejecta(mej_best,vej_best,Xlan_best)
     elif opts.model == "Ka2017inc":
         if opts.doEjecta:

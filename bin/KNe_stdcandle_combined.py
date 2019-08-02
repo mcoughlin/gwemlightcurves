@@ -259,15 +259,13 @@ color3 = 'darkgreen'
 
 M_trials = np.linspace(-20, 0, 100)
 
-print(len(Mag_1),  len(M_1))
-
 fig = plt.figure(figsize=(8, 6))
 gs = gridspec.GridSpec(4, 1)
 ax1 = fig.add_subplot(gs[0:3, 0])
 ax2 = fig.add_subplot(gs[3, 0], sharex = ax1)
 plt.axes(ax1)
 plt.plot(M_trials, M_trials, '--', color=color3, zorder=10, linewidth=3, alpha=0.5)
-plt.errorbar(Mag_1, M_1, sigma_best_1*np.ones(M_1.shape), fmt='.', color=color1, label='Inferred')
+plt.errorbar(Mag_1, M_1, sigma_best_1*np.ones(M_1.shape), fmt='.', color=color1, label='Inferred', zorder=5)
 plt.errorbar(Mag_2, M_2, sigma_best_2*np.ones(M_2.shape), fmt='o', color=color2, label='Measured')
 plt.ylabel('Magnitude [Fit]')
 plt.xlim([-17,-9])
@@ -276,7 +274,7 @@ plt.legend(loc=2)
 plt.setp(ax1.get_xticklabels(), visible=False)
 plt.gca().invert_yaxis()
 plt.axes(ax2)
-plt.errorbar(Mag_1,M_1-Mag_1, sigma_best_1*np.ones(M_1.shape), fmt='.', color=color1)
+plt.errorbar(Mag_1,M_1-Mag_1, sigma_best_1*np.ones(M_1.shape), fmt='.', color=color1, zorder=5)
 plt.errorbar(Mag_2,M_2-Mag_2, sigma_best_2*np.ones(M_2.shape), fmt='o', color=color2)
 plt.plot(M_trials,0.0*np.ones(M_trials.shape), '--', color=color3, zorder=10, linewidth=3, alpha=0.5)
 plt.gca().invert_xaxis()
@@ -290,7 +288,7 @@ plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
 bins = np.arange(0,120,0.5)
-bin_edges = np.arange(5,115,2)
+bin_edges = np.arange(-5,115,2)
 
 hist_1, bin_edges_1 = np.histogram(dist_1, bin_edges, density=True)
 hist_2, bin_edges_2 = np.histogram(dist_2, bin_edges, density=True)
@@ -303,6 +301,7 @@ kdedir_dist_2 = greedy_kde_areas_1d(dist_2)
 xticks_1 = np.array([10,30,50,70,90,110])
 
 fig = plt.figure(figsize=(9,6))
+ax = plt.gca()
 
 #plt.plot([dist_10,dist_10],[0,1],'--',color=color1)
 #plt.plot([dist_50,dist_50],[0,1],'--',color=color1)
@@ -313,7 +312,7 @@ plt.plot(bins, [kde_eval_single(kdedir_dist_2,[d])[0] for d in bins], color = co
 #plt.step(bins_1, hist_1, color = color1, linestyle='-',label='EM (inferred)', linewidth=3)
 #plt.step(bins_2, hist_2, color = color2, linestyle='-',label='EM (measured)', linewidth=3)
 plt.xticks(xticks_1)
-plt.xlim([10,110])
+plt.xlim([0,100])
 
 color_names = [color2, color3]
 for ii, key in enumerate(samples_all.keys()):
@@ -333,6 +332,21 @@ for ii, key in enumerate(samples_all.keys()):
 gwdist = samples_all['low']['luminosity_distance_Mpc']
 kdedir_gwdist = greedy_kde_areas_1d(gwdist)
 
+fp_mu, fp_std = 44.0, 7.5
+sbf_mu, sbf_std = 40.7, np.sqrt(1.4**2 + 1.9**2)
+rect1 = Rectangle((fp_mu - fp_std, 0), 2*fp_std, 1, alpha=0.5, color='c')
+rect2 = Rectangle((fp_mu - 2*fp_std, 0), 4*fp_std, 1, alpha=0.2, color='c')
+rect3 = Rectangle((sbf_mu - sbf_std, 0), 2*sbf_std, 1, alpha=0.5, color='r')
+rect4 = Rectangle((sbf_mu - 2*sbf_std, 0), 4*sbf_std, 1, alpha=0.2, color='r')
+
+ax.plot([sbf_mu,sbf_mu],[0,1],alpha=0.3, color='r',label='SBF')
+ax.plot([fp_mu,fp_mu],[0,1],alpha=0.3, color='c',label='FP')
+
+ax.add_patch(rect1)
+ax.add_patch(rect2)
+ax.add_patch(rect3)
+ax.add_patch(rect4)
+
 plt.legend()
 plt.xlabel('Distance [Mpc]')
 plt.ylabel('Probability')
@@ -343,7 +357,7 @@ plotName = os.path.join(baseplotDir,'dist.pdf')
 plt.savefig(plotName)
 plt.close()
 
-bin_edges = np.arange(5,150,5)
+bin_edges = np.arange(5,180,5)
 hist_1, bin_edges_1 = np.histogram(H0_EM_1, bin_edges, density=True)
 hist_2, bin_edges_2 = np.histogram(H0_GW, bin_edges, density=True)
 hist_3, bin_edges_3 = np.histogram(H0_GWEM_1, bin_edges, density=True)
@@ -374,7 +388,7 @@ rect4b = Rectangle((shoes_mu - 2*shoes_std, 0), 4*shoes_std, 1, alpha=0.5, color
 rect5b = Rectangle((superluminal_mu - superluminal_std, 0), 2*superluminal_std, 0.05, alpha=0.3, color='c')
 rect6b = Rectangle((superluminal_mu - 2*superluminal_std, 0), 4*superluminal_std, 0.05, alpha=0.1, color='c')
 
-bins = np.arange(5,150,1)
+bins = np.arange(5,170,1)
 
 fig, ax1 = plt.subplots(figsize=(9,6))
 # These are in unitless percentages of the figure size. (0,0 is bottom left)
@@ -385,7 +399,7 @@ ax1.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2
 ax1.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (inferred)', linewidth=3, zorder=10)
 ax1.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (measured)', linewidth=3, zorder=10)
 ax1.plot(bins, [kde_eval_single(kdedir_gwem_1,[d])[0] for d in bins], color = color3, linestyle='-',label='GW-EM (inferred)', linewidth=3, zorder=10)
-ax1.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
+#ax1.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
 
 ax1.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
 ax1.plot([shoes_mu,shoes_mu],[0,1],alpha=0.3, color='r',label='SHoES')
@@ -402,33 +416,37 @@ ax1.set_xlabel('H0 [km $\mathrm{s}^{-1}$ $\mathrm{Mpc}^{-1}$]')
 ax1.set_ylabel('Probability')
 ax1.grid(True)
 ax1.legend()
-ax1.set_xlim([20,150])
-ax1.set_ylim([0,0.05])
+ax1.set_xlim([10,170])
+ax1.set_ylim([0,0.04])
 
 ax2.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW', linewidth=3, zorder=10)
 ax2.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (inferred)', linewidth=3, zorder=10)
 ax2.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (measured)', linewidth=3, zorder=10)
 ax2.plot(bins, [kde_eval_single(kdedir_gwem_1,[d])[0] for d in bins], color = color3, linestyle='-',label='GW-EM (inferred)', linewidth=3, zorder=10)
-ax2.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
-
-#ax2.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
-#ax2.plot([shoes_mu,shoes_mu],[0,1],alpha=0.3, color='r',label='SHoES')
-#ax2.plot([superluminal_mu,superluminal_mu],[0,1],alpha=0.3, color='c',label='Superluminal')
-
-ax2.errorbar(planck_mu, 0.002, xerr=planck_std, fmt='o', color='g',label='Planck',zorder=10)
-ax2.errorbar(shoes_mu, 0.005, xerr=shoes_std, fmt='o', color='r',label='SHoES',zorder=10)
-ax2.errorbar(superluminal_mu, 0.008, xerr=superluminal_std, fmt='o', color='c',label='Superluminal')
-
-#ax2.add_patch(rect1b)
-#ax2.add_patch(rect2b)
-#ax2.add_patch(rect3b)
-#ax2.add_patch(rect4b)
-#ax2.add_patch(rect5b)
-#ax2.add_patch(rect6b)
-
+#ax2.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
+#
+##ax2.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
+##ax2.plot([shoes_mu,shoes_mu],[0,1],alpha=0.3, color='r',label='SHoES')
+##ax2.plot([superluminal_mu,superluminal_mu],[0,1],alpha=0.3, color='c',label='Superluminal')
+#
+ax2.errorbar(planck_mu, 0.042, xerr=planck_std, fmt='o', color='g',label='Planck',zorder=10)
+ax2.errorbar(shoes_mu, 0.045, xerr=shoes_std, fmt='o', color='r',label='SHoES',zorder=10)
+ax2.errorbar(superluminal_mu, 0.048, xerr=superluminal_std, fmt='o', color='c',label='Superluminal')
+#
+##ax2.add_patch(rect1b)
+##ax2.add_patch(rect2b)
+##ax2.add_patch(rect3b)
+##ax2.add_patch(rect4b)
+##ax2.add_patch(rect5b)
+##ax2.add_patch(rect6b)
+#
 plt.setp( ax2.get_yticklabels(), visible=False)
-ax2.set_xlim([55,85])
-ax2.set_ylim([0,0.05])
+
+ax2.set_xlim([55,95])
+ax2.xaxis.grid(True)
+ax2.set_ylim([0,0.055])
+xticks_1 = np.array([65,75,85])
+ax2.set_xticks(xticks_1)
 
 plt.show()
 plotName = os.path.join(baseplotDir,'H0.pdf')

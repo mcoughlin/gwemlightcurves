@@ -36,6 +36,9 @@ import os
 
 from gwemlightcurves.KNModels import KNTable
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
+
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -47,6 +50,8 @@ def parse_commandline():
     parser.add_option("-d","--dataDir",default="../data")
 
     parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,combined")  
+
+    parser.add_option("-f","--fit_type",default="linear", help="linear,gpr")
  
     parser.add_option("--nsamples",default=-1,type=int)
 
@@ -141,7 +146,7 @@ def myprior_measured(cube, ndim, nparams):
         cube[0] = cube[0]*30.0 - 30.0
         cube[1] = cube[1]*10.0 - 5.0
         cube[2] = cube[2]*20.0 - 10.0
-        cube[3] = cube[3]*20.0 - 10.0
+        cube[3] = cube[3]*100.0 - 50.0
         cube[4] = cube[4]*10.0
 
 def myloglike_measured(cube, ndim, nparams):
@@ -151,7 +156,7 @@ def myloglike_measured(cube, ndim, nparams):
         gamma = cube[3]
         sigma = cube[4]
 
-        M = kappa + alpha*(dmdt) + beta*(color) + gamma*Magi
+        M = kappa + alpha*(dmdt) + beta*(color) + gamma*dmdti
         x = Mag - M
         prob = ss.norm.logpdf(x, loc=0.0, scale=sigma)
         prob = np.sum(prob)
@@ -243,85 +248,117 @@ ModelPath = '%s/svdmodels'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 
-filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
-data = np.loadtxt(filename)
-
-mej, vej, Xlan, color, Mag, Magi, dmdt = data.T
-
-mej, Xlan = np.log10(mej), np.log10(Xlan)
-dmdt = np.log10(dmdt)
-
-#idx = np.where(Xlan == -1)[0]
-#mej, vej, Xlan, color, Mag, Magi = mej[idx], vej[idx], Xlan[idx], color[idx], Mag[idx], Magi[idx]
-#dmdt = dmdt[idx]
-
-posterior_samples = opts.posterior_samples.split(",")
-samples_all = {}
-for posterior_sample in posterior_samples:
-    key = posterior_sample.replace(".dat","").split("/")[-1].split("_")[-2] 
-    samples_all[key] = KNTable.read_samples(posterior_sample)
-
 n_live_points = 1000
 evidence_tolerance = 0.5
 max_iter = 0
 title_fontsize = 26
 label_fontsize = 30
 
-if opts.analysis_type == "combined":
-    parameters = ["K","alpha","beta","gamma","delta","zeta","sigma"]
-    labels = [r'K', r'$\alpha$', r'$\beta$', r'$\gamma$', r"$\delta$",r"$\zeta$",r'$\sigma$']
-    n_params = len(parameters)
-    
-    pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-    
-    multifile = "%s/2-post_equal_weights.dat"%plotDir
-    data = np.loadtxt(multifile)
-    
-    K, alpha, beta, gamma, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
-    idx = np.argmax(loglikelihood)
-    K_best, alpha_best, beta_best, gamma_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
-    
-    M = K_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*(mej) + delta_best*(vej) + zeta_best*Xlan
-elif opts.analysis_type == "measured":
-    parameters = ["kappa","alpha","beta","gamma","sigma"]
-    labels = [r'$\kappa$', r'$\alpha$', r'$\beta$',r'$\gamma$',r'$\sigma$']
-    n_params = len(parameters)
- 
-    pymultinest.run(myloglike_measured, myprior_measured, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
- 
-    multifile = "%s/2-post_equal_weights.dat"%plotDir
-    data = np.loadtxt(multifile)
- 
-    kappa, alpha, beta, gamma, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
-    idx = np.argmax(loglikelihood)
-    kappa_best, alpha_best, beta_best, gamma_best, sigma_best = data[idx,0:-1]
- 
-    M = kappa_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*Magi
-elif opts.analysis_type == "inferred":
-    parameters = ["tau","nu","delta","zeta","sigma"]
-    labels = [r'$\tau$', r'$\nu$', r"$\delta$",r"$\zeta$",r'$\sigma$']
-    n_params = len(parameters)
- 
-    pymultinest.run(myloglike_inferred, myprior_inferred, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
- 
-    multifile = "%s/2-post_equal_weights.dat"%plotDir
-    data = np.loadtxt(multifile)
- 
-    tau, nu, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
-    idx = np.argmax(loglikelihood)
-    tau_best, nu_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
- 
-    M = tau_best + nu_best*(mej) + delta_best*(vej) + zeta_best*Xlan
+filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
+data = np.loadtxt(filename)
 
-plotName = "%s/corner.pdf"%(plotDir)
-figure = corner.corner(data[:,:-1], labels=labels,
-                   quantiles=[0.16, 0.5, 0.84],
-                   show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                   label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
-                   smooth=3)
-figure.set_size_inches(18.0,18.0)
-plt.savefig(plotName)
-plt.close()
+mej, vej, Xlan, color, Mag, dmdti, dmdt = data.T
+
+mej, Xlan = np.log10(mej), np.log10(Xlan)
+#dmdt = 1.0/(dmdt**2)
+dmdt = np.log10(dmdt)
+dmdti = np.log10(dmdti)
+#Magi[Magi==0.0] = 0.01
+#Magi = np.log10(Magi)
+
+#color = Xlan
+#Magi = vej
+#dmdt = vej/dmdt
+
+posterior_samples = opts.posterior_samples.split(",")
+samples_all = {}
+for posterior_sample in posterior_samples:
+    key = posterior_sample.replace(".dat","").split("/")[-1].split("_")[-2]
+    samples_all[key] = KNTable.read_samples(posterior_sample)
+
+if opts.fit_type == "gpr":
+    #idx = np.arange(len(Mag))
+    #np.random.shuffle(idx)
+    #idx1, idx2 = np.array_split(idx,2)
+
+    if opts.analysis_type == "measured":
+        param_array = np.vstack((color,dmdt,dmdti)).T
+    elif opts.analysis_type == "inferred":
+        param_array = np.vstack((mej,vej,Xlan)).T
+
+    param_array_postprocess = np.array(param_array)
+    param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
+    for i in range(len(param_mins)):
+        param_array_postprocess[:,i] = (param_array_postprocess[:,i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+    nsvds, nparams = param_array_postprocess.shape
+    kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+    gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0,alpha=1.0)
+    gp.fit(param_array_postprocess, Mag)
+
+    M, sigma2_pred = gp.predict(np.atleast_2d(param_array_postprocess), return_std=True)
+    sigma_best = np.median(np.sqrt(sigma2_pred))
+    sigma = sigma_best*np.ones(M.shape)
+
+elif opts.fit_type == "linear":
+
+    if opts.analysis_type == "combined":
+        parameters = ["K","alpha","beta","gamma","delta","zeta","sigma"]
+        labels = [r'K', r'$\alpha$', r'$\beta$', r'$\gamma$', r"$\delta$",r"$\zeta$",r'$\sigma$']
+        n_params = len(parameters)
+        
+        pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+        
+        multifile = "%s/2-post_equal_weights.dat"%plotDir
+        data = np.loadtxt(multifile)
+        
+        K, alpha, beta, gamma, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
+        idx = np.argmax(loglikelihood)
+        K_best, alpha_best, beta_best, gamma_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
+        
+        M = K_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*(mej) + delta_best*(vej) + zeta_best*Xlan
+    elif opts.analysis_type == "measured":
+        parameters = ["kappa","alpha","beta","gamma","sigma"]
+        labels = [r'$\kappa$', r'$\alpha$', r'$\beta$',r'$\gamma$',r'$\sigma$']
+        n_params = len(parameters)
+     
+        pymultinest.run(myloglike_measured, myprior_measured, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+     
+        multifile = "%s/2-post_equal_weights.dat"%plotDir
+        data = np.loadtxt(multifile)
+     
+        kappa, alpha, beta, gamma, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+        idx = np.argmax(loglikelihood)
+        kappa_best, alpha_best, beta_best, gamma_best, sigma_best = data[idx,0:-1]
+     
+        M = kappa_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*dmdti
+    elif opts.analysis_type == "inferred":
+        parameters = ["tau","nu","delta","zeta","sigma"]
+        labels = [r'$\tau$', r'$\nu$', r"$\delta$",r"$\zeta$",r'$\sigma$']
+        n_params = len(parameters)
+     
+        pymultinest.run(myloglike_inferred, myprior_inferred, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+     
+        multifile = "%s/2-post_equal_weights.dat"%plotDir
+        data = np.loadtxt(multifile)
+     
+        tau, nu, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+        idx = np.argmax(loglikelihood)
+        tau_best, nu_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
+     
+        M = tau_best + nu_best*(mej) + delta_best*(vej) + zeta_best*Xlan
+    
+    sigma = sigma_best*np.ones(M.shape)
+
+    plotName = "%s/corner.pdf"%(plotDir)
+    figure = corner.corner(data[:,:-1], labels=labels,
+                       quantiles=[0.16, 0.5, 0.84],
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
+                       smooth=3)
+    figure.set_size_inches(18.0,18.0)
+    plt.savefig(plotName)
+    plt.close()
 
 vej_unique, Xlan_unique = np.unique(vej), np.unique(Xlan)
 vej_unique = vej_unique[::-1]
@@ -333,7 +370,7 @@ for ii in range(len(vej_unique)):
         ax = fig.add_subplot(gs[ii, jj])
         plt.axes(ax)
         idx = np.where((vej == vej_unique[ii]) & (Xlan == Xlan_unique[jj]))[0]
-        plt.errorbar(10**mej[idx], M[idx], sigma_best*np.ones(M[idx].shape), fmt='k.')
+        plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
         plt.plot(10**mej[idx], Mag[idx], 'bo')
         if not ii == len(vej_unique) - 1:
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -345,7 +382,8 @@ for ii in range(len(vej_unique)):
             plt.ylabel('$v_{\mathrm{ej}} = %.2f\,c$' % vej_unique[ii], fontsize=24)
 
         plt.xlim([0.001,0.1])
-        plt.ylim([-17,-9])
+        #plt.ylim([-17,-9])
+        #plt.ylim([-10,0])
         plt.gca().invert_yaxis()
         ax.set_xscale('log')
 
@@ -406,49 +444,52 @@ else:
     pickle.dump((model_table), f)
     f.close()
 
-N = 10000
+N = 1000
 idx = np.random.randint(0, high=len(samples), size=N)
 
-if opts.analysis_type == "combined":
-    K_mean, K_std = np.mean(K), np.std(K)
-    alpha_mean, alpha_std = np.mean(alpha), np.std(alpha)
-    beta_mean, beta_std = np.mean(beta), np.std(beta)
-    gamma_mean, gamma_std = np.mean(gamma), np.std(gamma)
-    delta_mean, delta_std = np.mean(delta), np.std(delta)
-    zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
-    sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
+if opts.fit_type == "linear":
+    if opts.analysis_type == "combined":
+        K_mean, K_std = np.mean(K), np.std(K)
+        alpha_mean, alpha_std = np.mean(alpha), np.std(alpha)
+        beta_mean, beta_std = np.mean(beta), np.std(beta)
+        gamma_mean, gamma_std = np.mean(gamma), np.std(gamma)
+        delta_mean, delta_std = np.mean(delta), np.std(delta)
+        zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
+        sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
+        
+        K = np.random.normal(loc=K_mean, scale=K_std, size=N)
+        alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
+        beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
+        gamma = np.random.normal(loc=gamma_mean, scale=gamma_std, size=N)
+        delta = np.random.normal(loc=delta_mean, scale=delta_std, size=N)
+        zeta = np.random.normal(loc=zeta_mean, scale=zeta_std, size=N)
+        sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
+    elif opts.analysis_type == "inferred":
+        tau_mean, tau_std = np.mean(tau), np.std(tau)
+        nu_mean, nu_std = np.mean(nu), np.std(nu)
+        delta_mean, delta_std = np.mean(delta), np.std(delta)
+        zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
+        sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
+     
+        tau = np.random.normal(loc=tau_mean, scale=tau_std, size=N)
+        nu = np.random.normal(loc=nu_mean, scale=nu_std, size=N)
+        delta = np.random.normal(loc=delta_mean, scale=delta_std, size=N)
+        zeta = np.random.normal(loc=zeta_mean, scale=zeta_std, size=N)
+        sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
+    elif opts.analysis_type == "measured":
+        kappa_mean, kappa_std = np.mean(kappa), np.std(kappa)
+        alpha_mean, alpha_std = np.mean(alpha), np.std(alpha)
+        beta_mean, beta_std = np.mean(beta), np.std(beta)
+        gamma_mean, gamma_std = np.mean(gamma), np.std(gamma)
+        sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
     
-    K = np.random.normal(loc=K_mean, scale=K_std, size=N)
-    alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
-    beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
-    gamma = np.random.normal(loc=gamma_mean, scale=gamma_std, size=N)
-    delta = np.random.normal(loc=delta_mean, scale=delta_std, size=N)
-    zeta = np.random.normal(loc=zeta_mean, scale=zeta_std, size=N)
-    sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
-elif opts.analysis_type == "inferred":
-    tau_mean, tau_std = np.mean(tau), np.std(tau)
-    nu_mean, nu_std = np.mean(nu), np.std(nu)
-    delta_mean, delta_std = np.mean(delta), np.std(delta)
-    zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
-    sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
- 
-    tau = np.random.normal(loc=tau_mean, scale=tau_std, size=N)
-    nu = np.random.normal(loc=nu_mean, scale=nu_std, size=N)
-    delta = np.random.normal(loc=delta_mean, scale=delta_std, size=N)
-    zeta = np.random.normal(loc=zeta_mean, scale=zeta_std, size=N)
-    sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
-elif opts.analysis_type == "measured":
-    kappa_mean, kappa_std = np.mean(kappa), np.std(kappa)
-    alpha_mean, alpha_std = np.mean(alpha), np.std(alpha)
-    beta_mean, beta_std = np.mean(beta), np.std(beta)
-    gamma_mean, gamma_std = np.mean(gamma), np.std(gamma)
-    sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
-
-    kappa = np.random.normal(loc=kappa_mean, scale=kappa_std, size=N)
-    alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
-    beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
-    gamma = np.random.normal(loc=gamma_mean, scale=gamma_std, size=N)
-    sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
+        kappa = np.random.normal(loc=kappa_mean, scale=kappa_std, size=N)
+        alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
+        beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
+        gamma = np.random.normal(loc=gamma_mean, scale=gamma_std, size=N)
+        sigma = np.random.normal(loc=0.0, scale=sigma_mean, size=N)
+elif opts.fit_type == "gpr":
+    sigma = np.random.normal(loc=0.0, scale=sigma_best, size=N)
 
 mus = []
 for ii in range(N):
@@ -459,23 +500,50 @@ for ii in range(N):
     t = model['t']
     Kband = mag[-1]
     iband = mag[-6]
+    gband = mag[-8]
 
     jj = np.argmin(Kband)
     jj7 = np.argmin(np.abs(t-(t[jj]+7.0)))
     M_K = Kband[jj] + 5*(np.log10(40.0*1e6) - 1)
     col = iband[jj] - Kband[jj]
     m7 = Kband[jj7]-Kband[jj]
-    jj = np.argmin(iband)
-    M_i = iband[jj]
+    kk = np.argmin(iband)
+    kk7 = np.argmin(np.abs(t-(t[kk]+7.0)))
+    m7i = iband[kk7]-iband[kk]
+    ll = np.argmin(gband)
+
+    M_i = iband[jj] - iband[kk]
 
     mej, vej, Xlan = row['mej'], row['vej'], row['Xlan']
 
-    if opts.analysis_type == "combined":
-        mu = -( -M_K + K[ii] + m7*alpha[ii] + col*beta[ii] + np.log10(mej)*gamma[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
-    elif opts.analysis_type == "inferred":
-        mu = -( -M_K + tau[ii] + np.log10(mej)*nu[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
-    elif opts.analysis_type == "measured":
-        mu = -( -M_K + kappa[ii] + m7*alpha[ii] + col*beta[ii] + M_i*gamma[ii] + sigma[ii])
+    if opts.fit_type == "linear":
+        if opts.analysis_type == "combined":
+            mu = -( -M_K + K[ii] + m7*alpha[ii] + col*beta[ii] + np.log10(mej)*gamma[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
+        elif opts.analysis_type == "inferred":
+            mu = -( -M_K + tau[ii] + np.log10(mej)*nu[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
+        elif opts.analysis_type == "measured":
+            mu = -( -M_K + kappa[ii] + m7*alpha[ii] + col*beta[ii] + M_i*gamma[ii] + sigma[ii])
+    elif opts.fit_type == "gpr":
+        if opts.analysis_type == "combined":
+            mu = -( -M_K + K[ii] + m7*alpha[ii] + col*beta[ii] + np.log10(mej)*gamma[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
+        elif opts.analysis_type == "inferred":
+            param_list_postprocess = np.array([np.log10(mej),vej,np.log10(Xlan)])
+            for i in range(len(param_mins)):
+                param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+            M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            mu = -( -M_K + M_pred + sigma[ii])
+        elif opts.analysis_type == "measured":
+            if m7 == 0:
+                m7 = 0.01
+            if M_i == 0:
+                M_i = 0.01
+            param_list_postprocess = np.array([col,np.log10(m7),np.log10(m7i)])
+            for i in range(len(param_mins)):
+                param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+            M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            mu = -( -M_K + M_pred + sigma[ii])
 
     mus.append(mu)
 mus = np.array(mus)
@@ -509,7 +577,7 @@ fig = plt.figure(figsize=(10,7))
 #plt.plot([dist_90,dist_90],[0,1],'--',color=color1)
 plt.step(bins_1, hist_1, color = color1, linestyle='-',label='EM')
 plt.xticks(xticks_1)
-plt.xlim([10,80])
+plt.xlim([0,80])
 
 color_names = [color2, color3]
 for ii, key in enumerate(samples_all.keys()):
@@ -663,6 +731,7 @@ H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50),
 H0_GW_16, H0_GW_50, H0_GW_84 = np.percentile(H0_GW,16), np.percentile(H0_GW,50), np.percentile(H0_GW,84)
 H0_GWEM_16, H0_GWEM_50, H0_GWEM_84 = np.percentile(H0_GWEM,16), np.percentile(H0_GWEM,50), np.percentile(H0_GWEM,84)
 
+print('Sigma: %.2f' % sigma_best)
 print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
 print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
 print('H0 GW: %.0f +%.0f -%.0f' % (H0_GW_50, H0_GW_84-H0_GW_50, H0_GW_50-H0_GW_16))
