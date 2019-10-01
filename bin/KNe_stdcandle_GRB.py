@@ -191,7 +191,8 @@ grbname = opts.grb_name
 if grbname == "GRB060614":
     redshift, redshift_error = 0.125, 0.0010
     distance = 584.93149
-    multinest_samples = "../plots/gws/Ka2017/V_R_F606W_I_F814W/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
+    multinest_samples = "../plots/gws/Ka2017/V_R_I/0_10/ejecta/GRB060614/0.10/2-post_equal_weights.dat"
+    #multinest_samples = "../plots/gws/Ka2017/V_R_F606W_I_F814W/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
     #multinest_samples = "../plots/gws/Ka2017_FixZPT0/V_R_I/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
 elif grbname == "GRB150101B":
     redshift, redshift_error = 0.1343, 0.0030
@@ -216,7 +217,7 @@ ModelPath = '%s/svdmodels'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 
-filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
+filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_rband.dat')
 data = np.loadtxt(filename)
 
 mej, vej, Xlan, color, Mag, dmdti, dmdt = data.T
@@ -452,7 +453,8 @@ for ii in range(N):
     model = model_table[idx[ii]]
     mag = model['mag']
     t = model['t']
-    Kband = mag[-1]
+    #Kband = mag[-1]
+    Kband = mag[-7]
     iband = mag[-6]
     gband = mag[-8]
 

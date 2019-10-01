@@ -37,6 +37,11 @@ def get_Bu2019_model(table, **kwargs):
     else:
         doSpec = False
 
+    if 'phi' in kwargs:
+        phi = kwargs['phi']
+    else:
+        phi = 0.0
+
     if not 'n_coeff' in table.colnames:
         if doAB:
             table['n_coeff'] = 43
@@ -49,7 +54,7 @@ def get_Bu2019_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                modelfile = os.path.join(ModelPath,'Bu2019_mag.pkl')
+                modelfile = os.path.join(ModelPath,'Bu2019_phi%d_mag.pkl' % phi)
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
             else:
@@ -64,9 +69,10 @@ def get_Bu2019_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                modelfile = os.path.join(ModelPath,'Bu2019_lbol.pkl')
+                modelfile = os.path.join(ModelPath,'Bu2019_phi%d_lbol.pkl' % phi)
                 with open(modelfile, 'rb') as handle:
-                    svd_lbol_model = pickle.load(handle)            
+                    svd_lbol_model = pickle.load(handle)
+                Global.svd_lbol_model = svd_lbol_model
             else:
                 svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019", n_coeff = table['n_coeff'][0])
                 modelfile = os.path.join(ModelPath,'Bu2019_lbol.pkl')

@@ -69,6 +69,8 @@ def parse_commandline():
     parser.add_option("--Xlan",default=1e-9,type=float) 
     parser.add_option("--doFixT",  action="store_true", default=False)
     parser.add_option("--T",default=1e4,type=float)
+    parser.add_option("--doFixPhi",  action="store_true", default=False)
+    parser.add_option("--phi",default=0.0,type=float)
 
     parser.add_option("--colormodel",default="a2.0")
 
@@ -90,8 +92,8 @@ if opts.doFixZPT0:
     ZPRange = 0.1
     T0Range = 0.1
 else:
-    ZPRange = 50.0
-    T0Range = 14.0
+    ZPRange = 5.0
+    T0Range = 0.1
 
 if opts.distance_uncertainty > 0:
     ZPRange = np.abs(5*(opts.distance_uncertainty/opts.distance)/np.log(10))
@@ -153,6 +155,8 @@ if opts.doFixXlan:
     plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.Xlan)))
 if opts.doFixT:
     plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.T)))
+if opts.doFixPhi:
+    plotDir = os.path.join(plotDir,"%.2f"% (opts.phi))
 if opts.doFitSigma:
     plotDir = os.path.join(plotDir,"fit")
 else:
@@ -404,16 +408,19 @@ if opts.doFixXlan:
 if opts.doFixT:
     Global.T = np.log10(opts.T)
 
+if opts.doFixXlan:
+    Global.phi = opts.phi
+
 if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
-        modelfile = os.path.join(ModelPath,'Bu2019_mag.pkl')
+        modelfile = os.path.join(ModelPath,'Bu2019_phi%d_mag.pkl' % opts.phi)
         with open(modelfile, 'rb') as handle:
             svd_mag_model = pickle.load(handle)
         Global.svd_mag_model = svd_mag_model    
             
-        modelfile = os.path.join(ModelPath,'Bu2019_lbol.pkl')
+        modelfile = os.path.join(ModelPath,'Bu2019_phi%d_lbol.pkl' % opts.phi)
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model

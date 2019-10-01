@@ -38,10 +38,12 @@ def parse_commandline():
     parser.add_argument("--mindistance",default=1.0,type=float)
     parser.add_argument("--maxdistance",default=1000.0,type=float)
 
+    parser.add_argument("--mchirp_samples", default="../data/chirp_mass/test.dat")
+
     parser.add_argument("-s","--spectraDir",default="../spectra")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
 
-    parser.add_argument("-a","--analysisType",default="multinest")
+    parser.add_argument("-a","--analysisType",default="mchirp")
 
     parser.add_argument("--multinest_samples", default="../plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/GW170817/1.00/2-post_equal_weights.dat")
     parser.add_argument("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
@@ -56,7 +58,7 @@ def parse_commandline():
     parser.add_argument("--doFixedLimit",  action="store_true", default=False)
     parser.add_argument("--limits",default="20.4,20.4")
 
-    parser.add_argument("-f","--filters",default="g,r")
+    parser.add_argument("-f","--filters",default="u,g,r,i,z,y,J,H,K")
     parser.add_argument("--tmax",default=7.0,type=float)
     parser.add_argument("--tmin",default=0.05,type=float)
     parser.add_argument("--dt",default=0.05,type=float)
@@ -150,13 +152,26 @@ datDir = os.path.join(plotDir,"dat")
 if not os.path.isdir(datDir):
     os.makedirs(datDir)
 
-if opts.analysisType == "posterior":
+if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
-    samples = KNTable.read_samples(opts.posterior_samples)
+    if opts.analysisType == "posterior":
+        samples = KNTable.read_samples(opts.posterior_samples)
+        samples["dist"] = opts.distance
+    else:
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples) 
+        eosname = "SLy"
+        eos = EOS4ParameterPiecewisePolytrope(eosname)
+        lambda1s, lambda2s = [], []
+        for row in samples:
+            lambda1, lambda2 = eos.lambdaofm(row["m1"]), eos.lambdaofm(row["m2"])
+            lambda1s.append(lambda1)
+            lambda2s.append(lambda2)
+        samples["lambda1"] = lambda1s
+        samples["lambda2"] = lambda2s
+        samples["Xlan"] = 1e-3
+
     # limit masses
     samples = samples.mass_cut(mass1=3.0,mass2=3.0)
-    
-    samples["dist"] = opts.distance   
  
     print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
     print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
@@ -580,7 +595,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         plt.plot(tt,magmax,'-',c=colors_names[ii],linewidth=4)
         plt.fill_between(tt,magmin,magmax,facecolor=colors_names[ii],edgecolor=colors_names[ii],alpha=0.2,linewidth=3)
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-    plt.xlim([0.0, 2.0])
+    plt.xlim([mint, maxt])
     if opts.event == "GW190510":
         plt.ylim([-16.0,-8.0])
     else:

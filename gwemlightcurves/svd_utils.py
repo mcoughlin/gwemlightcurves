@@ -27,6 +27,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/macronovae-rosswog_wind"
     elif model == "Bu2019":
         fileDir = "../output/bulla_1D"
+        fileDir = "../output/bulla_1D_phi0"
+        fileDir = "../output/bulla_1D_phi90"
     elif model == "Bu2019inc":
         fileDir = "../output/bulla_2D"
 
@@ -101,7 +103,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif model == "Bu2019":
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
         elif model == "Bu2019inc":
-            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
+            param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"]),lbols[key]["phi"],lbols[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -166,6 +168,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/macronovae-rosswog_wind"
     elif model == "Bu2019":
         fileDir = "../output/bulla_1D"
+        fileDir = "../output/bulla_1D_phi0"
+        fileDir = "../output/bulla_1D_phi90"
     elif model == "Bu2019inc":
         fileDir = "../output/bulla_2D"
 
@@ -251,7 +255,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif model == "Bu2019":
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
         elif model == "Bu2019inc":
-            param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
+            param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"]),mags[key]["phi"],mags[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)

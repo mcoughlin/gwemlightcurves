@@ -8,7 +8,7 @@ models = ["kasen_kilonova_grid"]
 models = ["bulla_1D"]
 models = ["bulla_2D"]
 #models = ["bulla_1D","bulla_2D"]
-models = ["bulla_1D"]
+models = ["bulla_2D"]
 
 for model in models:
     files = glob.glob("../data/%s/*"%model)

@@ -5,6 +5,7 @@ ZPRange = 0
 T0Range = 0
 Xlan = 0
 T = 0
+phi = -1
 doLuminosity = 0
 doLightcurves = 0
 filters = 0

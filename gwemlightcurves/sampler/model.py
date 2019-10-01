@@ -378,7 +378,7 @@ def Bu2019_model_ejecta(mej,T):
 
     return t, lbol, mag
 
-def Bu2019inc_model_ejecta(mej,phi,theta):
+def Bu2019inc_model_ejecta(mej,T,phi,theta):
 
     tini = 0.1
     tmax = 50.0
@@ -389,6 +389,7 @@ def Bu2019inc_model_ejecta(mej,phi,theta):
     samples['tmax'] = tmax
     samples['dt'] = dt
     samples['mej'] = mej
+    samples['T'] = T
     samples['phi'] = phi
     samples['theta'] = theta
 

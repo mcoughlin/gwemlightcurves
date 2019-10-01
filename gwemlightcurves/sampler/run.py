@@ -174,8 +174,8 @@ def multinest(opts,plotDir):
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019_ejecta, myprior_Bu2019_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019inc":
-                parameters = ["t0","mej","phase","theta","zp"]
-                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$\Phi$",r"$\Theta$","ZP"]
+                parameters = ["t0","mej","T","phase","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"${\rm log}_{10} (T_{\rm eff})$",r"$\Phi$",r"$\Theta$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019inc_ejecta, myprior_Bu2019inc_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "RoFe2017":
@@ -561,10 +561,10 @@ def multinest(opts,plotDir):
             tmag, lbol, mag = Bu2019_model_ejecta(mej_best,T_best)
     elif opts.model == "Bu2019inc":
         if opts.doEjecta:
-            t0, mej, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+            t0, mej, T, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6]
             idx = np.argmax(loglikelihood)
-            t0_best, mej_best, phi_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4]
-            tmag, lbol, mag = Bu2019inc_model_ejecta(mej_best,phi_best,theta_best)
+            t0_best, mej_best, T_best, phi_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4], data[idx,5]
+            tmag, lbol, mag = Bu2019inc_model_ejecta(mej_best,T_best,phi_best,theta_best)
     elif opts.model == "RoFe2017":
         if opts.doMasses:
             if opts.doEOSFit:
@@ -1147,13 +1147,13 @@ def multinest(opts,plotDir):
         if opts.doEjecta:
             filename = os.path.join(plotDir,'samples.dat')
             fid = open(filename,'w+')
-            for i, j, k, l, m in zip(t0,mej,phi,theta,zp):
+            for i, j, k, l, m, n in zip(t0,mej,T,phi,theta,zp):
                 fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
             fid.close()
 
             filename = os.path.join(plotDir,'best.dat')
             fid = open(filename,'w')
-            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,phi_best,theta_best,zp_best))
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,T_best,phi_best,theta_best,zp_best))
             fid.close()
     elif opts.model == "Me2017":
         if opts.doMasses:
