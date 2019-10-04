@@ -38,7 +38,7 @@ def parse_commandline():
     parser.add_argument("--mindistance",default=1.0,type=float)
     parser.add_argument("--maxdistance",default=1000.0,type=float)
 
-    parser.add_argument("--mchirp_samples", default="../data/chirp_mass/test.dat")
+    parser.add_argument("--mchirp_samples", default="../data/chirp_mass/m1m2-s190425z.dat")
 
     parser.add_argument("-s","--spectraDir",default="../spectra")
     parser.add_argument("-l","--lightcurvesDir",default="../lightcurves")
@@ -158,12 +158,13 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples = KNTable.read_samples(opts.posterior_samples)
         samples["dist"] = opts.distance
     else:
-        samples = KNTable.read_mchirp_samples(opts.mchirp_samples) 
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
         eosname = "SLy"
         eos = EOS4ParameterPiecewisePolytrope(eosname)
         lambda1s, lambda2s = [], []
         for row in samples:
             lambda1, lambda2 = eos.lambdaofm(row["m1"]), eos.lambdaofm(row["m2"])
+            print(lambda1, lambda2)
             lambda1s.append(lambda1)
             lambda2s.append(lambda2)
         samples["lambda1"] = lambda1s
