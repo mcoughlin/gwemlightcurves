@@ -187,7 +187,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
     
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
-        from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
+        from gwemlightcurves.EjectaFits.Di2018b import calc_meje, calc_vej
         # calc the mass of ejecta
         samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
         # calc the velocity of ejecta
@@ -258,7 +258,7 @@ elif opts.analysisType == "cbclist":
 
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
         if opts.cbc_type == "BNS":
-            from gwemlightcurves.EjectaFits.Di2018 import calc_meje, calc_vej
+            from gwemlightcurves.EjectaFits.Di2018b import calc_meje, calc_vej
             # calc the mass of ejecta
             samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mb2'])
             # calc the velocity of ejecta
