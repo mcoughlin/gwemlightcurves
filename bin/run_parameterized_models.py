@@ -227,6 +227,7 @@ else:
     kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
 kwargs["doAB"] = opts.doAB
 kwargs["doSpec"] = opts.doSpec
+kwargs["phi"] = phi
 
 t = Table()
 for key, val in samples.iteritems():

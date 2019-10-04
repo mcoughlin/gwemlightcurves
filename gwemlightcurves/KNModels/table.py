@@ -24,6 +24,9 @@ import numpy as np
 from astropy.table import (Table, Column, vstack)
 from distutils.spawn import find_executable
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
+
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos', 'construct_eos_from_polytrope']
 
@@ -221,6 +224,63 @@ class KNTable(Table):
 			print('setting lambdat to lam_tilde')
 
 		return KNTable(data_out)
+
+        @classmethod
+        def read_mchirp_samples(cls, filename_samples, Nsamples=100):
+                """
+                Read low latency posterior_samples
+                """
+                import os
+                if not os.path.isfile(filename_samples):
+                        raise ValueError("Sample file supplied does not exist")
+
+                names = ['SNRdiff', 'erf', 'weight',
+                         'm1', 'm2', 'dist']
+                data_out = Table.read(filename_samples,
+                                      names=names,
+                                      format='ascii')
+                data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
+                kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+                gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+                params = np.vstack((data_out['m1'],data_out['m2'],data_out['dist'])).T
+                data = np.array(data_out['weight'])
+                gp.fit(params, data)
+
+                m1_min, m1_max = np.min(data_out['m1']), np.max(data_out['m1'])
+                m2_min, m2_max = np.min(data_out['m2']), np.max(data_out['m2'])
+                dist_min, dist_max = np.min(data_out['dist']), np.max(data_out['dist'])
+
+                cnt = 0
+                samples = []
+                while cnt < Nsamples:
+                    m1 = np.random.uniform(m1_min, m1_max)
+                    m2 = np.random.uniform(m2_min, m2_max)
+                    dist = np.random.uniform(dist_min, dist_max)
+                    samp = np.atleast_2d(np.array([m1,m2,dist]))
+                    weight = gp.predict(samp)[0]
+                    thresh = np.random.uniform(0,1)
+                    if weight > thresh:
+                        samples.append([m1,m2,dist])
+                        cnt = cnt + 1
+                print(samples)
+                samples = np.array(samples)
+                data_out = Table(data=samples, names=['m1','m2','dist'])
+
+                if 'm1_source' in list(data_out.columns):
+                        data_out['m1'] = data_out['m1_source']
+                        print('setting m1 to m1_source')
+                if 'm2_source' in list(data_out.columns):
+                        data_out['m2'] = data_out['m2_source']
+                        print('setting m2 to m2_source')
+
+                if 'dlam_tilde' in list(data_out.columns):
+                        data_out['dlambdat'] = data_out['dlam_tilde']
+                        print('setting dlambdat to dlam_tilde')
+                if 'lam_tilde' in list(data_out.columns):
+                        data_out['lambdat'] = data_out['lam_tilde']
+                        print('setting lambdat to lam_tilde')
+
+                return KNTable(data_out)
 
 	@classmethod
 	def read_cbc_list(cls, filename_samples):

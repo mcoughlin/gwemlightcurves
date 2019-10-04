@@ -49,17 +49,14 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
 
-    parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,combined")  
+    parser.add_option("-a","--analysis_type",default="inferred", help="measured,inferred,combined") 
 
     parser.add_option("-f","--fit_type",default="linear", help="linear,gpr")
  
+    parser.add_option("-g","--grb_name",default="GRB060614") 
+
     parser.add_option("--nsamples",default=-1,type=int)
-
-    #parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_old/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
     parser.add_option("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
-
-    parser.add_option("--posterior_samples", default="../data/event_data/GW170817_SourceProperties_high_spin.dat,../data/event_data/GW170817_SourceProperties_low_spin.dat")
 
     opts, args = parser.parse_args()
 
@@ -147,7 +144,7 @@ def myprior_measured(cube, ndim, nparams):
         cube[0] = cube[0]*30.0 - 30.0
         cube[1] = cube[1]*10.0 - 5.0
         cube[2] = cube[2]*20.0 - 10.0
-        cube[3] = cube[3]*100.0 - 50.0
+        cube[3] = cube[3]*20.0 - 10.0
         cube[4] = cube[4]*10.0
 
 def myloglike_measured(cube, ndim, nparams):
@@ -157,7 +154,7 @@ def myloglike_measured(cube, ndim, nparams):
         gamma = cube[3]
         sigma = cube[4]
 
-        M = kappa + alpha*(dmdt) + beta*(color) + gamma*dmdti
+        M = kappa + alpha*(dmdt) + beta*(color) + gamma*Magi
         x = Mag - M
         prob = ss.norm.logpdf(x, loc=0.0, scale=sigma)
         prob = np.sum(prob)
@@ -168,66 +165,19 @@ def myloglike_measured(cube, ndim, nparams):
 
 def myprior_H0(cube, ndim, nparams):
         cube[0] = cube[0]*200.0
-        cube[1] = cube[1]*100.0
-        cube[2] = cube[2]*600.0
+        cube[1] = cube[1]*2000.0
 
 def myloglike_H0(cube, ndim, nparams):
         H0 = cube[0]
         d = cube[1]
-        vp = cube[2]
 
-        vr_mu, vr_std = 3327.0, 72.0
-        vr = scipy.stats.norm.rvs(vr_mu, vr_std)
-
-        vp_mu, vp_std = 310, 150
-        pvr = (1/np.sqrt(2*np.pi*vr_std**2))*np.exp((-1/2.0)*((vr_mu-vp-H0*d)/vr_std)**2)
-        pvp = (1/np.sqrt(2*np.pi*vp_std**2))*np.exp((-1/2.0)*((vp_mu-vp)/vp_std)**2)
+        c = 299792458.0*1e-3
+        vr_mean, vr_std = redshift*c, redshift_error*c
+        pvr = (1/np.sqrt(2*np.pi*vr_std**2))*np.exp((-1/2.0)*((vr_mean-H0*d)/vr_std)**2)
         prob_dist = kde_eval_single(kdedir_dist,[d])[0]
         #print(H0, d, vp, np.log(pvr), np.log(pvp), np.log(prob_dist))
- 
-        prob = np.log(pvr) + np.log(pvp) + np.log(prob_dist)
 
-        if np.isnan(prob):
-            prob = -np.inf
-
-        return prob
-
-def myloglike_H0_GW(cube, ndim, nparams):
-        H0 = cube[0]
-        d = cube[1]
-        vp = cube[2]
-
-        vr_mu, vr_std = 3327.0, 72.0
-        vr = scipy.stats.norm.rvs(vr_mu, vr_std)
-
-        vp_mu, vp_std = 310, 150
-        pvr = (1/np.sqrt(2*np.pi*vr_std**2))*np.exp((-1/2.0)*((vr_mu-vp-H0*d)/vr_std)**2)
-        pvp = (1/np.sqrt(2*np.pi*vp_std**2))*np.exp((-1/2.0)*((vp_mu-vp)/vp_std)**2)
-        prob_dist = kde_eval_single(kdedir_dist,[d])[0]
-        prob_gwdist = kde_eval_single(kdedir_gwdist,[d])[0]
-
-        prob = np.log(pvr) + np.log(pvp) + np.log(prob_gwdist)
-
-        if np.isnan(prob):
-            prob = -np.inf
-
-        return prob
-
-def myloglike_H0_GWEM(cube, ndim, nparams):
-        H0 = cube[0]
-        d = cube[1]
-        vp = cube[2]
-
-        vr_mu, vr_std = 3327.0, 72.0
-        vr = scipy.stats.norm.rvs(vr_mu, vr_std)
-
-        vp_mu, vp_std = 310, 150
-        pvr = (1/np.sqrt(2*np.pi*vr_std**2))*np.exp((-1/2.0)*((vr_mu-vp-H0*d)/vr_std)**2)
-        pvp = (1/np.sqrt(2*np.pi*vp_std**2))*np.exp((-1/2.0)*((vp_mu-vp)/vp_std)**2)
-        prob_dist = kde_eval_single(kdedir_dist,[d])[0]
-        prob_gwdist = kde_eval_single(kdedir_gwdist,[d])[0]
-
-        prob = np.log(pvr) + np.log(pvp) + np.log(prob_dist) + np.log(prob_gwdist)
+        prob = np.log(pvr) + np.log(prob_dist)
 
         if np.isnan(prob):
             prob = -np.inf
@@ -236,8 +186,26 @@ def myloglike_H0_GWEM(cube, ndim, nparams):
 
 # Parse command line
 opts = parse_commandline()
+grbname = opts.grb_name
 
-baseplotDir = os.path.join(opts.plotDir,'standard_candles')
+if grbname == "GRB060614":
+    redshift, redshift_error = 0.125, 0.0010
+    distance = 584.93149
+    multinest_samples = "../plots/gws/Ka2017/V_R_I/0_10/ejecta/GRB060614/0.10/2-post_equal_weights.dat"
+    #multinest_samples = "../plots/gws/Ka2017/V_R_F606W_I_F814W/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
+    #multinest_samples = "../plots/gws/Ka2017_FixZPT0/V_R_I/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
+elif grbname == "GRB150101B":
+    redshift, redshift_error = 0.1343, 0.0030
+    distance = 632.22111
+    multinest_samples = "../plots/gws/Ka2017/r_J_H_K/0_10/ejecta/GRB150101B/1.00/2-post_equal_weights.dat"
+    #multinest_samples = "../plots/gws/Ka2017_FixZPT0/r_J_H_K/0_10/ejecta/GRB150101B/1.00/2-post_equal_weights.dat"
+elif grbname == "GRB050709":
+    redshift, redshift_error = 0.1606, 0.0002
+    distance = 765.45608
+    #multinest_samples = "../plots/gws/Ka2017_FixZPT0/V_R_F814W/0_10/ejecta/GRB050709/1.00/2-post_equal_weights.dat"
+    multinest_samples = "../plots/gws/Ka2017/V_R_F606W_I_F814W/0_10/ejecta/GRB060614/1.00/2-post_equal_weights.dat"
+
+baseplotDir = os.path.join(opts.plotDir,'standard_candles','GRB',grbname)
 if not os.path.isdir(baseplotDir):
     os.makedirs(baseplotDir)
 
@@ -249,13 +217,7 @@ ModelPath = '%s/svdmodels'%(opts.outputDir)
 if not os.path.isdir(ModelPath):
     os.makedirs(ModelPath)
 
-n_live_points = 1000
-evidence_tolerance = 0.5
-max_iter = 0
-title_fontsize = 26
-label_fontsize = 30
-
-filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
+filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_rband.dat')
 data = np.loadtxt(filename)
 
 mej, vej, Xlan, color, Mag, dmdti, dmdt = data.T
@@ -264,18 +226,16 @@ mej, Xlan = np.log10(mej), np.log10(Xlan)
 #dmdt = 1.0/(dmdt**2)
 dmdt = np.log10(dmdt)
 dmdti = np.log10(dmdti)
-#Magi[Magi==0.0] = 0.01
-#Magi = np.log10(Magi)
 
-#color = Xlan
-#Magi = vej
-#dmdt = vej/dmdt
+#idx = np.where(Xlan == -1)[0]
+#mej, vej, Xlan, color, Mag, Magi = mej[idx], vej[idx], Xlan[idx], color[idx], Mag[idx], Magi[idx]
+#dmdt = dmdt[idx]
 
-posterior_samples = opts.posterior_samples.split(",")
-samples_all = {}
-for posterior_sample in posterior_samples:
-    key = posterior_sample.replace(".dat","").split("/")[-1].split("_")[-2]
-    samples_all[key] = KNTable.read_samples(posterior_sample)
+n_live_points = 1000
+evidence_tolerance = 0.5
+max_iter = 0
+title_fontsize = 26
+label_fontsize = 30
 
 if opts.fit_type == "gpr":
     #idx = np.arange(len(Mag))
@@ -286,7 +246,6 @@ if opts.fit_type == "gpr":
         param_array = np.vstack((color,dmdt,dmdti)).T
     elif opts.analysis_type == "inferred":
         param_array = np.vstack((mej,vej,Xlan)).T
-
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
     for i in range(len(param_mins)):
@@ -332,7 +291,7 @@ elif opts.fit_type == "linear":
         idx = np.argmax(loglikelihood)
         kappa_best, alpha_best, beta_best, gamma_best, sigma_best = data[idx,0:-1]
      
-        M = kappa_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*dmdti
+        M = kappa_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*Magi
     elif opts.analysis_type == "inferred":
         parameters = ["tau","nu","delta","zeta","sigma"]
         labels = [r'$\tau$', r'$\nu$', r"$\delta$",r"$\zeta$",r'$\sigma$']
@@ -349,8 +308,6 @@ elif opts.fit_type == "linear":
      
         M = tau_best + nu_best*(mej) + delta_best*(vej) + zeta_best*Xlan
     
-    sigma = sigma_best*np.ones(M.shape)
-
     plotName = "%s/corner.pdf"%(plotDir)
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
@@ -371,7 +328,7 @@ for ii in range(len(vej_unique)):
         ax = fig.add_subplot(gs[ii, jj])
         plt.axes(ax)
         idx = np.where((vej == vej_unique[ii]) & (Xlan == Xlan_unique[jj]))[0]
-        plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
+        plt.errorbar(10**mej[idx], M[idx], sigma_best*np.ones(M[idx].shape), fmt='k.')
         plt.plot(10**mej[idx], Mag[idx], 'bo')
         if not ii == len(vej_unique) - 1:
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -383,8 +340,7 @@ for ii in range(len(vej_unique)):
             plt.ylabel('$v_{\mathrm{ej}} = %.2f\,c$' % vej_unique[ii], fontsize=24)
 
         plt.xlim([0.001,0.1])
-        #plt.ylim([-17,-9])
-        #plt.ylim([-10,0])
+        plt.ylim([-17,-9])
         plt.gca().invert_yaxis()
         ax.set_xscale('log')
 
@@ -395,29 +351,27 @@ plotName = os.path.join(plotDir,'fitall.pdf')
 plt.savefig(plotName)
 plt.close()
 
-M_trials = np.linspace(np.min(Mag), np.max(Mag), 100)
-
-fig = plt.figure(figsize=(8, 6))
+fig = plt.figure(figsize=(8, 12))
 gs = gridspec.GridSpec(4, 1)
 ax1 = fig.add_subplot(gs[0:3, 0])
 ax2 = fig.add_subplot(gs[3, 0], sharex = ax1)
 plt.axes(ax1)
-plt.errorbar(Mag, M, sigma_best*np.ones(M.shape), fmt='k.')
-plt.plot(M_trials, M_trials, 'b--')
-plt.ylabel('Magnitude [Fit]')
+plt.errorbar(10**mej, M, sigma_best*np.ones(M.shape), fmt='k.')
+plt.plot(10**mej, Mag, 'bo')
+
+plt.ylabel('Magnitude')
 plt.setp(ax1.get_xticklabels(), visible=False)
 plt.gca().invert_yaxis()
 plt.axes(ax2)
-plt.errorbar(Mag,M-Mag, sigma_best*np.ones(M.shape), fmt='k.')
-plt.gca().invert_xaxis()
-plt.ylabel('Data - Fit')
-plt.xlabel('Magnitude [Data]')
+plt.errorbar(10**mej,M-Mag, sigma_best*np.ones(M.shape), fmt='k.')
+plt.ylabel('Model - Data')
+plt.xlabel('Ejecta mass [solar masses]')
 plt.show()
 plotName = os.path.join(plotDir,'fit.pdf')
-plt.savefig(plotName, bbox_inches='tight')
+plt.savefig(plotName)
 plt.close()
 
-samples = KNTable.read_multinest_samples(opts.multinest_samples, opts.model)
+samples = KNTable.read_multinest_samples(multinest_samples, opts.model)
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 # These are the default values supplied with respect to generating lightcurves
@@ -499,13 +453,14 @@ for ii in range(N):
     model = model_table[idx[ii]]
     mag = model['mag']
     t = model['t']
-    Kband = mag[-1]
+    #Kband = mag[-1]
+    Kband = mag[-7]
     iband = mag[-6]
     gband = mag[-8]
 
     jj = np.argmin(Kband)
     jj7 = np.argmin(np.abs(t-(t[jj]+7.0)))
-    M_K = Kband[jj] + 5*(np.log10(40.0*1e6) - 1)
+    M_K = Kband[jj] + 5*(np.log10(distance*1e6) - 1)
     col = iband[jj] - Kband[jj]
     m7 = Kband[jj7]-Kband[jj]
     kk = np.argmin(iband)
@@ -534,6 +489,7 @@ for ii in range(N):
 
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             mu = -( -M_K + M_pred + sigma[ii])
+
         elif opts.analysis_type == "measured":
             if m7 == 0:
                 m7 = 0.01
@@ -547,59 +503,32 @@ for ii in range(N):
             mu = -( -M_K + M_pred + sigma[ii])
 
     mus.append(mu)
+
 mus = np.array(mus)
 dist = 10**((mus/5.0) + 1.0) / 1e6
 kdedir_dist = greedy_kde_areas_1d(dist)
 
-bin_edges = np.arange(5,85,2)
-
-z = 0.009783
-c = 3.e5   # speed of light in km/s
-H0 = (c/dist)*z
+bin_edges = np.arange(0,2000,20)
 
 dist_16, dist_50, dist_84 = np.percentile(dist,16), np.percentile(dist,50), np.percentile(dist,84)
 
 hist_1, bin_edges_1 = np.histogram(dist, bin_edges, density=True)
-hist_2, bin_edges_2 = np.histogram(H0, 20, density=True)
 bins_1 = (bin_edges_1[:-1] + bin_edges_1[1:])/2.0
-bins_2 = (bin_edges_2[:-1] + bin_edges_2[1:])/2.0
-
-xticks_1 = np.array([10,20,30,40,50,60])
-xticks_2 = (c/xticks_1)*z
 
 color1 = 'cornflowerblue'
 color2 = 'coral'
 color3 = 'palegreen'
 
-fig = plt.figure(figsize=(10,7))
+fig = plt.figure(figsize=(12,7))
 
 #plt.plot([dist_10,dist_10],[0,1],'--',color=color1)
 #plt.plot([dist_50,dist_50],[0,1],'--',color=color1)
 #plt.plot([dist_90,dist_90],[0,1],'--',color=color1)
 plt.step(bins_1, hist_1, color = color1, linestyle='-',label='EM')
-plt.xticks(xticks_1)
-plt.xlim([0,80])
-
-color_names = [color2, color3]
-for ii, key in enumerate(samples_all.keys()):
-    samples = samples_all[key]
-    label = 'GW (%s)' % key
-    gwdist = samples['luminosity_distance_Mpc']
-    hist_1, bin_edges_1 = np.histogram(gwdist, bin_edges, density=True)
-    bins_1 = (bin_edges_1[:-1] + bin_edges_1[1:])/2.0
-    if key == "high":
-        linestyle='--'
-    else:
-        linestyle='-.'
-    plt.step(bins_1, hist_1, color = color_names[ii], linestyle=linestyle,label=label)
-
-gwdist = samples_all['high']['luminosity_distance_Mpc']
-kdedir_gwdist = greedy_kde_areas_1d(gwdist)
-
-plt.legend()
+#plt.xlim([10,80])
 plt.xlabel('Distance [Mpc]')
 plt.ylabel('Probability')
-plt.ylim([0,0.10])
+#plt.ylim([0,0.10])
 plt.grid(True)
 plt.show()
 plotName = os.path.join(plotDir,'dist.pdf')
@@ -610,8 +539,8 @@ H0Dir = os.path.join(plotDir,'H0')
 if not os.path.isdir(H0Dir):
     os.makedirs(H0Dir)
 
-parameters = ["H0","d","vp"]
-labels = [r'$H_0$', r'$D$', r"$v_p$"]
+parameters = ["H0","d"]
+labels = [r'$H_0$', r'$D$']
 n_params = len(parameters)
 
 pymultinest.run(myloglike_H0, myprior_H0, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%H0Dir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
@@ -619,9 +548,9 @@ pymultinest.run(myloglike_H0, myprior_H0, n_params, importance_nested_sampling =
 multifile = "%s/2-post_equal_weights.dat"%H0Dir
 data = np.loadtxt(multifile)
 
-H0_EM, d, vp, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3]
+H0_EM, d, loglikelihood = data[:,0], data[:,1], data[:,2]
 idx = np.argmax(loglikelihood)
-H0_best, d_best, vp_best = data[idx,0:-1]
+H0_best, d_best = data[idx,0:-1]
 
 plotName = "%s/corner.pdf"%(H0Dir)
 figure = corner.corner(data[:,:-1], labels=labels,
@@ -633,64 +562,8 @@ figure.set_size_inches(18.0,18.0)
 plt.savefig(plotName)
 plt.close()
 
-H0GWDir = os.path.join(plotDir,'H0GW')
-if not os.path.isdir(H0GWDir):
-    os.makedirs(H0GWDir)
-
-parameters = ["H0","d","vp"]
-labels = [r'$H_0$', r'$D$', r"$v_p$"]
-n_params = len(parameters)
-
-pymultinest.run(myloglike_H0_GW, myprior_H0, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%H0GWDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-
-multifile = "%s/2-post_equal_weights.dat"%H0GWDir
-data = np.loadtxt(multifile)
-
-H0_GW, d, vp, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3]
-idx = np.argmax(loglikelihood)
-H0_best, d_best, vp_best = data[idx,0:-1]
-
-plotName = "%s/corner.pdf"%(H0GWDir)
-figure = corner.corner(data[:,:-1], labels=labels,
-                   quantiles=[0.16, 0.5, 0.84],
-                   show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                   label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
-                   smooth=3)
-figure.set_size_inches(18.0,18.0)
-plt.savefig(plotName)
-plt.close()
-
-H0GWEMDir = os.path.join(plotDir,'H0GWEM')
-if not os.path.isdir(H0GWEMDir):
-    os.makedirs(H0GWEMDir)
-
-parameters = ["H0","d","vp"]
-labels = [r'$H_0$', r'$D$', r"$v_p$"]
-n_params = len(parameters)
-
-pymultinest.run(myloglike_H0_GWEM, myprior_H0, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%H0GWEMDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-
-multifile = "%s/2-post_equal_weights.dat"%H0GWEMDir
-data = np.loadtxt(multifile)
-
-H0_GWEM, d, vp, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3]
-idx = np.argmax(loglikelihood)
-H0_best, d_best, vp_best = data[idx,0:-1]
-
-plotName = "%s/corner.pdf"%(H0GWEMDir)
-figure = corner.corner(data[:,:-1], labels=labels,
-                   quantiles=[0.16, 0.5, 0.84],
-                   show_titles=True, title_kwargs={"fontsize": title_fontsize},
-                   label_kwargs={"fontsize": label_fontsize}, title_fmt=".3f",
-                   smooth=3)
-figure.set_size_inches(18.0,18.0)
-plt.savefig(plotName)
-plt.close()
-
 bin_edges = np.arange(5,150,5)
 hist_1, bin_edges_1 = np.histogram(H0_EM, bin_edges, density=True)
-hist_2, bin_edges_2 = np.histogram(H0_GW, bin_edges, density=True)
-hist_3, bin_edges_3 = np.histogram(H0_GWEM, bin_edges, density=True)
 bins = (bin_edges[:-1] + bin_edges[1:])/2.0
 
 bins_small = np.arange(5,150,1)
@@ -699,8 +572,6 @@ fig = plt.figure(figsize=(10,7))
 ax = plt.subplot(111)
 
 plt.step(bins, hist_1, color = color1, linestyle='-',label='EM')
-plt.step(bins, hist_2, color = color2, linestyle='--',label='GW')
-plt.step(bins, hist_3, color = color3, linestyle='-.',label='GW-EM')
 plt.plot(bins_small, ss.norm.pdf(bins_small, loc=68.9, scale=4.6), color='pink', label='Superluminal') 
 
 boxes = []
@@ -721,7 +592,7 @@ plt.xlabel('H0 [km $\mathrm{s}^{-1}$ $\mathrm{Mpc}^{-1}$]')
 plt.ylabel('Probability')
 plt.grid(True)
 plt.legend()
-plt.xlim([40,150])
+plt.xlim([20,150])
 plt.ylim([0,0.1])
 plt.show()
 plotName = os.path.join(plotDir,'H0.pdf')
@@ -729,16 +600,11 @@ plt.savefig(plotName)
 plt.close()
 
 H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM,16), np.percentile(H0_EM,50), np.percentile(H0_EM,84)
-H0_GW_16, H0_GW_50, H0_GW_84 = np.percentile(H0_GW,16), np.percentile(H0_GW,50), np.percentile(H0_GW,84)
-H0_GWEM_16, H0_GWEM_50, H0_GWEM_84 = np.percentile(H0_GWEM,16), np.percentile(H0_GWEM,50), np.percentile(H0_GWEM,84)
 
-print('Sigma: %.2f' % sigma_best)
 print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
 print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
-print('H0 GW: %.0f +%.0f -%.0f' % (H0_GW_50, H0_GW_84-H0_GW_50, H0_GW_50-H0_GW_16))
-print('H0 GW-EM: %.0f +%.0f -%.0f' % (H0_GWEM_50, H0_GWEM_84-H0_GWEM_50, H0_GWEM_50-H0_GWEM_16))
 
 pcklFile = os.path.join(plotDir,"H0.pkl")
 f = open(pcklFile, 'wb')
-pickle.dump((dist,samples_all,H0_EM,H0_GW,H0_GWEM, Mag, M, sigma_best), f)
+pickle.dump((dist,H0_EM,distance), f)
 f.close()
