@@ -36,7 +36,7 @@ def FoucartEjecta(Q,C,chi):
     n2 = 1.68399507e+00
     rISCO = Risco(chi)
     Mej = a1*Q**n1*(1.-2*C)/C-a2*Q**n2*rISCO+a4
-    Mej[Mej<0] = 0.0
+    Mej[Mej<0] = 1e-3
     return Mej
 
 def calc_meje(q,chi_eff,c,mb,mns,f=0.15):
