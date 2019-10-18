@@ -158,13 +158,16 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples = KNTable.read_samples(opts.posterior_samples)
         samples["dist"] = opts.distance
     else:
+        if opts.nsamples < 1:
+            print('Please set nsamples >= 1')
+            exit(0)
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
         eosname = "SLy"
         eos = EOS4ParameterPiecewisePolytrope(eosname)
         lambda1s, lambda2s = [], []
         for row in samples:
-            lambda1, lambda2 = eos.lambdaofm(row["m1"]), eos.lambdaofm(row["m2"])
-            print(lambda1, lambda2)
+            m1, m2 = row["m1"], row["m2"]
+            lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
             lambda1s.append(lambda1)
             lambda2s.append(lambda2)
         samples["lambda1"] = lambda1s
@@ -187,12 +190,35 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
     
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
-        from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
+        mbns = 2.1
+        idx1 = np.where((samples['m1'] < mbns) & (samples['m2'] < mbns))[0]
+        idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
+
+        mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
+
+        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
-        samples['mej'] = calc_meje(samples['m1'], samples['mb1'], samples['c1'], samples['m2'], samples['mb2'], samples['c2'])
+        mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         # calc the velocity of ejecta
-        samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
-    
+        vej1 = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+
+        if opts.cbc_type == "BNS":        
+            samples['chi_eff'] = 0.0
+        elif opts.cbc_type == "BHNS":
+            samples['chi_eff'] = -1.0
+        samples['q'] = samples['m1'] / samples['m2']
+        from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
+        # calc the mass of ejecta
+        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['mb1'], samples['m1'])
+        # calc the velocity of ejecta
+        vej2 = calc_vave(samples['q'])
+
+        mej[idx1], vej[idx1] = mej1[idx1], vej1[idx1]
+        mej[idx2], vej[idx2] = mej2[idx2], vej2[idx2]
+
+        samples['mej'] = mej
+        samples['vej'] = vej
+
         # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
         erroropt = 'none'
         if erroropt == 'none':
@@ -258,9 +284,9 @@ elif opts.analysisType == "cbclist":
 
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
         if opts.cbc_type == "BNS":
-            from gwemlightcurves.EjectaFits.Di2018 import calc_meje, calc_vej
+            from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
             # calc the mass of ejecta
-            samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mb2'])
+            samples['mej'] = calc_meje(samples['m1'],samples['c1'], samples['m2'], samples['mc2'])
             # calc the velocity of ejecta
             samples['vej'] = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
         elif opts.cbc_type == "BHNS":
