@@ -49,7 +49,7 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
 
-    parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,combined")  
+    parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,inferred_bulla,combined")  
 
     parser.add_option("-f","--fit_type",default="linear", help="linear,gpr")
  
@@ -255,21 +255,20 @@ max_iter = 0
 title_fontsize = 26
 label_fontsize = 30
 
-filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
-data = np.loadtxt(filename)
-
-mej, vej, Xlan, color, Mag, dmdti, dmdt = data.T
-
-mej, Xlan = np.log10(mej), np.log10(Xlan)
-#dmdt = 1.0/(dmdt**2)
-dmdt = np.log10(dmdt)
-dmdti = np.log10(dmdti)
-#Magi[Magi==0.0] = 0.01
-#Magi = np.log10(Magi)
-
-#color = Xlan
-#Magi = vej
-#dmdt = vej/dmdt
+if "bulla" in opts.analysis_type:
+    filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_bulla.dat')
+    data = np.loadtxt(filename)
+    mej, phi, T0, theta, color, Mag, dmdti, dmdt = data.T
+    mej, T0 = np.log10(mej), np.log10(T0)
+    dmdt = np.log10(dmdt)
+    dmdti = np.log10(dmdti)
+else:
+    filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor.dat')
+    data = np.loadtxt(filename)
+    mej, vej, Xlan, color, Mag, dmdti, dmdt = data.T
+    mej, Xlan = np.log10(mej), np.log10(Xlan)
+    dmdt = np.log10(dmdt)
+    dmdti = np.log10(dmdti)
 
 posterior_samples = opts.posterior_samples.split(",")
 samples_all = {}
@@ -286,6 +285,8 @@ if opts.fit_type == "gpr":
         param_array = np.vstack((color,dmdt,dmdti)).T
     elif opts.analysis_type == "inferred":
         param_array = np.vstack((mej,vej,Xlan)).T
+    elif opts.analysis_type == "inferred_bulla":
+        param_array = np.vstack((mej,phi,T0,theta)).T
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -361,39 +362,78 @@ elif opts.fit_type == "linear":
     plt.savefig(plotName)
     plt.close()
 
-vej_unique, Xlan_unique = np.unique(vej), np.unique(Xlan)
-vej_unique = vej_unique[::-1]
+if "bulla" in opts.analysis_type:
 
-fig = plt.figure(figsize=(16, 16))
-gs = gridspec.GridSpec(len(vej_unique), len(Xlan_unique))
-for ii in range(len(vej_unique)):
-    for jj in range(len(Xlan_unique)):
-        ax = fig.add_subplot(gs[ii, jj])
-        plt.axes(ax)
-        idx = np.where((vej == vej_unique[ii]) & (Xlan == Xlan_unique[jj]))[0]
-        plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
-        plt.plot(10**mej[idx], Mag[idx], 'bo')
-        if not ii == len(vej_unique) - 1:
-            plt.setp(ax.get_xticklabels(), visible=False)
-        else:
-            plt.xlabel('$X_{\mathrm{lan}} = 10^{%.0f}$' % Xlan_unique[jj], fontsize=24)
-        if not jj == 0:
-            plt.setp(ax.get_yticklabels(), visible=False)
-        else:
-            plt.ylabel('$v_{\mathrm{ej}} = %.2f\,c$' % vej_unique[ii], fontsize=24)
+    phi_unique, T0_unique, theta_unique = np.unique(phi), np.unique(T0), np.unique(theta)
+    phi_unique = phi_unique[::-1]
 
-        plt.xlim([0.001,0.1])
-        #plt.ylim([-17,-9])
-        #plt.ylim([-10,0])
-        plt.gca().invert_yaxis()
-        ax.set_xscale('log')
+    fig = plt.figure(figsize=(16, 16))
+    gs = gridspec.GridSpec(len(phi_unique), len(T0_unique))
+    for ii in range(len(phi_unique)):
+        for jj in range(len(T0_unique)):
+            ax = fig.add_subplot(gs[ii, jj])
+            plt.axes(ax)
+            idx = np.where((phi == phi_unique[ii]) & (T0 == T0_unique[jj]))[0]
 
-fig.text(0.5, 0.02, 'Ejecta Mass [solar mass]', ha='center', fontsize=30)
-fig.text(0.02, 0.5, 'Absolute Magnitude', va='center', rotation='vertical', fontsize=30)
-plt.show()
-plotName = os.path.join(plotDir,'fitall.pdf')
-plt.savefig(plotName)
-plt.close()
+            plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
+            plt.plot(10**mej[idx], Mag[idx], 'bo')
+            if not ii == len(phi_unique) - 1:
+                plt.setp(ax.get_xticklabels(), visible=False)
+            else:
+                plt.xlabel('$T_0 = %.0f\,K$' % T0_unique[jj], fontsize=24)
+            if not jj == 0:
+                plt.setp(ax.get_yticklabels(), visible=False)
+            else:
+                plt.ylabel('$\Phi = %.0f^\circ$' % phi_unique[ii], fontsize=24)
+
+            plt.xlim([0.001,0.1])
+            #plt.ylim([-17,-9])
+            #plt.ylim([-10,0])
+            plt.gca().invert_yaxis()
+            ax.set_xscale('log')
+
+    fig.text(0.5, 0.02, 'Ejecta Mass [solar mass]', ha='center', fontsize=30)
+    fig.text(0.02, 0.5, 'Absolute Magnitude', va='center', rotation='vertical', fontsize=30)
+    plt.show()
+    plotName = os.path.join(plotDir,'fitall.pdf')
+    plt.savefig(plotName)
+    plt.close()
+
+else:
+
+    vej_unique, Xlan_unique = np.unique(vej), np.unique(Xlan)
+    vej_unique = vej_unique[::-1]
+    
+    fig = plt.figure(figsize=(16, 16))
+    gs = gridspec.GridSpec(len(vej_unique), len(Xlan_unique))
+    for ii in range(len(vej_unique)):
+        for jj in range(len(Xlan_unique)):
+            ax = fig.add_subplot(gs[ii, jj])
+            plt.axes(ax)
+            idx = np.where((vej == vej_unique[ii]) & (Xlan == Xlan_unique[jj]))[0]
+            plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
+            plt.plot(10**mej[idx], Mag[idx], 'bo')
+            if not ii == len(vej_unique) - 1:
+                plt.setp(ax.get_xticklabels(), visible=False)
+            else:
+                plt.xlabel('$X_{\mathrm{lan}} = 10^{%.0f}$' % Xlan_unique[jj], fontsize=24)
+            if not jj == 0:
+                plt.setp(ax.get_yticklabels(), visible=False)
+            else:
+                plt.ylabel('$v_{\mathrm{ej}} = %.2f\,c$' % vej_unique[ii], fontsize=24)
+    
+            plt.xlim([0.001,0.1])
+            #plt.ylim([-17,-9])
+            #plt.ylim([-10,0])
+            plt.gca().invert_yaxis()
+            ax.set_xscale('log')
+    
+    fig.text(0.5, 0.02, 'Ejecta Mass [solar mass]', ha='center', fontsize=30)
+    fig.text(0.02, 0.5, 'Absolute Magnitude', va='center', rotation='vertical', fontsize=30)
+    plt.show()
+    plotName = os.path.join(plotDir,'fitall.pdf')
+    plt.savefig(plotName)
+    plt.close()
 
 M_trials = np.linspace(np.min(Mag), np.max(Mag), 100)
 
@@ -515,7 +555,10 @@ for ii in range(N):
 
     M_i = iband[jj] - iband[kk]
 
-    mej, vej, Xlan = row['mej'], row['vej'], row['Xlan']
+    if "bulla" in opts.analysis_type:
+        mej, T, phi, theta = row['mej'], row['T'], row['phi'], row['theta']
+    else:
+        mej, vej, Xlan = row['mej'], row['vej'], row['Xlan']
 
     if opts.fit_type == "linear":
         if opts.analysis_type == "combined":
@@ -529,6 +572,13 @@ for ii in range(N):
             mu = -( -M_K + K[ii] + m7*alpha[ii] + col*beta[ii] + np.log10(mej)*gamma[ii] + vej*delta[ii] + np.log10(Xlan)*zeta[ii] + sigma[ii])
         elif opts.analysis_type == "inferred":
             param_list_postprocess = np.array([np.log10(mej),vej,np.log10(Xlan)])
+            for i in range(len(param_mins)):
+                param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+            M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            mu = -( -M_K + M_pred + sigma[ii])
+        elif opts.analysis_type == "inferred_bulla":
+            param_list_postprocess = np.array([np.log10(mej),phi,np.log10(T),theta])
             for i in range(len(param_mins)):
                 param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
 

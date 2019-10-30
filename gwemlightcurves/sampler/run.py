@@ -561,9 +561,9 @@ def multinest(opts,plotDir):
             tmag, lbol, mag = Bu2019_model_ejecta(mej_best,T_best)
     elif opts.model == "Bu2019inc":
         if opts.doEjecta:
-            t0, mej, T, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6]
+            t0, mej, T, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5], data[:,6]
             idx = np.argmax(loglikelihood)
-            t0_best, mej_best, T_best, phi_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4], data[idx,5]
+            t0_best, mej_best, T_best, phi_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4], data[idx,5]
             tmag, lbol, mag = Bu2019inc_model_ejecta(mej_best,T_best,phi_best,theta_best)
     elif opts.model == "RoFe2017":
         if opts.doMasses:

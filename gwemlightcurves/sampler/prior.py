@@ -341,8 +341,8 @@ def myprior_Bu2019inc_ejecta(cube, ndim, nparams):
         if not Global.phi==-1:
             cube[3] = cube[3]*0.1 + Global.phi - 0.05
         else:
-            #cube[2] = cube[2]*90.0
-            cube[3] = cube[3]*15.0 + 15.0
+            cube[3] = cube[3]*90.0
+            #cube[3] = cube[3]*15.0 + 15.0
         cube[4] = cube[4]*90.0
         #cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
         cube[5] = cube[5]*1.0
