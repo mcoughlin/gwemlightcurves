@@ -30,6 +30,7 @@ def parse_commandline():
     parser.add_argument("-o","--outputDir",default="../output")
     parser.add_argument("-p","--plotDir",default="../plots")
     parser.add_argument("-d","--dataDir",default="../data")
+    parser.add_argument("-i","--inputDir",default="../input")
     parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
 
     parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_median_12.txt")
@@ -162,6 +163,25 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             print('Please set nsamples >= 1')
             exit(0)
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
+
+        # load the file
+        filepath = os.path.join(opts.inputDir, 'SAMPweights.csv')
+        data = np.genfromtxt(filepath, delimiter=',', names=True)
+
+        # load in the mass and lambda samples
+        m1 = data['m1_source']
+        m2 = data['m2_source']
+        lambda1 = data['lambda1']
+        lambda2 = data['lambda2']
+
+        # compute the normalized weights for each sample
+        logweight = data['logweight']
+        weight = np.exp(logweight-np.max(logweight))
+        weight /= np.sum(weight)
+
+        print(weight)
+        print(stop)
+
         eosname = "SLy"
         eos = EOS4ParameterPiecewisePolytrope(eosname)
         lambda1s, lambda2s = [], []
@@ -175,7 +195,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples["Xlan"] = 1e-3
 
     # limit masses
-    samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+    #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
  
     print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
     print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))

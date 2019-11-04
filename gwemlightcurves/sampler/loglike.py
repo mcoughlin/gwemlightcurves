@@ -812,6 +812,30 @@ def myloglike_Ka2017_TrPi2018(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Bu2019inc_TrPi2018(cube, ndim, nparams):
+
+    t0 = cube[0]
+    mej = 10**cube[1]
+    T = 10**cube[2]
+    phi = cube[3]
+    theta_v = cube[4]
+    E0 = 10**cube[5]
+    theta_c = cube[6]
+    theta_w = cube[7]
+    n = 10**cube[8]
+    p = cube[9]
+    epsilon_E = 10**cube[10]
+    epsilon_B = 10**cube[11]
+    zp = cube[12]
+
+    tmag, lbol, mag = Bu2019inc_TrPi2018_model(mej, T, phi, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+    print(prob)
+
+    return prob
+
+
 def myloglike_Ka2017_TrPi2018_A(cube, ndim, nparams):
 
     t0 = cube[0]

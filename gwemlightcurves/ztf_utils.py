@@ -81,7 +81,8 @@ def get_ztf(filename, name, username, password,
     fid.close()
 
 def get_ztf_lc(filename, name, username, password,
-               filetype = "default", z=0.0, zerr=0.0001, SN_Type="Ia"):
+               filetype = "default", z=0.0, zerr=0.0001, SN_Type="Ia",
+               programids=None):
 
     r = requests.post('http://skipper.caltech.edu:8080/cgi-bin/growth/print_lc.cgi', auth=(username, password), data={'name' : name})
     lines = r.text.replace(" ","").replace("\n","").replace('"','').split("isdiffpos")[-1].split("<br>")
@@ -98,6 +99,10 @@ def get_ztf_lc(filename, name, username, password,
             date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         else:
             date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
+        if programids is not None:
+            if programid == "None": continue
+            if not int(programid) in programids:
+                continue
 
         if not instrument in ["P48+ZTF","P60+SEDM"]: continue
 
@@ -122,6 +127,10 @@ def get_ztf_lc(filename, name, username, password,
         else:
             mag.append(float(magpsf))
             magerr.append(float(sigmamagpsf))
+
+    if len(jd) == 0:
+        return mjds, mag, magerr, fluxs, fluxerrs, passband
+
     idx = np.argsort(jd)
 
     zeropoint = 26.2

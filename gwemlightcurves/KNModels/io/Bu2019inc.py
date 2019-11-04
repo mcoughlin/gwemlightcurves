@@ -40,7 +40,7 @@ def get_Bu2019inc_model(table, **kwargs):
     if not 'n_coeff' in table.colnames:
         if doAB:
             table['n_coeff'] = 43
-            table['n_coeff'] = 2
+            #table['n_coeff'] = 2
         elif doSpec:
             table['n_coeff'] = 21
 
@@ -117,6 +117,7 @@ def get_Bu2019inc_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
+        print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),np.log10(table['T'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc")
         elif doSpec:

@@ -64,6 +64,7 @@ def parse_commandline():
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
+    parser.add_option("--evidence_tolerance",default=0.5,type=int)
 
     parser.add_option("--doFixXlan",  action="store_true", default=False) 
     parser.add_option("--Xlan",default=1e-9,type=float) 
@@ -84,8 +85,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019inc_TrPi2018"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019inc_TrPi2018")
     exit(0)
 
 if opts.doFixZPT0:
@@ -411,7 +412,7 @@ if opts.doFixT:
 if opts.doFixXlan:
     Global.phi = opts.phi
 
-if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc":
+if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc" or opts.model == "Ka2017x3" or opts.model == "Ka2017x3inc" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017_TrPi2018_A" or opts.model == "Bu2019" or opts.model == "Bu2019inc" or opts.model == "Bu2019inc_TrPi2018":
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
@@ -424,7 +425,7 @@ if opts.model == "Ka2017" or opts.model =="Ka2017inc" or opts.model == "Ka2017_A
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model
-    elif opts.model == "Bu2019inc":
+    elif opts.model in ["Bu2019inc","Bu2019inc_TrPi2018"]:
         modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
         with open(modelfile, 'rb') as handle:
             svd_mag_model = pickle.load(handle)

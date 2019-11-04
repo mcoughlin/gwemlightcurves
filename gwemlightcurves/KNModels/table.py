@@ -336,6 +336,10 @@ class KNTable(Table):
 		        names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
 		elif model == "Ka2017_A":
 		        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
+                elif model == "Bu2019inc":
+                        names=['t0', 'mej', 'T', 'phi', 'theta', 'zp', 'loglikelihood']
+                elif model == "Bu2019inc_TrPi2018":
+                        names=['t0', 'mej', 'T', 'phi', 'theta', "E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B", 'zp', 'loglikelihood']
 		else:
 			print("Model not implemented...")
 			exit(0)
@@ -359,6 +363,17 @@ class KNTable(Table):
 		        data_out['n'] = 10**data_out['n']
 		        data_out['epsilon_E'] = 10**data_out['epsilon_E']
 		        data_out['epsilon_B'] = 10**data_out['epsilon_B']
+                elif model in ["Bu2019","Bu2019inc"]:
+                        data_out['mej'] = 10**data_out['mej']
+                        data_out['T'] = 10**data_out['T']
+                elif model == "Bu2019inc_TrPi2018":
+                        data_out['mej'] = 10**data_out['mej']
+                        data_out['T'] = 10**data_out['T']
+                        data_out['E0'] = 10**data_out['E0']
+                        data_out['n'] = 10**data_out['n']
+                        data_out['epsilon_E'] = 10**data_out['epsilon_E']
+                        data_out['epsilon_B'] = 10**data_out['epsilon_B']
+
 		return KNTable(data_out)
 
 	def calc_tidal_lambda(self, remove_negative_lambda=False):
