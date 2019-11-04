@@ -10,7 +10,7 @@ def multinest(opts,plotDir):
     #n_live_points = 1000
     #n_live_points = 100
     n_live_points = opts.n_live_points
-    evidence_tolerance = 0.5
+    evidence_tolerance = opts.evidence_tolerance
     #evidence_tolerance = 10000.0
     max_iter = 0
     best = []
@@ -242,6 +242,14 @@ def multinest(opts,plotDir):
         n_params = len(parameters)
 
         pymultinest.run(myloglike_Ka2017_TrPi2018, myprior_Ka2017_TrPi2018, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+
+    elif opts.model in ["Bu2019inc_TrPi2018"]:
+
+        parameters = ["t0","mej","T","phi","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp"]
+        labels = [r"$T_0$", r"${\rm log}_{10} (M_{\rm ej})$",r"${\rm log}_{10} (T_{\rm eff})$",r"$\Phi$", r"$\theta_v$", r"$E_0$", r"$\theta_c$", r"$\theta_w$", r"$n$",r"$p$", "$\epsilon_E$","$\epsilon_B$","ZP"]
+        n_params = len(parameters)
+
+        pymultinest.run(myloglike_Bu2019inc_TrPi2018, myprior_Bu2019inc_TrPi2018, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
 
     elif opts.model in ["Ka2017_TrPi2018_A"]:
 
@@ -975,6 +983,15 @@ def multinest(opts,plotDir):
         t0_best, mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], 10**data[idx,3], data[idx,4], 10**data[idx,5], data[idx,6], data[idx,7], 10**data[idx,8], data[idx,9], 10**data[idx,10], 10**data[idx,11], data[idx,12]
 
         tmag, lbol, mag = Ka2017_TrPi2018_model(mej_best, vej_best, Xlan_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best)
+
+    elif opts.model == "Bu2019inc_TrPi2018":
+
+        t0, mej, T, phi, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], 10**data[:,5], data[:,6], data[:,7], 10**data[:,8], data[:,9], 10**data[:,10], 10**data[:,11], data[:,12], data[:,13]
+        idx = np.argmax(loglikelihood)
+
+        t0_best, mej_best, T_best, phi_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4], 10**data[idx,5], data[idx,6], data[idx,7], 10**data[idx,8], data[idx,9], 10**data[idx,10], 10**data[idx,11], data[idx,12]
+
+        tmag, lbol, mag = Bu2019inc_TrPi2018_model(mej_best, T_best, phi_best, theta_v_best, E0_best, theta_c_best, theta_w_best, n_best, p_best, epsilon_E_best, epsilon_B_best)
 
     elif opts.model == "Ka2017_TrPi2018_A":
 
