@@ -688,7 +688,7 @@ for filt, color in zip(filters,colors):
         plt.xlim([0.0, 7.0])
         plt.ylim([18.0,22.0])
     else:
-        plt.xlim([0.0, 7.0])
+        plt.xlim([0.0, 10.0])
         plt.ylim([-22.0,-8.0])
     plt.gca().invert_yaxis()
     plt.grid()

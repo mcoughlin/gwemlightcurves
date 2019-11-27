@@ -164,35 +164,36 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             exit(0)
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
 
-        # load the file
-        filepath = os.path.join(opts.inputDir, 'SAMPweights.csv')
-        data = np.genfromtxt(filepath, delimiter=',', names=True)
+        #eosname = "SLy"
+        #eos = EOS4ParameterPiecewisePolytrope(eosname)
+       
+        m1s, m2s, dists = [], [], []
+        lambda1s, lambda2s, chi_effs = [], [], []
+        Xlans = []
+ 
+        Xlan_min, Xlan_max = -9, -1 
+        for ii, row in enumerate(samples):
+            m1, m2, dist, chi_eff = row["m1"], row["m2"], row["dist"], row["chi_eff"]
+            nsamples = 10
+            indices = np.random.randint(0, 2395, size=nsamples)
+            for jj in range(nsamples):
+                index = indices[jj] 
+                eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
+                data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                marray, larray = data_out["M"], data_out["Lambda"]
+                f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                #lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                lambda1, lambda2 = f(m1), f(m2)
 
-        # load in the mass and lambda samples
-        m1 = data['m1_source']
-        m2 = data['m2_source']
-        lambda1 = data['lambda1']
-        lambda2 = data['lambda2']
-
-        # compute the normalized weights for each sample
-        logweight = data['logweight']
-        weight = np.exp(logweight-np.max(logweight))
-        weight /= np.sum(weight)
-
-        print(weight)
-        print(stop)
-
-        eosname = "SLy"
-        eos = EOS4ParameterPiecewisePolytrope(eosname)
-        lambda1s, lambda2s = [], []
-        for row in samples:
-            m1, m2 = row["m1"], row["m2"]
-            lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-            lambda1s.append(lambda1)
-            lambda2s.append(lambda2)
-        samples["lambda1"] = lambda1s
-        samples["lambda2"] = lambda2s
-        samples["Xlan"] = 1e-3
+                m1s.append(m1)
+                m2s.append(m2)
+                dists.append(dist)
+                lambda1s.append(lambda1)
+                lambda2s.append(lambda2)
+                chi_effs.append(chi_eff)
+                Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
+        data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist', 'lambda1', 'lambda2','chi_eff','Xlan'))
 
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
@@ -222,14 +223,10 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # calc the velocity of ejecta
         vej1 = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
 
-        if opts.cbc_type == "BNS":        
-            samples['chi_eff'] = 0.0
-        elif opts.cbc_type == "BHNS":
-            samples['chi_eff'] = -1.0
         samples['q'] = samples['m1'] / samples['m2']
         from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
         # calc the mass of ejecta
-        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['mb1'], samples['m1'])
+        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['m2'])
         # calc the velocity of ejecta
         vej2 = calc_vave(samples['q'])
 
@@ -297,6 +294,8 @@ elif opts.analysisType == "cbclist":
     samples["lambda2"] = lambda2s
     samples["Xlan"] = 1e-3
 
+   
+
     # Calc compactness
     samples = samples.calc_compactness(fit=True)
     # Calc baryonic mass
@@ -322,8 +321,6 @@ elif opts.analysisType == "cbclist":
 
     idx = np.where(samples['mej']>0.1)[0]
     samples['mej'][idx] = 0.1
-
-    print(np.min(samples['mej']),np.max(samples['mej']))
 
 bounds = [-3.0,-1.0]
 xlims = [-2.8,-1.0]
@@ -462,13 +459,17 @@ for model in models:
 
 if opts.doEvent:
     filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
-    data_out = lightcurve_utils.loadEvent(filename)
-    for ii,key in enumerate(data_out.iterkeys()):
-        if key == "t":
-            continue
-        else:
-            data_out[key][:,0] = data_out[key][:,0] - opts.T0
-            data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+    if os.path.isfile(filename):
+        data_out = lightcurve_utils.loadEvent(filename)
+        for ii,key in enumerate(data_out.iterkeys()):
+            if key == "t":
+                continue
+            else:
+                data_out[key][:,0] = data_out[key][:,0] - opts.T0
+                data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
+    else:
+        print('Missing %s... no lightcurves will be plotted' % filename)
+        data_out = {}
 elif opts.doFixedLimit:
     data_out = {}
     data_out["t"] = tt
@@ -498,17 +499,17 @@ for ii, model in enumerate(models):
 
     if opts.doEvent or opts.doFixedLimit:
         for filt, color, magidx in zip(filts,colors,magidxs):
-            if not filt in data_out: continue
-            samples = data_out[filt]
-            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
-            idx = np.where(~np.isnan(y))[0]
-            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-
-            idx = np.where(np.isfinite(sigma_y))[0]
-            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
-            idx = np.where(~np.isfinite(sigma_y))[0]
-            #plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
-            plt.plot(t[idx],y[idx],'--',c=color)
+            if filt in data_out:
+                samples = data_out[filt]
+                t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+                idx = np.where(~np.isnan(y))[0]
+                t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    
+                idx = np.where(np.isfinite(sigma_y))[0]
+                plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
+                idx = np.where(~np.isfinite(sigma_y))[0]
+                #plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
+                plt.plot(t[idx],y[idx],'--',c=color)
 
 plt.xlabel('Time [days]')
 plt.ylabel('Absolute AB Magnitude')
@@ -592,15 +593,15 @@ for model in models:
         #magmax = np.max(mag_all[model][filt],axis=0)
         #magmin = np.min(mag_all[model][filt],axis=0)
         magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
+        magmax = np.percentile(mag_all[model][filt], 95, axis=0) + opts.errorbudget
+        magmin = np.percentile(mag_all[model][filt], 5, axis=0) - opts.errorbudget
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
 
 plotName = "%s/mag_panels.pdf"%(plotDir)
 if len(models) < 4:
-    plt.figure(figsize=(20,20))
+    plt.figure(figsize=(20,28))
 else:
     plt.figure(figsize=(20,28))
 
@@ -615,16 +616,16 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
 
     if opts.doEvent or opts.doFixedLimit:
-        if not filt in data_out: continue
-        samples = data_out[filt]
-        t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
-        idx = np.where(~np.isnan(y))[0]
-        t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
-
-        idx = np.where(np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
-        idx = np.where(~np.isfinite(sigma_y))[0]
-        plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
+        if filt in data_out:
+            samples = data_out[filt]
+            t, y, sigma_y = samples[:,0], samples[:,1], samples[:,2]
+            idx = np.where(~np.isnan(y))[0]
+            t, y, sigma_y = t[idx], y[idx], sigma_y[idx]
+    
+            idx = np.where(np.isfinite(sigma_y))[0]
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color,markersize=15)
+            idx = np.where(~np.isfinite(sigma_y))[0]
+            plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color,markersize=15)
 
     for ii, model in enumerate(models):
         legend_name = get_legend(model)
@@ -660,18 +661,18 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         plt.setp(ax1.get_xticklabels(), visible=False)
         #l = plt.legend(loc="upper right",prop={'size':40},numpoints=1,shadow=True, fancybox=True)
 
-        #ax3 = ax1.twinx()   # mirror them
-        #ax3.set_yticks([16,12,8,4,0])
-        #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
-        #ax3.set_yticklabels(app.astype(int))
+        ax3 = ax1.twinx()   # mirror them
+        ax3.set_yticks([16,12,8,4,0])
+        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        ax3.set_yticklabels(app.astype(int))
 
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
     else:
-        #ax4 = ax2.twinx()   # mirror them
-        #ax4.set_yticks([16,12,8,4,0])
-        #app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
-        #ax4.set_yticklabels(app.astype(int))
+        ax4 = ax2.twinx()   # mirror them
+        ax4.set_yticks([16,12,8,4,0])
+        app = np.array([-18,-16,-14,-12,-10])+np.floor(5*(np.log10(opts.distance*1e6) - 1))
+        ax4.set_yticklabels(app.astype(int))
 
         plt.xticks(fontsize=36)
         plt.yticks(fontsize=36)
@@ -681,7 +682,7 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
 ax1.set_zorder(1)
 ax2.set_xlabel('Time [days]',fontsize=48,labelpad=30)
-plt.savefig(plotName)
+plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
 plotName = "%s/gminusr.pdf"%(plotDir)
