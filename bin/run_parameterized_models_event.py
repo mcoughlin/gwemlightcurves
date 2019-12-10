@@ -3,9 +3,13 @@
 # ---- Import standard modules to the python path.
 
 import os, sys, copy
+import glob
 import numpy as np
 import argparse
+import pickle
+import pandas as pd
 
+import h5py
 from scipy.interpolate import interpolate as interp
  
 import matplotlib
@@ -14,6 +18,7 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+import matplotlib.gridspec as gridspec
 
 from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
@@ -31,7 +36,7 @@ def parse_commandline():
     parser.add_argument("-p","--plotDir",default="../plots")
     parser.add_argument("-d","--dataDir",default="../data")
     parser.add_argument("-i","--inputDir",default="../input")
-    parser.add_argument("--posterior_samples", default="../data/event_data/G298048.dat")
+    parser.add_argument("--posterior_samples", default="../data/event_data/GW170817_SourceProperties_low_spin.dat")
 
     parser.add_argument("--cbc_list", default="../data/3G_Lists/list_BNS_detected_3G_median_12.txt")
     parser.add_argument("--cbc_type", default="BNS")
@@ -63,6 +68,9 @@ def parse_commandline():
     parser.add_argument("--tmax",default=7.0,type=float)
     parser.add_argument("--tmin",default=0.05,type=float)
     parser.add_argument("--dt",default=0.05,type=float)
+
+    parser.add_argument("--doAddPosteriors",  action="store_true", default=False)
+    parser.add_argument("--eostype",default="spec")
 
     args = parser.parse_args()
  
@@ -143,6 +151,7 @@ plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.event)
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
+plotDir = os.path.join(plotDir,opts.eostype)
 if opts.analysisType == "cbclist":
     plotDir = os.path.join(plotDir,opts.cbc_type)
     plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
@@ -164,26 +173,57 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             exit(0)
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
 
-        #eosname = "SLy"
-        #eos = EOS4ParameterPiecewisePolytrope(eosname)
-       
         m1s, m2s, dists = [], [], []
         lambda1s, lambda2s, chi_effs = [], [], []
         Xlans = []
  
+        if opts.eostype == "gp":
+            filenames = glob.glob("/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-*-0.csv")
+            idxs = []
+            for filename in filenames:
+                filenameSplit = filename.replace(".csv","").split("/")[-1].split("-")
+                idxs.append(int(filenameSplit[1]))
+            idxs = np.array(idxs)
+        elif opts.eostype == "Sly":
+            eosname = "SLy"
+            eos = EOS4ParameterPiecewisePolytrope(eosname)
+
         Xlan_min, Xlan_max = -9, -1 
         for ii, row in enumerate(samples):
             m1, m2, dist, chi_eff = row["m1"], row["m2"], row["dist"], row["chi_eff"]
             nsamples = 10
-            indices = np.random.randint(0, 2395, size=nsamples)
+            if opts.eostype == "spec":
+                indices = np.random.randint(0, 2395, size=nsamples)
+            elif opts.eostype == "gp":
+                indices = np.random.randint(0, len(idxs), size=nsamples)
             for jj in range(nsamples):
-                index = indices[jj] 
-                eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
-                data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                marray, larray = data_out["M"], data_out["Lambda"]
-                f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                #lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                lambda1, lambda2 = f(m1), f(m2)
+                if (opts.eostype == "spec") or (opts.eostype == "gp"):
+                    index = indices[jj] 
+
+                if opts.eostype == "spec":
+                    eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
+                    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                    marray, larray = data_out["M"], data_out["Lambda"]
+                    f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                    lambda1, lambda2 = f(m1), f(m2)
+                elif opts.eostype == "gp":
+                    lambda1, lambda2 = 0.0, 0.0
+                    phasetr = 0
+                    while (lambda1==0.0) or (lambda2 == 0.0):
+                        eospath = "/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-%06d-%d.csv" % (idxs[index], phasetr)
+                        if not os.path.isfile(eospath):
+                            break
+                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                        marray, larray = data_out["M"], data_out["Lambda"]
+                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        lambda1_tmp, lambda2_tmp = f(m1), f(m2)
+                        if (lambda1_tmp>0) and (lambda1==0.0):
+                            lambda1 = lambda1_tmp
+                        if (lambda2_tmp>0) and (lambda2 == 0.0):
+                            lambda2 = lambda2_tmp
+                        phasetr = phasetr + 1
+                elif opts.eostype == "Sly":
+                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
 
                 m1s.append(m1)
                 m2s.append(m2)
@@ -223,7 +263,10 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # calc the velocity of ejecta
         vej1 = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
 
-        samples['q'] = samples['m1'] / samples['m2']
+        samples['mchirp'], samples['eta'], samples['q'] = lightcurve_utils.ms2mc(samples['m1'], samples['m2'])
+
+        samples['q'] = 1.0 / samples['q']
+
         from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
         # calc the mass of ejecta
         mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['m2'])
@@ -367,6 +410,37 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
+if opts.doAddPosteriors:
+    samples_posteriors = KNTable.read_samples(opts.posterior_samples)
+    
+plotName = "%s/mass_parameters.pdf"%(plotDir)
+fig = plt.figure(figsize=(14,12))
+gs = gridspec.GridSpec(1, 2)
+ax1 = fig.add_subplot(gs[0, 0])
+ax2 = fig.add_subplot(gs[0, 1])
+plt.axes(ax1)
+bins, hist1 = lightcurve_utils.hist_results(samples["mchirp"],Nbins=25)
+plt.step(bins,hist1,'-',color='k',linewidth=3)
+if opts.doAddPosteriors:
+    bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["mchirp"],Nbins=25)
+    plt.step(bins,hist1,'--',color='r',linewidth=3)    
+plt.xlabel(r"Chirp Mass",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.axes(ax2)
+bins, hist1 = lightcurve_utils.hist_results(samples["q"],Nbins=25)
+plt.step(bins,hist1,'-',color='k',linewidth=3, label='Template Bank')
+if opts.doAddPosteriors:
+    bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["q"],Nbins=25)
+    plt.step(bins,hist1,'--',color='r',linewidth=3, label='PE')
+plt.xlabel(r"q",fontsize=24)
+plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.savefig(plotName)
+plt.close()
+
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 
@@ -393,14 +467,24 @@ kwargs["doAB"] = True
 kwargs["doSpec"] = False
 
 # Create dict of tables for the various models, calculating mass ejecta velocity of ejecta and the lightcurve from the model
-model_tables = {}
-for model in models:
-    model_tables[model] = KNTable.model(model, samples, **kwargs)
+pcklFile = os.path.join(plotDir,"data.pkl")
+if os.path.isfile(pcklFile):
+    f = open(pcklFile, 'r')
+    (model_tables) = pickle.load(f)
+    f.close()
+else:
+    model_tables = {}
+    for model in models:
+        model_tables[model] = KNTable.model(model, samples, **kwargs)
 
-# Now we need to do some interpolation
-for model in models:
-    model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
-    #model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
+    # Now we need to do some interpolation
+    for model in models:
+        model_tables[model] = lightcurve_utils.calc_peak_mags(model_tables[model]) 
+        #model_tables[model] = lightcurve_utils.interpolate_mags_lbol(model_tables_lbol[model])
+
+    f = open(pcklFile, 'wb')
+    pickle.dump((model_tables), f)
+    f.close()
 
 if opts.analysisType == "cbclist":
     fid = open(os.path.join(plotDir,'cbcratio.dat'),'w')

@@ -333,7 +333,7 @@ def myprior_Bu2019_ejecta(cube, ndim, nparams):
 def myprior_Bu2019inc_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
         #cube[1] = cube[1]*5.0 - 5.0
-        cube[1] = cube[1]*3.0 - 3.0
+        cube[1] = cube[1]*2.0 - 3.0
         if not Global.T==0:
             cube[2] = cube[2]*0.1 + Global.T - 0.05
         else:
@@ -341,9 +341,9 @@ def myprior_Bu2019inc_ejecta(cube, ndim, nparams):
         if not Global.phi==-1:
             cube[3] = cube[3]*0.1 + Global.phi - 0.05
         else:
-            cube[3] = cube[3]*30.0
+            #cube[3] = cube[3]*30.0
             #cube[3] = cube[3]*90.0
-            #cube[3] = cube[3]*15.0 + 15.0
+            cube[3] = cube[3]*15.0 + 15.0
         cube[4] = cube[4]*90.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
         #cube[5] = cube[5]*1.0
