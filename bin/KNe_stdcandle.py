@@ -56,10 +56,13 @@ def parse_commandline():
     parser.add_option("--nsamples",default=-1,type=int)
 
     #parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
-    parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_old/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
+    #parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_old/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
+    parser.add_option("--multinest_samples", default="../plots/gws/Ka2017/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/0.10/2-post_equal_weights.dat")
     parser.add_option("-m","--model",default="Ka2017", help="Ka2017,Ka2017x2")
 
     parser.add_option("--posterior_samples", default="../data/event_data/GW170817_SourceProperties_high_spin.dat,../data/event_data/GW170817_SourceProperties_low_spin.dat")
+
+    parser.add_option("-e","--errorbudget",default=0.10,type=float)
 
     opts, args = parser.parse_args()
 
@@ -242,6 +245,7 @@ if not os.path.isdir(baseplotDir):
     os.makedirs(baseplotDir)
 
 plotDir = os.path.join(baseplotDir,opts.analysis_type)
+plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
@@ -299,7 +303,7 @@ if opts.fit_type == "gpr":
     gp.fit(param_array_postprocess, Mag)
 
     M, sigma2_pred = gp.predict(np.atleast_2d(param_array_postprocess), return_std=True)
-    sigma_best = np.median(np.sqrt(sigma2_pred))
+    sigma_best = np.median(sigma2_pred)
     sigma = sigma_best*np.ones(M.shape)
 
 elif opts.fit_type == "linear":
@@ -458,8 +462,16 @@ plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
 samples = KNTable.read_multinest_samples(opts.multinest_samples, opts.model)
+if not "FixZPT0" in opts.multinest_samples:
+    ZPRange = 5.0
+    zp_mu, zp_std = 0.0, 5.0
+    samples["zp"] = scipy.stats.norm(zp_mu, zp_std).ppf(samples["zp"])
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
+
+# restrict ejecta masses
+samples = samples[samples["mej"] < 0.1]
+
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
 tmax = 14.0
@@ -484,6 +496,8 @@ else:
     f = open(pcklFile, 'wb')
     pickle.dump((model_table), f)
     f.close()
+
+print(len(samples), len(model_table))
 
 N = 1000
 idx = np.random.randint(0, high=len(samples), size=N)
@@ -532,9 +546,10 @@ if opts.fit_type == "linear":
 elif opts.fit_type == "gpr":
     sigma = np.random.normal(loc=0.0, scale=sigma_best, size=N)
 
-mus = []
+mus = np.empty((0,1))
 for ii in range(N):
     row = samples[idx[ii]]
+    zp = row["zp"]
 
     model = model_table[idx[ii]]
     mag = model['mag']
@@ -576,7 +591,9 @@ for ii in range(N):
                 param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
 
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            sigma1 = np.random.normal(loc=0.0, scale=sigma2_pred, size=100)
             mu = -( -M_K + M_pred + sigma[ii])
+            #mu = -( -M_K + M_pred + sigma1)
         elif opts.analysis_type == "inferred_bulla":
             param_list_postprocess = np.array([np.log10(mej),phi,np.log10(T),theta])
             for i in range(len(param_mins)):
@@ -595,10 +612,12 @@ for ii in range(N):
 
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             mu = -( -M_K + M_pred + sigma[ii])
+    mu = mu + zp
+    mus = np.append(mus,mu)
 
-    mus.append(mu)
 mus = np.array(mus)
 dist = 10**((mus/5.0) + 1.0) / 1e6
+print(mus, dist)
 kdedir_dist = greedy_kde_areas_1d(dist)
 
 bin_edges = np.arange(5,85,2)

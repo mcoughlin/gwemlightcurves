@@ -22,7 +22,7 @@ def DiskModelEtaPow(Q,C,chi,a,b,c,d):
     rISCO = Risco(chi)
     eta = Q/(1.+Q)**2.
     mass = (a*(eta)**(-1./3.)*(1.-2.*C)-b*(rISCO/eta*C)+c)
-    mass[mass<0] = 0.0
+    mass[mass<0] = 1e-3
     return mass**(1.+d)
 
 def FHN18RemnantMass(Q,C,chi):
@@ -39,10 +39,12 @@ def FoucartEjecta(Q,C,chi):
     Mej[Mej<0] = 1e-3
     return Mej
 
-def calc_meje(q,chi_eff,c,mb,mns,f=0.15):
+def calc_meje(q,chi_eff,c,mns,f=0.15):
 
+    mb = mns*(1+0.6*c/(1.-0.5*c))
     mdyn = FoucartEjecta(q,c,chi_eff)*mb
     mwind = f*(FHN18RemnantMass(q,c,chi_eff)-FoucartEjecta(q,c,chi_eff))*mb
+    mwind[mwind<0] = 0.0
     mtot = mdyn+mwind
 
     return mtot

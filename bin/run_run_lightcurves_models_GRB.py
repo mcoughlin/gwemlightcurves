@@ -10,6 +10,8 @@ def parse_commandline():
 
     parser.add_option("-g","--grb",default="GRB130603B")
 
+    parser.add_option("-e","--errorbudget",default=0.25,type=float)
+
     opts, args = parser.parse_args()
 
     return opts
@@ -17,8 +19,7 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-errorbudget = 0.01
-errorbudget = 1.00
+errorbudget = opts.errorbudget
 
 filename = "../lightcurves/GRB.dat"
 lines = [line.rstrip('\n') for line in open(filename)]

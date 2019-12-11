@@ -5,7 +5,7 @@
 import numpy as np
 import scipy
 
-def calc_meje(m1,c1,m2,c2):
+def calc_meje(m1,c1,m2,c2, zeta=0.3):
     """
 .. py:function:: calc_meje(m1,mb1,c1,m2,mb2,c2)
 
@@ -64,7 +64,6 @@ def calc_meje(m1,c1,m2,c2):
     mdisk[rat>0.32] = -3.0
     mdisk = 10**mdisk
  
-    zeta = 0.15
     meje_wind_fit = zeta*mdisk
     meje_wind_fit[meje_wind_fit > 0.1] = 0.1
 

@@ -20,12 +20,19 @@
 
 import os
 import numpy as np
+import scipy
+import h5py
+import pandas as pd
 
+import astropy.coordinates
 from astropy.table import (Table, Column, vstack)
+from astropy import units as u
 from distutils.spawn import find_executable
 
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
+
+from gwemlightcurves import lightcurve_utils
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos', 'construct_eos_from_polytrope']
@@ -207,26 +214,47 @@ class KNTable(Table):
 		if not os.path.isfile(filename_samples):
 			raise ValueError("Sample file supplied does not exist")
 
-		data_out = Table.read(filename_samples, format='ascii')
+                if "hdf5" in filename_samples:
+                    samples_out = h5py.File(filename_samples, 'r')
+                    key = samples_out.keys()[0]
+                    samples_out = samples_out[key]
+                    key = samples_out.keys()[0]
+                    samples_out = samples_out[key]
+                    key = samples_out.keys()[0]
+                    samples_out = samples_out[key]
+                    data_out = pd.DataFrame.from_records(np.array(samples_out))
+                    data_out.rename(columns={'mc': 'mchirp'}, inplace=True)
 
-		if 'm1_source' in list(data_out.columns):
-			data_out['m1'] = data_out['m1_source']
-			print('setting m1 to m1_source')
-		if 'm2_source' in list(data_out.columns):
-			data_out['m2'] = data_out['m2_source']
-			print('setting m2 to m2_source')
+                    data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
+                    data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
+                    data_out['q'] = 1.0/data_out['q']  
 
-		if 'dlam_tilde' in list(data_out.columns):
-			data_out['dlambdat'] = data_out['dlam_tilde']
-			print('setting dlambdat to dlam_tilde')
-		if 'lam_tilde' in list(data_out.columns):
-			data_out['lambdat'] = data_out['lam_tilde']
-			print('setting lambdat to lam_tilde')
+                    data_out = Table.from_pandas(data_out)
+ 
+                else:
+    		    data_out = Table.read(filename_samples, format='ascii')
+    
+    		    if 'm1_detector_frame_Msun' in list(data_out.columns):
+    			data_out['m1'] = data_out['m1_detector_frame_Msun']
+    			print('setting m1 to m1_source')
+    		    if 'm2_detector_frame_Msun' in list(data_out.columns):
+    			data_out['m2'] = data_out['m2_detector_frame_Msun']
+    			print('setting m2 to m2_source')
+    
+    		    if 'dlam_tilde' in list(data_out.columns):
+    			data_out['dlambdat'] = data_out['dlam_tilde']
+    			print('setting dlambdat to dlam_tilde')
+    		    if 'lam_tilde' in list(data_out.columns):
+                        data_out['lambdat'] = data_out['lam_tilde']
+    			print('setting lambdat to lam_tilde')
+    
+                    data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
+                    data_out['q'] = 1.0/data_out['q']
 
 		return KNTable(data_out)
 
-        @classmethod
-        def read_mchirp_samples(cls, filename_samples, Nsamples=100):
+	@classmethod
+	def read_mchirp_samples(cls, filename_samples, Nsamples=100):
                 """
                 Read low latency posterior_samples
                 """
@@ -234,37 +262,56 @@ class KNTable(Table):
                 if not os.path.isfile(filename_samples):
                         raise ValueError("Sample file supplied does not exist")
 
-                names = ['SNRdiff', 'erf', 'weight',
-                         'm1', 'm2', 'dist']
-                data_out = Table.read(filename_samples,
-                                      names=names,
-                                      format='ascii')
+                try:
+                    names = ['SNRdiff', 'erf', 'weight', 'm1', 'm2',
+                             'spin1', 'spin2', 'dist']
+                    data_out = Table.read(filename_samples,
+                                          names=names,
+                                          format='ascii')
+                except:
+                    names = ['SNRdiff', 'erf', 'weight',
+                             'm1', 'm2', 'dist']
+                    data_out = Table.read(filename_samples,
+                                          names=names,
+                                          format='ascii')
+                    data_out['spin1'] = 0.0
+                    data_out['spin2'] = 0.0
+
+                data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
+
+                data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
+                                       data_out['m2'] * data_out['spin2']) /
+                                      (data_out['m1'] + data_out['m2']))
                 data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
                 kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
                 gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
-                params = np.vstack((data_out['m1'],data_out['m2'],data_out['dist'])).T
+                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist'])).T
                 data = np.array(data_out['weight'])
                 gp.fit(params, data)
 
-                m1_min, m1_max = np.min(data_out['m1']), np.max(data_out['m1'])
-                m2_min, m2_max = np.min(data_out['m2']), np.max(data_out['m2'])
+                mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
+                q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
+                chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
                 dist_min, dist_max = np.min(data_out['dist']), np.max(data_out['dist'])
 
                 cnt = 0
                 samples = []
                 while cnt < Nsamples:
-                    m1 = np.random.uniform(m1_min, m1_max)
-                    m2 = np.random.uniform(m2_min, m2_max)
+                    mchirp = np.random.uniform(mchirp_min, mchirp_max)
+                    q = np.random.uniform(q_min, q_max)
+                    chi_eff = np.random.uniform(chi_min, chi_max)
                     dist = np.random.uniform(dist_min, dist_max)
-                    samp = np.atleast_2d(np.array([m1,m2,dist]))
+                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist]))
                     weight = gp.predict(samp)[0]
                     thresh = np.random.uniform(0,1)
                     if weight > thresh:
-                        samples.append([m1,m2,dist])
+                        samples.append([mchirp,q,chi_eff,dist])
                         cnt = cnt + 1
-                print(samples)
                 samples = np.array(samples)
-                data_out = Table(data=samples, names=['m1','m2','dist'])
+                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist'])
+                data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
+                data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
+                data_out["q"] = 1.0 / data_out["q"]
 
                 if 'm1_source' in list(data_out.columns):
                         data_out['m1'] = data_out['m1_source']
@@ -330,15 +377,15 @@ class KNTable(Table):
 			names=['t0', 'mej', 'vej', 'Xlan', 'zp', 'loglikelihood']
 		elif model == "Ka2017x2":
 			names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'zp', 'loglikelihood']
-                elif model == "Ka2017x2inc":
+		elif model == "Ka2017x2inc":
                         names=['t0', 'mej_1', 'vej_1', 'Xlan_1', 'mej_2', 'vej_2', 'Xlan_2', 'inclination', 'zp', 'loglikelihood']
 		elif model == "Ka2017_TrPi2018":
 		        names = ["t0","mej","vej","Xlan","theta_v","E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B","zp", 'loglikelihood']
 		elif model == "Ka2017_A":
 		        names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
-                elif model == "Bu2019inc":
+		elif model == "Bu2019inc":
                         names=['t0', 'mej', 'T', 'phi', 'theta', 'zp', 'loglikelihood']
-                elif model == "Bu2019inc_TrPi2018":
+		elif model == "Bu2019inc_TrPi2018":
                         names=['t0', 'mej', 'T', 'phi', 'theta', "E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B", 'zp', 'loglikelihood']
 		else:
 			print("Model not implemented...")
@@ -363,16 +410,19 @@ class KNTable(Table):
 		        data_out['n'] = 10**data_out['n']
 		        data_out['epsilon_E'] = 10**data_out['epsilon_E']
 		        data_out['epsilon_B'] = 10**data_out['epsilon_B']
-                elif model in ["Bu2019","Bu2019inc"]:
+		elif model in ["Bu2019","Bu2019inc"]:
                         data_out['mej'] = 10**data_out['mej']
                         data_out['T'] = 10**data_out['T']
-                elif model == "Bu2019inc_TrPi2018":
+		elif model == "Bu2019inc_TrPi2018":
                         data_out['mej'] = 10**data_out['mej']
                         data_out['T'] = 10**data_out['T']
                         data_out['E0'] = 10**data_out['E0']
                         data_out['n'] = 10**data_out['n']
                         data_out['epsilon_E'] = 10**data_out['epsilon_E']
                         data_out['epsilon_B'] = 10**data_out['epsilon_B']
+
+		#zp_mu, zp_std = 0.0, 5.0
+		#data_out['zp'] = scipy.stats.norm(zp_mu, zp_std).ppf(data_out['zp'])
 
 		return KNTable(data_out)
 
