@@ -462,9 +462,10 @@ plt.savefig(plotName, bbox_inches='tight')
 plt.close()
 
 samples = KNTable.read_multinest_samples(opts.multinest_samples, opts.model)
-ZPRange = 5.0
-zp_mu, zp_std = 0.0, 5.0
-samples["zp"] = scipy.stats.norm(zp_mu, zp_std).ppf(samples["zp"])
+if not "FixZPT0" in opts.multinest_samples:
+    ZPRange = 5.0
+    zp_mu, zp_std = 0.0, 5.0
+    samples["zp"] = scipy.stats.norm(zp_mu, zp_std).ppf(samples["zp"])
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 
@@ -495,6 +496,8 @@ else:
     f = open(pcklFile, 'wb')
     pickle.dump((model_table), f)
     f.close()
+
+print(len(samples), len(model_table))
 
 N = 1000
 idx = np.random.randint(0, high=len(samples), size=N)
@@ -614,6 +617,7 @@ for ii in range(N):
 
 mus = np.array(mus)
 dist = 10**((mus/5.0) + 1.0) / 1e6
+print(mus, dist)
 kdedir_dist = greedy_kde_areas_1d(dist)
 
 bin_edges = np.arange(5,85,2)
