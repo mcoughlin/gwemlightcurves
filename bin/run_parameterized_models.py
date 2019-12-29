@@ -230,7 +230,8 @@ kwargs["doSpec"] = opts.doSpec
 kwargs["phi"] = phi
 
 t = Table()
-for key, val in samples.iteritems():
+for key in samples.keys():
+    val = samples[key]
     t.add_column(Column(data=[val],name=key))
 samples = t
 
@@ -354,7 +355,7 @@ if opts.doAB:
     fid = open(filename,'w')
     #fid.write('# t[days] g-band r-band  i-band z-band\n')
     fid.write('# t[days] u g r i z y J H K\n')
-    for ii in xrange(len(t)):
+    for ii in range(len(t)):
         fid.write("%.2f "%t[ii])
         for jj in np.arange(0,9):
             fid.write("%.3f "%mag[jj][ii])
@@ -388,7 +389,7 @@ if opts.doAB:
     color2 = 'cornflowerblue'
     
     mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
-    key = mag_d_comparison[0].keys()[0]
+    key = list(mag_d_comparison[0].keys())[0]
     mag_d_comparison = mag_d_comparison[0][key]
 
     tini, tmax, dt = 0.0, 21.0, 0.1
@@ -454,7 +455,7 @@ if opts.doAB:
     filename = "%s/%s_Lbol.dat"%(outputDir,name)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
-    for ii in xrange(len(t)):
+    for ii in range(len(t)):
         fid.write("%.5f %.5e\n"%(t[ii],lbol[ii]))
     fid.close()
     
@@ -475,12 +476,12 @@ elif opts.doSpec:
     filename = "%s/%s_spec.dat"%(outputDir,name)
     fid = open(filename,'w')
     fid.write("nan")
-    for jj in xrange(len(lambdas)):
+    for jj in range(len(lambdas)):
         fid.write(" %.3f"%lambdas[jj])
     fid.write("\n")
-    for ii in xrange(len(t)):
+    for ii in range(len(t)):
         fid.write("%.5f "%t[ii])
-        for jj in xrange(len(lambdas)):
+        for jj in range(len(lambdas)):
             fid.write("%.5e "%spec[jj][ii])
         fid.write("\n")
     fid.close()
@@ -521,7 +522,7 @@ elif opts.doSpec:
     fig = plt.figure(figsize=(22,28))
 
     cnt = 0
-    for ii in xrange(len(tt)):
+    for ii in range(len(tt)):
         cnt = cnt+1
         vals = "%d%d%d"%(len(tt),1,cnt)
         if cnt == 1:

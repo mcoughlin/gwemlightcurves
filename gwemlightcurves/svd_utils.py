@@ -187,7 +187,9 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     tt = np.arange(tini,tmax+dt,dt)
     filters = ["u","g","r","i","z","y","J","H","K"]
 
-    for key in magkeys:
+    for jj, key in enumerate(magkeys):
+        print('Setup %s: %d/%d' % (key, jj, len(magkeys)+1))
+        
         keySplit = key.split("_")
         if keySplit[0] == "rpft":
             mej0 = float("0." + keySplit[1].replace("m",""))
