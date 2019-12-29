@@ -437,10 +437,10 @@ class KNTable(Table):
                                           self["m1"], self["m2"],
                                           self["lambdat"], self["dlambdat"])
         if remove_negative_lambda:
-            print 'You have requested to remove negative lambda values'
+            print('You have requested to remove negative lambda values')
             mask = (self["lambda1"] < 0) | (self["lambda2"] < 0)
             self = self[~mask]
-            print "Removing %d/%d due to negative lambdas"%(np.sum(mask),len(mask))
+            print("Removing %d/%d due to negative lambdas"%(np.sum(mask),len(mask)))
 
         return self
 
@@ -458,13 +458,13 @@ class KNTable(Table):
             G = lal.G_SI; c = C.c.value; msun = u.M_sun.to(u.kg)
 
         if fit:
-            print 'You have chose to calculate compactness from fit.'
-            print 'you are therefore choosing to be EOS agnostic'
+            print('You have chose to calculate compactness from fit.')
+            print('you are therefore choosing to be EOS agnostic')
             self["c1"] = CLove(self["lambda1"])
             self["c2"] = CLove(self["lambda2"])
         else:
-            print 'You have chose to calculate compactness from radius.'
-            print 'you are therefore must have selected a EOS'
+            print('You have chose to calculate compactness from radius.')
+            print('you are therefore must have selected a EOS')
             self['c1'] = self['m1'] / self['r1'] * G / c**2 * msun
             self['c2'] = self['m2'] / self['r2'] * G / c**2 * msun
         return self
