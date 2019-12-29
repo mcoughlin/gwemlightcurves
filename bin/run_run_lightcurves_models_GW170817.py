@@ -33,7 +33,7 @@ def parse_commandline():
 opts = parse_commandline()
 
 if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc"]:
-    print "Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017inc,Ka2017x2,Ka2017x2inc,Ka2017x3,RoFe2017,BoxFit,TrPi2018,Ka2017_TrPi2018_A,Bu2019,Bu2019inc"
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017x2,SmCh2017,WoKo2017,BaKa2016,Ka2017,Ka2017inc,Ka2017x2,Ka2017x2inc,Ka2017x3,RoFe2017,BoxFit,TrPi2018,Ka2017_TrPi2018_A,Bu2019,Bu2019inc")
     exit(0)
 
 if opts.doEOSFit:
@@ -61,11 +61,11 @@ elif opts.doJointDisk:
 elif opts.doJointSpin:
     typeFlag = "--doJointSpin"
 else:
-    print "Must specify --doMasses, --doEjecta, --doJoint, --doJointDisk, --doJointLambda, or --doJointSpin"
+    print("Must specify --doMasses, --doEjecta, --doJoint, --doJointDisk, --doJointLambda, or --doJointSpin")
     exit(0)
 
 if not (opts.doLuminosity or opts.doLightcurves):
-    print "Must specify --doLuminosity or --doLightcurves"
+    print("Must specify --doLuminosity or --doLightcurves")
     exit(0)
 
 if opts.doLightcurves:

@@ -344,7 +344,7 @@ else:
 
         data_out = data_out[opts.name]
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(data_out.keys()):
         if key == "t":
             continue
         else:
@@ -352,14 +352,14 @@ else:
             if not opts.doZTF:
                 data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(data_out.keys()):
         if key == "t":
             continue
         else:
             idxs = np.intersect1d(np.where(data_out[key][:,0]>=mint)[0],np.where(data_out[key][:,0]<=maxt)[0])
             data_out[key] = data_out[key][idxs,:]
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(data_out.keys()):
         idxs = np.where(~np.isnan(data_out[key][:,2]))[0]
         if key == "t":
             continue
@@ -370,7 +370,7 @@ else:
         if not key in filters:
             del data_out[key]
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(data_out.keys()):
         if ii == 0:
             samples = data_out[key].copy()
         else:

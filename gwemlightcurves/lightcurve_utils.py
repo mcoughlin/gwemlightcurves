@@ -97,7 +97,7 @@ def loadEvent(filename):
     data = {}
     for line in lines:
         lineSplit = line.split(" ")
-        lineSplit = filter(None,lineSplit)
+        lineSplit = list(filter(None,lineSplit))
         mjd = Time(lineSplit[0], format='isot').mjd
         filt = lineSplit[1]
         mag = float(lineSplit[2])

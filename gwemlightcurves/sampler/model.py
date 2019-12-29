@@ -7,7 +7,8 @@ from gwemlightcurves import SALT2, BOXFit, TrPi2018, Global
 def generate_lightcurve(model,samples):
 
     t = Table()
-    for key, val in samples.iteritems():
+    for key in samples.keys():
+        val = samples[key]
         t.add_column(Column(data=[val],name=key))
     samples = t
     model_table = KNTable.model(model, samples)
