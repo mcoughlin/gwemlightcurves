@@ -64,7 +64,8 @@ def parse_commandline():
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
-    parser.add_option("--evidence_tolerance",default=0.5,type=int)
+    parser.add_option("--evidence_tolerance",default=0.5,type=float)
+    parser.add_option("--max_iter",default=0,type=int)
 
     parser.add_option("--doFixXlan",  action="store_true", default=False) 
     parser.add_option("--Xlan",default=1e-9,type=float) 
@@ -162,6 +163,7 @@ if opts.doFitSigma:
     plotDir = os.path.join(plotDir,"fit")
 else:
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
@@ -503,7 +505,9 @@ plt.close()
 
 tmag = tmag + t0_best
 
-colors=cm.rainbow(np.linspace(0,1,len(filters)))
+#colors=cm.rainbow(np.linspace(0,1,len(filters)))
+colors=cm.Spectral(np.linspace(0,1,len(filters)))[::-1]
+
 tini, tmax, dt = opts.tmin, opts.tmax, 0.1
 tt = np.arange(tini,tmax,dt)
 
@@ -637,6 +641,9 @@ plt.gca().invert_yaxis()
 plt.savefig(plotName)
 plt.close()
 
+color2 = 'coral'
+color1 = 'cornflowerblue'
+
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))
 plt.figure(figsize=(20,28))
@@ -669,18 +676,21 @@ for filt, color in zip(filters,colors):
     ii = np.where(~np.isnan(magave))[0]
     f = interp.interp1d(tmag[ii], magave[ii], fill_value='extrapolate')
     maginterp = f(tt)
-    plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=3)
-    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+    #plt.plot(tt,maginterp+zp_best,'--',c=color,linewidth=3)
+    #plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color,alpha=0.2)
+
+    plt.plot(tt,maginterp+zp_best,'--',c=color2,linewidth=3)
+    plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color2,alpha=0.2)
 
     plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
 
     if opts.name == "GW170817":
-        if opts.model in ["Ka2017inc","Ka2017x2inc"]:
-            plt.xlim([0.0, 7.0])
-            plt.ylim([-18.0,-10.0])
+        if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc"]:
+            plt.xlim([0.0, 14.0])
+            plt.ylim([-17.0,-11.0])
         elif opts.model in ["Bu2019","Bu2019inc"]:
-            plt.xlim([0.0, 10.0])
-            plt.ylim([-18.0,-10.0])
+            plt.xlim([0.0, 14.0])
+            plt.ylim([-17.0,-11.0])
         else:
             plt.xlim([0.0, 18.0])
             plt.ylim([-18.0,-10.0])

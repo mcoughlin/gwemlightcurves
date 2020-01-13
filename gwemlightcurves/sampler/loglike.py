@@ -341,15 +341,14 @@ def myloglike_Bu2019_ejecta(cube, ndim, nparams):
 def myloglike_Bu2019inc_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej = 10**cube[1]
-    T = 10**cube[2]
-    phi = cube[3]
-    theta = cube[4]
-    zp_unit = cube[5]
+    phi = cube[2]
+    theta = cube[3]
+    zp_unit = cube[4]
     
     zp_mu, zp_std = 0.0, Global.ZPRange
     zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
     
-    tmag, lbol, mag = Bu2019inc_model_ejecta(mej,T,phi,theta)
+    tmag, lbol, mag = Bu2019inc_model_ejecta(mej,phi,theta)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
     print(prob)
@@ -816,19 +815,18 @@ def myloglike_Bu2019inc_TrPi2018(cube, ndim, nparams):
 
     t0 = cube[0]
     mej = 10**cube[1]
-    T = 10**cube[2]
-    phi = cube[3]
-    theta_v = cube[4]
-    E0 = 10**cube[5]
-    theta_c = cube[6]
-    theta_w = cube[7]
-    n = 10**cube[8]
-    p = cube[9]
-    epsilon_E = 10**cube[10]
-    epsilon_B = 10**cube[11]
-    zp = cube[12]
+    phi = cube[2]
+    theta_v = cube[3]
+    E0 = 10**cube[4]
+    theta_c = cube[5]
+    theta_w = cube[6]
+    n = 10**cube[7]
+    p = cube[8]
+    epsilon_E = 10**cube[9]
+    epsilon_B = 10**cube[10]
+    zp = cube[11]
 
-    tmag, lbol, mag = Bu2019inc_TrPi2018_model(mej, T, phi, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
+    tmag, lbol, mag = Bu2019inc_TrPi2018_model(mej, phi, theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
     print(prob)

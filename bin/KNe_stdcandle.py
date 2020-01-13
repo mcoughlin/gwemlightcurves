@@ -262,8 +262,8 @@ label_fontsize = 30
 if "bulla" in opts.analysis_type:
     filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_bulla.dat')
     data = np.loadtxt(filename)
-    mej, phi, T0, theta, color, Mag, dmdti, dmdt = data.T
-    mej, T0 = np.log10(mej), np.log10(T0)
+    mej, phi, theta, color, Mag, dmdti, dmdt = data.T
+    mej = np.log10(mej)
     dmdt = np.log10(dmdt)
     dmdti = np.log10(dmdti)
 else:
@@ -290,7 +290,7 @@ if opts.fit_type == "gpr":
     elif opts.analysis_type == "inferred":
         param_array = np.vstack((mej,vej,Xlan)).T
     elif opts.analysis_type == "inferred_bulla":
-        param_array = np.vstack((mej,phi,T0,theta)).T
+        param_array = np.vstack((mej,phi,theta)).T
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -368,23 +368,23 @@ elif opts.fit_type == "linear":
 
 if "bulla" in opts.analysis_type:
 
-    phi_unique, T0_unique, theta_unique = np.unique(phi), np.unique(T0), np.unique(theta)
+    phi_unique, theta_unique = np.unique(phi), np.unique(theta)
     phi_unique = phi_unique[::-1]
 
     fig = plt.figure(figsize=(16, 16))
-    gs = gridspec.GridSpec(len(phi_unique), len(T0_unique))
+    gs = gridspec.GridSpec(len(phi_unique), len(theta_unique))
     for ii in range(len(phi_unique)):
-        for jj in range(len(T0_unique)):
+        for jj in range(len(theta_unique)):
             ax = fig.add_subplot(gs[ii, jj])
             plt.axes(ax)
-            idx = np.where((phi == phi_unique[ii]) & (T0 == T0_unique[jj]))[0]
+            idx = np.where((phi == phi_unique[ii]) & (theta == theta_unique[jj]))[0]
 
             plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
             plt.plot(10**mej[idx], Mag[idx], 'bo')
             if not ii == len(phi_unique) - 1:
                 plt.setp(ax.get_xticklabels(), visible=False)
             else:
-                plt.xlabel('$T_0 = %.0f\,K$' % T0_unique[jj], fontsize=24)
+                plt.xlabel('$\Theta = %.0f\,K$' % theta_unique[jj], fontsize=24)
             if not jj == 0:
                 plt.setp(ax.get_yticklabels(), visible=False)
             else:
@@ -465,7 +465,7 @@ samples = KNTable.read_multinest_samples(opts.multinest_samples, opts.model)
 if not "FixZPT0" in opts.multinest_samples:
     ZPRange = 5.0
     zp_mu, zp_std = 0.0, 5.0
-    samples["zp"] = scipy.stats.norm(zp_mu, zp_std).ppf(samples["zp"])
+    #samples["zp"] = scipy.stats.norm(zp_mu, zp_std).ppf(samples["zp"])
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 
@@ -546,6 +546,9 @@ if opts.fit_type == "linear":
 elif opts.fit_type == "gpr":
     sigma = np.random.normal(loc=0.0, scale=sigma_best, size=N)
 
+if opts.model == "Bu2019inc":
+    incs = np.empty((0,1))
+
 mus = np.empty((0,1))
 for ii in range(N):
     row = samples[idx[ii]]
@@ -560,7 +563,7 @@ for ii in range(N):
 
     jj = np.argmin(Kband)
     jj7 = np.argmin(np.abs(t-(t[jj]+7.0)))
-    M_K = Kband[jj] + 5*(np.log10(40.0*1e6) - 1)
+    M_K = Kband[jj] + 5*(np.log10(40.7*1e6) - 1)
     col = iband[jj] - Kband[jj]
     m7 = Kband[jj7]-Kband[jj]
     kk = np.argmin(iband)
@@ -571,7 +574,7 @@ for ii in range(N):
     M_i = iband[jj] - iband[kk]
 
     if "bulla" in opts.analysis_type:
-        mej, T, phi, theta = row['mej'], row['T'], row['phi'], row['theta']
+        mej, phi, theta = row['mej'], row['phi'], row['theta']
     else:
         mej, vej, Xlan = row['mej'], row['vej'], row['Xlan']
 
@@ -595,7 +598,7 @@ for ii in range(N):
             mu = -( -M_K + M_pred + sigma[ii])
             #mu = -( -M_K + M_pred + sigma1)
         elif opts.analysis_type == "inferred_bulla":
-            param_list_postprocess = np.array([np.log10(mej),phi,np.log10(T),theta])
+            param_list_postprocess = np.array([np.log10(mej),phi,theta])
             for i in range(len(param_mins)):
                 param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
 
@@ -612,13 +615,34 @@ for ii in range(N):
 
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             mu = -( -M_K + M_pred + sigma[ii])
-    mu = mu + zp
+
+    mu = mu - 2.6*zp
+    #mu = mu + zp
+
     mus = np.append(mus,mu)
+
+    if opts.model == "Bu2019inc":
+        incs = np.append(incs,row["theta"])
 
 mus = np.array(mus)
 dist = 10**((mus/5.0) + 1.0) / 1e6
 print(mus, dist)
 kdedir_dist = greedy_kde_areas_1d(dist)
+
+if opts.model == "Bu2019inc":
+    filename = os.path.join(plotDir,'dist_inc.dat')
+    fid = open(filename,'w')
+    for d, i in zip(dist, incs):
+        fid.write('%.5f %.5f\n' % (d, i))
+    fid.close()
+else:
+    filename = os.path.join(plotDir,'dist.dat')
+    fid = open(filename,'w')
+    for d in dist:
+        fid.write('%.5f\n' % (d))
+    fid.close()
+
+print(plotDir)
 
 bin_edges = np.arange(5,85,2)
 
@@ -774,7 +798,7 @@ plt.plot(bins_small, ss.norm.pdf(bins_small, loc=68.9, scale=4.6), color='pink',
 
 boxes = []
 planck_mu, planck_std = 67.74, 0.46 
-shoes_mu, shoes_std = 73.24, 1.74
+shoes_mu, shoes_std = 74.03, 1.42
 plt.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
 rect1 = Rectangle((planck_mu - planck_std, 0), 2*planck_std, 1, alpha=0.3, color='g')
 rect2 = Rectangle((planck_mu - 2*planck_std, 0), 4*planck_std, 1, alpha=0.1, color='g')

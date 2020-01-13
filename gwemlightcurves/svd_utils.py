@@ -66,22 +66,25 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
-        elif keySplit[0] == "nsns":
-            if len(keySplit) == 5:
-                mej0 = float(keySplit[3].replace("mej",""))
-                phi0 = float(keySplit[2].replace("opang",""))
-                T0 = float(keySplit[4].replace("T",""))
-            elif len(keySplit) == 6:
-                mej0 = float(keySplit[2].replace("mej",""))
-                phi0 = float(keySplit[3].replace("phi",""))
-                T0 = float(keySplit[4].replace("T",""))
-                theta = float(keySplit[5])
+        elif keySplit[0] == "nph1.0e+05":
+            #if len(keySplit) == 5:
+            #    mej0 = float(keySplit[3].replace("mej",""))
+            #    phi0 = float(keySplit[2].replace("opang",""))
+            #    T0 = float(keySplit[4].replace("T",""))
+            #elif len(keySplit) == 6:
+            #    mej0 = float(keySplit[2].replace("mej",""))
+            #    phi0 = float(keySplit[3].replace("phi",""))
+            #    T0 = float(keySplit[4].replace("T",""))
+            #    theta = float(keySplit[5])
  
+            mej0 = float(keySplit[1].replace("mej",""))
+            phi0 = float(keySplit[2].replace("phi",""))
+            theta = float(keySplit[3])
+
             lbols[key]["mej"] = mej0
             lbols[key]["phi"] = phi0
-            lbols[key]["T"] = T0
-            if len(keySplit) == 6:
-                lbols[key]["theta"] = theta
+            #lbols[key]["T"] = T0
+            lbols[key]["theta"] = theta
 
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
@@ -103,7 +106,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif model == "Bu2019":
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
         elif model == "Bu2019inc":
-            param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"]),lbols[key]["phi"],lbols[key]["theta"]])
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -218,22 +221,25 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
-        elif keySplit[0] == "nsns":
-            if len(keySplit) == 5:
-                mej0 = float(keySplit[3].replace("mej",""))
-                phi0 = float(keySplit[2].replace("opang",""))
-                T0 = float(keySplit[4].replace("T",""))
-            elif len(keySplit) == 6:
-                mej0 = float(keySplit[2].replace("mej",""))
-                phi0 = float(keySplit[3].replace("phi",""))
-                T0 = float(keySplit[4].replace("T",""))
-                theta = float(keySplit[5])
+        elif keySplit[0] == "nph1.0e+05":
+            #if len(keySplit) == 5:
+            #    mej0 = float(keySplit[3].replace("mej",""))
+            #    phi0 = float(keySplit[2].replace("opang",""))
+            #    T0 = float(keySplit[4].replace("T",""))
+            #elif len(keySplit) == 6:
+            #    mej0 = float(keySplit[2].replace("mej",""))
+            #    phi0 = float(keySplit[3].replace("phi",""))
+            #    T0 = float(keySplit[4].replace("T",""))
+            #    theta = float(keySplit[5])
+
+            
+            mej0 = float(keySplit[1].replace("mej",""))
+            phi0 = float(keySplit[2].replace("phi",""))
+            theta = float(keySplit[3])
 
             mags[key]["mej"] = mej0
             mags[key]["phi"] = phi0
-            mags[key]["T"] = T0
-            if len(keySplit) == 6:
-                mags[key]["theta"] = theta
+            mags[key]["theta"] = theta
 
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
 
@@ -257,7 +263,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         elif model == "Bu2019":
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
         elif model == "Bu2019inc":
-            param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"]),mags[key]["phi"],mags[key]["theta"]])
+            #param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"]),mags[key]["phi"],mags[key]["theta"]])
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)

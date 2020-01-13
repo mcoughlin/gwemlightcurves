@@ -332,7 +332,7 @@ def getMagSpec(filename,band,model,theta=0.0):
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
-    elif model in ["bulla_1D","bulla_2D","macronovae-rosswog"]:
+    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","macronovae-rosswog"]:
         u[:,2] /= 1.0
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
@@ -538,7 +538,7 @@ if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 dataDir = opts.dataDir
 
-specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D"]
+specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich"]
 spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid","kasen_kilonova_2D"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
@@ -548,7 +548,7 @@ if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
 elif opts.model == "macronovae-rosswog":
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
-elif opts.model in ["bulla_1D","bulla_2D"]:
+elif opts.model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich"]:
     filename = "%s/%s/%s.txt"%(dataDir,opts.model,opts.name)
 elif opts.model == "korobkin_kilonova":
     filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
