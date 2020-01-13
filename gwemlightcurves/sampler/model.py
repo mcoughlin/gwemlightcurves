@@ -398,6 +398,46 @@ def Bu2019inc_model_ejecta(mej,phi,theta):
 
     return t, lbol, mag
 
+def Bu2019lf_model_ejecta(mej_dyn,mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lf"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019lr_model_ejecta(mej_dyn,mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lr"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def RoFe2017_model(m1,mb1,c1,m2,mb2,c2,Ye):
 
     tini = 0.1

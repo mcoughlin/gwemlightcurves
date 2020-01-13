@@ -355,6 +355,42 @@ def myloglike_Bu2019inc_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Bu2019lf_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_dyn = 10**cube[1]
+    mej_wind = 10**cube[2]
+    phi = cube[3]
+    theta = cube[4]
+    zp_unit = cube[5]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+
+    tmag, lbol, mag = Bu2019lf_model_ejecta(mej_dyn,mej_wind,phi,theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
+def myloglike_Bu2019lr_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_dyn = 10**cube[1]
+    mej_wind = 10**cube[2]
+    phi = cube[3]
+    theta = cube[4]
+    zp_unit = cube[5]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+
+    tmag, lbol, mag = Bu2019lr_model_ejecta(mej_dyn,mej_wind,phi,theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
 def myloglike_Me2017(cube, ndim, nparams):
 
     t0 = cube[0]
