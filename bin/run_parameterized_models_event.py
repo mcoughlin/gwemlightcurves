@@ -171,6 +171,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         if opts.nsamples < 1:
             print('Please set nsamples >= 1')
             exit(0)
+        # read samples from template analysis
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
 
         m1s, m2s, dists = [], [], []
@@ -178,6 +179,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         Xlans = []
  
         if opts.eostype == "gp":
+            # read Phil + Reed's EOS files
             filenames = glob.glob("/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-*-0.csv")
             idxs = []
             for filename in filenames:
@@ -200,6 +202,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
 
+                # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
                     eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
@@ -232,6 +235,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 lambda2s.append(lambda2)
                 chi_effs.append(chi_eff)
                 Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
+
+        # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions
         data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans)).T
         samples = KNTable(data, names=('m1', 'm2', 'dist', 'lambda1', 'lambda2','chi_eff','Xlan'))
 
@@ -410,6 +415,7 @@ plt.ylim(ylims)
 plt.savefig(plotName)
 plt.close()
 
+# Can compare low-latency numbers directly to PE runs
 if opts.doAddPosteriors:
     samples_posteriors = KNTable.read_samples(opts.posterior_samples)
     

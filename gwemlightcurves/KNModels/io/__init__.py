@@ -30,9 +30,11 @@ from . import (  # pylint: disable=unused-import
     Ka2017x2, # Kasen (2017) Model (2-component)
     Ka2017inc, # Kasen (2017) Model + inclination
     Ka2017x2inc, # Kasen (2017) Model (2-component) + inclination
-    RoFe2017, # Rosswog et al. (2017) Model,
+    RoFe2017, # Rosswog et al. (2017) Model
     Bu2019, # Bulla (2019) Model (2-component)
-    Bu2019inc # Bulla (2019) Model (2-component)
+    Bu2019inc, # Bulla (2019) Model (2-component)
+    Bu2019lf, # Bulla (2019) Model (Dynamic+Wind Lathanide Free)
+    Bu2019lr # Bulla (2019) Model (Dynamic+Wind Lathanide Rich)
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'

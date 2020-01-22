@@ -31,6 +31,8 @@ def parse_commandline():
     parser.add_option("-q","--massratio",default=3.0,type=float)
     parser.add_option("-a","--chi_eff",default=0.1,type=float) 
     parser.add_option("--mej",default=0.05,type=float)
+    parser.add_option("--mej_dyn",default=0.01,type=float)
+    parser.add_option("--mej_wind",default=0.03,type=float)
     parser.add_option("--vej",default=0.2,type=float)
     parser.add_option("--m1",default=1.35,type=float)
     parser.add_option("--m2",default=1.35,type=float)
@@ -82,6 +84,8 @@ m2 = opts.m2
 q = opts.massratio
 chi_eff = opts.chi_eff
 mej = opts.mej
+mej_dyn = opts.mej_dyn
+mej_wind = opts.mej_wind
 vej = opts.vej
 theta_0 = opts.theta_0
 theta_r = opts.theta_r
@@ -184,6 +188,9 @@ samples['E'] = E
 samples['n'] = n
 samples['theta_obs'] = theta_obs
 samples['theta'] = theta_0
+
+samples['mej_dyn'] = mej_dyn
+samples['mej_wind'] = mej_wind
 
 samples['mej_1'] = mej1
 samples['vej_1'] = vej1
@@ -303,6 +310,12 @@ elif opts.model == "Bu2019":
 elif opts.model == "Bu2019inc":
     if opts.doEjecta:
         name = "Bu2019_%sM%03dP%d"%(opts.eos,opts.mej*1000,opts.phi)
+elif opts.model in "Bu2019lf":
+    if opts.doEjecta:
+        name = "Bu2019lf_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
+elif opts.model in "Bu2019lr":
+    if opts.doEjecta:
+        name = "Bu2019lr_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     #t0 = 0.0

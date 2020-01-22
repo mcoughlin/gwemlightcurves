@@ -85,6 +85,9 @@ def get_ztf_lc(filename, name, username, password,
                programids=None):
 
     r = requests.post('http://skipper.caltech.edu:8080/cgi-bin/growth/print_lc.cgi', auth=(username, password), data={'name' : name})
+    print(r.text, username, password, name)
+    print(stop)
+
     lines = r.text.replace(" ","").replace("\n","").replace('"','').split("isdiffpos")[-1].split("<br>")
     jd, filtname, mag, magerr = [], [], [], []
     
@@ -98,6 +101,8 @@ def get_ztf_lc(filename, name, username, password,
         if len(lineSplit) == 12:
             date,jdobs,filt,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         else:
+            print(lineSplit)
+            print(stop)
             date,jdobs,filt,absmag,magpsf,sigmamagpsf,limmag,instrument,programid,reducedby,refsys,issub,isdiffpos = lineSplit
         if programids is not None:
             if programid == "None": continue

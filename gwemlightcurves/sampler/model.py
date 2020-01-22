@@ -379,7 +379,7 @@ def Bu2019_model_ejecta(mej,T):
 
     return t, lbol, mag
 
-def Bu2019inc_model_ejecta(mej,T,phi,theta):
+def Bu2019inc_model_ejecta(mej,phi,theta):
 
     tini = 0.1
     tmax = 50.0
@@ -390,11 +390,50 @@ def Bu2019inc_model_ejecta(mej,T,phi,theta):
     samples['tmax'] = tmax
     samples['dt'] = dt
     samples['mej'] = mej
-    samples['T'] = T
     samples['phi'] = phi
     samples['theta'] = theta
 
     model = "Bu2019inc"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019lf_model_ejecta(mej_dyn,mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lf"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019lr_model_ejecta(mej_dyn,mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lr"
     t, lbol, mag = generate_lightcurve(model,samples)
 
     return t, lbol, mag
@@ -604,9 +643,9 @@ def Ka2017_TrPi2018_model(mej,vej,Xlan,theta_v, E0, theta_c, theta_w, n, p, epsi
 
     return tmag, lbol, mag
 
-def Bu2019inc_TrPi2018_model(mej,T,phi,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B):
+def Bu2019inc_TrPi2018_model(mej,phi,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B):
 
-    tmag_1, lbol_1, mag_1 = Bu2019inc_model_ejecta(mej,T,phi,theta_v*360.0/(2*np.pi))
+    tmag_1, lbol_1, mag_1 = Bu2019inc_model_ejecta(mej,phi,theta_v*360.0/(2*np.pi))
     tmag_2, lbol_2, mag_2 = TrPi2018_model(theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B)
 
     tmag = tmag_1

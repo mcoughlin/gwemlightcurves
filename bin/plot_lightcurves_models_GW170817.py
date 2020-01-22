@@ -19,7 +19,6 @@ plt.rcParams["font.family"] = "Times New Roman"
 
 import corner
 
-import pymultinest
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves.sampler import run
@@ -191,6 +190,8 @@ ax1.set_zorder(1)
 plt.xlabel('Time [days]',fontsize=48)
 plt.savefig(plotName, bbox_inches='tight')
 plt.close()
+
+print(stop)
 
 plotName = "%s/models_panels_twocomponent.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))
