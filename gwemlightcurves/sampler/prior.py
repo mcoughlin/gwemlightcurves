@@ -354,7 +354,7 @@ def myprior_Bu2019lf_ejecta(cube, ndim, nparams):
         else:
             #cube[3] = cube[3]*30.0
             #cube[3] = cube[3]*90.0
-            cube[3] = cube[3]*15.0 + 30.0
+            cube[3] = cube[3]*30.0 + 30.0
         cube[4] = cube[4]*90.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
         #cube[4] = cube[4]*1.0
@@ -369,7 +369,7 @@ def myprior_Bu2019lr_ejecta(cube, ndim, nparams):
         else:
             #cube[3] = cube[3]*30.0
             #cube[3] = cube[3]*90.0
-            cube[3] = cube[3]*15.0 + 30.0
+            cube[3] = cube[3]*30.0 + 30.0
         cube[4] = cube[4]*90.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
         #cube[4] = cube[4]*1.0

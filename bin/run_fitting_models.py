@@ -12,6 +12,7 @@ matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 36})
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.family"] = "Times New Roman"
 
 import corner
 
@@ -765,7 +766,9 @@ def myloglike_bns_JointFitDisk(cube, ndim, nparams):
             prob = -np.inf
             return prob
 
-        prob = calc_prob_disk(mej1,vej1,mej2)
+        prob = kde_eval_single(kdedir_mej,[mej1*(10**alpha)+mej2+(10**alpha)])[0]
+        #prob = kde_eval_single(kdedir_mej,[mej1+mej2])[0]
+        #prob = calc_prob_disk(mej1,vej1,mej2)
         prior = prior_gw(mc, q, lambdatilde, eos)
 
         prob = prob + np.log(prior)
@@ -1333,8 +1336,8 @@ opts = parse_commandline()
 lambdamin = opts.lambdamin
 lambdamax = opts.lambdamax
 
-if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017","Ka2017","Ka2017x2","Ka2017_TrPi2018","Bu2019inc","Ka2017x2inc"]:
-   print "Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017, Ka2017, Ka2017x2, Ka2017_TrPi2018, Bu2019inc, Ka2017x2inc"
+if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017","Ka2017","Ka2017x2","Ka2017_TrPi2018","Bu2019inc","Ka2017x2inc","Bu2019lr","Bu2019lf"]:
+   print("Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017, Ka2017, Ka2017x2, Ka2017_TrPi2018, Bu2019inc, Ka2017x2inc, Bu2019lr, Bu2019lf")
    exit(0)
 
 filters = opts.filters.split(",")
@@ -1666,19 +1669,25 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             vej1 = data[:,2]
             mej2 = 10**data[:,4]
             vej2 = data[:,5]
+        elif opts.model in ["Bu2019lr","Bu2019lf"]:
+            mej1 = 10**data[:,1]
+            vej1 = np.random.uniform(low=0.0, high=0.3, size=mej1.shape)
+            mej2 = 10**data[:,2]
+            vej2 = np.random.uniform(low=0.0, high=0.3, size=mej2.shape)
         else:
-            print("--doJointDisk only works with Ka2017x2,Ka2017x2inc")
+            print("--doJointDisk only works with Ka2017x2,Ka2017x2inc,Bu2019lr,Bu2019lf")
             exit(0)
         pts = np.vstack((mej1,vej1,mej2)).T
         #pts = np.vstack((mej1,vej1)).T
         kdedir = greedy_kde_areas_1d(mej2)
         kdedir_pts_mej2 = copy.deepcopy(kdedir)
+        kdedir_mej = greedy_kde_areas_1d(mej1+mej2)
 
     elif opts.doJointDiskBulla:
-        if opts.model == "Bu2019inc":
+        if opts.model in ["Ka2017","Bu2019inc"]:
             mej = 10**data[:,1]
         else:
-            print("--doJointDiskBulla only works with Bu2019inc")
+            print("--doJointDiskBulla only works with Ka2017,Bu2019inc")
             exit(0)
         kdedir_mej = greedy_kde_areas_1d(mej)
     else:
@@ -1707,12 +1716,17 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             vej1_em = data[:,2]
             mej2_em = data[:,4]
             vej2_em = data[:,5]
+        elif opts.model in ["Ka2017lr","Ka2017lf"]:
+            mej1_em = data[:,1]
+            vej1_em = np.random.uniform(low=0.0, high=0.3, size=mej1_em.shape)
+            mej2_em = data[:,2]
+            vej2_em = np.random.uniform(low=0.0, high=0.3, size=mej2_em.shape)
 
         mej_true = truths_mej_vej[0]
         vej_true = truths_mej_vej[1]
 
     elif opts.doJointDiskBulla:
-        if opts.model == "Bu2019inc":
+        if opts.model in ["Ka2017","Bu2019inc"]:
             mej_em = data[:,1]
         mej_true = truths_mej_vej[0]
         vej_true = truths_mej_vej[1]
@@ -1739,7 +1753,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             else:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
-        elif (opts.model == "Ka2017x2") or (opts.model == "Bu2019inc") or (opts.model == "Ka2017x2inc"):
+        elif opts.model in ["Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
             if opts.doEOSFit or opts.doBNSFit:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
@@ -1799,7 +1813,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_gw, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Bu2019inc" or opts.model == "Ka2017x2inc":
+    elif opts.model in ["Ka2017", "Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lr", "Bu2019lf"]:
         if opts.doEOSFit:
             parameters = ["m1","c1","m2","c2"]
             labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
@@ -1827,7 +1841,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             pymultinest.run(myloglike_bns_JointFitDisk, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.doJointDiskBulla:
             parameters = ["mchirp","q","EOS","alpha","zeta"]
-            labels = ["$M_c$",r"q",r"EOS",r"$\log_{10} \alpha$",r"$\zeta$"]
+            labels = ["$\mathcal{M}_c$",r"$q$",r"EOS",r"$\log_{10} \alpha$",r"$\zeta$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_JointFitDiskBulla, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.doJointBNS:
@@ -1916,7 +1930,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 ii = ii + 1
         q_em = 1/q_em 
         mej_em = np.log10(mej_em)
-    elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Bu2019inc" or opts.model == "Ka2017x2inc":
+    elif opts.model in ["Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
 
         if opts.doEOSFit:
             m1 = data[:,0]
@@ -2077,7 +2091,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                     fid.write('%.10f %.10f\n'%(q,lambdatilde))
 
             elif opts.doJointDisk or opts.doJointDiskBulla or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
-                labels = ["$M_c$",r"q",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{TOV}$"]
+                labels = ["$\mathcal{M}_c$",r"$q$",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{TOV}$"]
                 #for q,lambda1,A,zeta_em in data[:,:-1]:
                 for mc,q,lambdatilde,alpha,zeta,mTOV in data[:,:-1]:
 
@@ -2636,7 +2650,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
         parameters = ["q","mchirp"]
         n_params = len(parameters)
-        if opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017" or opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017x2inc":
+        if opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
             if opts.doFixMChirp:
                 pymultinest.run(myloglike_combined_MChirp, myprior_combined_masses_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
@@ -2669,23 +2683,35 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 #loglikelihood = -(1/2.0)*data[:,1]
 #idx = np.argmax(loglikelihood)
 
+if n_params >= 6:
+    title_fontsize = 30
+    label_fontsize = 30
+else:
+    title_fontsize = 28
+    label_fontsize = 28
+
 plotName = "%s/corner.pdf"%(plotDir)
 if opts.doGoingTheDistance:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 24},
-                       label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths,
                        color="coral",
                        smooth = 3)
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": 24},
-                       label_kwargs={"fontsize": 28}, title_fmt=".2f",
+                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        color="coral",
                        smooth = 3)
-figure.set_size_inches(12.0,12.0)
+if n_params >= 10:
+    figure.set_size_inches(40.0,40.0)
+elif n_params >= 6:
+    figure.set_size_inches(28.0,28.0)
+else:
+    figure.set_size_inches(18.0,18.0)
 plt.savefig(plotName)
 plt.close()
 
@@ -2699,7 +2725,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,0.0]
                 xlims = [-3.0,0.0]
                 ylims = [1e-1,10]
-            elif opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017" or opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017x2inc":
+            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.0]
                 ylims = [1e-1,10]
@@ -2712,7 +2738,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
-            elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017x2inc":
+            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
@@ -2744,7 +2770,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,0.3]
             xlims = [0.0,0.3]
             ylims = [1e-1,10]
-        elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017x2inc":
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
             bounds = [0.0,0.3]
             xlims = [0.0,0.3]
             ylims = [1e-1,40] 
@@ -2801,7 +2827,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,10]
-        elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017x2inc":
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,40]
@@ -2833,7 +2859,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]
-        elif opts.model == "Ka2017" or opts.model == "Ka2017x2" or opts.model == "Ka2017_TrPi2018" or opts.model == "Ka2017x2inc":
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]

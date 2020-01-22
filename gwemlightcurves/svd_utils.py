@@ -62,7 +62,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
                     Xlan0 = 10**float(keySplit[5].replace("Xlan1e",""))
 
             #if (mej0 == 0.05) and (vej0 == 0.2) and (Xlan0 == 1e-3):
-            #    del lbols[key]
+          #    del lbols[key]
             #    continue
 
             lbols[key]["mej"] = mej0
@@ -83,7 +83,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["phi"] = phi0
             lbols[key]["theta"] = theta
 
-        elif keySplit[0] == "nph1.0e+05":
+        elif keySplit[0] == "nph1.0e+06":
             #if len(keySplit) == 5:
             #    mej0 = float(keySplit[3].replace("mej",""))
             #    phi0 = float(keySplit[2].replace("opang",""))
@@ -256,7 +256,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["phi"] = phi0
             mags[key]["theta"] = theta
 
-        elif keySplit[0] == "nph1.0e+05":
+        elif keySplit[0] == "nph1.0e+06":
             #if len(keySplit) == 5:
             #    mej0 = float(keySplit[3].replace("mej",""))
             #    phi0 = float(keySplit[2].replace("opang",""))
