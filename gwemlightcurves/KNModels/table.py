@@ -385,8 +385,10 @@ class KNTable(Table):
                 names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
         elif model == "Bu2019inc":
                         names=['t0', 'mej', 'phi', 'theta', 'zp', 'loglikelihood']
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
                         names=['t0', 'mej_dyn', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
+        elif model in ["Bu2019lw"]:
+                        names=['t0', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
         elif model == "Bu2019inc_TrPi2018":
                         names=['t0', 'mej', 'phi', 'theta', "E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B", 'zp', 'loglikelihood']
         else:
@@ -414,8 +416,10 @@ class KNTable(Table):
                 data_out['epsilon_B'] = 10**data_out['epsilon_B']
         elif model in ["Bu2019","Bu2019inc"]:
                         data_out['mej'] = 10**data_out['mej']
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
                         data_out['mej_dyn'] = 10**data_out['mej_dyn']
+                        data_out['mej_wind'] = 10**data_out['mej_wind']
+        elif model in ["Bu2019lw"]:
                         data_out['mej_wind'] = 10**data_out['mej_wind']
         elif model == "Bu2019inc_TrPi2018":
                         data_out['mej'] = 10**data_out['mej']

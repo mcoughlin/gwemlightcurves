@@ -35,6 +35,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_2Component_lfree"
     elif model == "Bu2019lr":
         fileDir = "../output/bulla_2Component_lrich"
+    elif model == "Bu2019lm":
+        fileDir = "../output/bulla_2Component_lmid"
+    elif model == "Bu2019lw":
+        fileDir = "../output/bulla_2Component_lmid_0p005"
 
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
@@ -70,6 +74,17 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif "nsns" in key:
+
+            mejdyn = float(keySplit[2].replace("mejdyn",""))
+            mejwind = float(keySplit[3].replace("mejwind",""))
+            phi0 = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            lbols[key]["mej_dyn"] = mejdyn
+            lbols[key]["mej_wind"] = mejwind
+            lbols[key]["phi"] = phi0
+            lbols[key]["theta"] = theta
 
         elif "mejdyn" in key:
 
@@ -103,6 +118,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             #lbols[key]["T"] = T0
             lbols[key]["theta"] = theta
 
+
+
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
@@ -124,8 +141,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model in ["Bu2019lw"]:
+            param_array.append([np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -198,6 +217,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_2Component_lfree"
     elif model == "Bu2019lr":
         fileDir = "../output/bulla_2Component_lrich"
+    elif model == "Bu2019lm":
+        fileDir = "../output/bulla_2Component_lmid"
+    elif model == "Bu2019lw":
+        fileDir = "../output/bulla_2Component_lmid_0p005"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -244,6 +267,18 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif "nsns" in key:
+
+            mejdyn = float(keySplit[2].replace("mejdyn",""))
+            mejwind = float(keySplit[3].replace("mejwind",""))
+            phi0 = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            mags[key]["mej_dyn"] = mejdyn
+            mags[key]["mej_wind"] = mejwind
+            mags[key]["phi"] = phi0
+            mags[key]["theta"] = theta
+
         elif "mejdyn" in key:
 
             mejdyn = float(keySplit[1].replace("mejdyn",""))
@@ -299,8 +334,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model in ["Bu2019lw"]:
+            param_array.append([np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
