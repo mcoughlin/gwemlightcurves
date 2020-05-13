@@ -223,7 +223,7 @@ def myprior_BaKa2016_ejecta(cube, ndim, nparams):
 
 def myprior_Ka2017_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
-        cube[1] = cube[1]*3.0 - 3.0
+        cube[1] = cube[1]*2.0 - 3.0
         #cube[1] = cube[1]*4.0 - 5.0
         cube[2] = cube[2]*0.3
         #cube[2] = cube[2]*1.0
@@ -322,7 +322,7 @@ def myprior_Ka2017x3inc_ejecta(cube, ndim, nparams):
 def myprior_Bu2019_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
         #cube[1] = cube[1]*5.0 - 5.0
-        cube[1] = cube[1]*3.0 - 3.0
+        cube[1] = cube[1]*2.0 - 3.0
         if not Global.T==0:
             cube[2] = cube[2]*0.1 + Global.T - 0.05
         else:
@@ -340,7 +340,11 @@ def myprior_Bu2019inc_ejecta(cube, ndim, nparams):
             #cube[3] = cube[3]*30.0
             #cube[3] = cube[3]*90.0
             cube[2] = cube[2]*15.0 + 15.0
-        cube[3] = cube[3]*90.0
+        if not Global.theta==-1:
+            cube[3] = cube[3]*0.1 + Global.theta - 0.05
+        else:
+            #cube[3] = cube[3]*90.0
+            cube[3] = cube[3]*15.0
         cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
         #cube[4] = cube[4]*1.0
 
@@ -372,6 +376,98 @@ def myprior_Bu2019lr_ejecta(cube, ndim, nparams):
             cube[3] = cube[3]*30.0 + 30.0
         cube[4] = cube[4]*90.0
         cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
+        #cube[4] = cube[4]*1.0
+
+def myprior_Bu2019lm_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0 
+        if not Global.mdyn==-1:
+            cube[1] = np.log10(cube[1]*0.0002 + Global.mdyn - 0.0001)
+        else:
+            cube[1] = cube[1]*2.0 - 3.0
+        cube[2] = cube[2]*3.0 - 3.0
+        #cube[2] = cube[2]*2.5 - 3.0
+        if not Global.phi==-1:
+            cube[3] = cube[3]*0.1 + Global.phi - 0.05
+        else:
+            #cube[3] = cube[3]*30.0
+            #cube[3] = cube[3]*90.0
+            #cube[3] = cube[3]*30.0 + 30.0
+            cube[3] = cube[3]*60.0 + 15.0
+        if not Global.theta==-1:
+            cube[4] = cube[4]*0.1 + Global.theta - 0.05
+        else:
+            cube[4] = cube[4]*90.0
+        cube[5] = cube[5]*2*Global.ZPRange - Global.ZPRange
+        #cube[4] = cube[4]*1.0
+
+def myprior_Bu2019rb_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0 
+        cube[1] = cube[1]*3.0 - 3.0
+        cube[2] = cube[2]*3.0 - 3.0
+        #cube[2] = cube[2]*2.5 - 3.0
+        if not Global.phi==-1:
+            cube[3] = cube[3]*0.1 + Global.phi - 0.05
+        else:
+            #cube[3] = cube[3]*30.0
+            #cube[3] = cube[3]*90.0
+            #cube[3] = cube[3]*30.0 + 30.0
+            cube[3] = cube[3]*60.0 + 15.0
+        if not Global.theta==-1:
+            cube[4] = cube[4]*0.1 + Global.theta - 0.05
+        else:
+            cube[4] = cube[4]*90.0
+        cube[5] = cube[5]*9 + 1.0
+        cube[6] = cube[6]*2*Global.ZPRange - Global.ZPRange
+        #cube[4] = cube[4]*1.0
+
+def myprior_Bu2019re_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0 
+        cube[1] = cube[1]*3.0 - 3.0
+        #cube[2] = cube[2]*2.5 - 3.0
+        if not Global.theta==-1:
+            cube[2] = cube[2]*0.1 + Global.theta - 0.05
+        else:
+            cube[2] = cube[2]*90.0
+        cube[3] = cube[3]*9 + 1.0
+        cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
+        #cube[4] = cube[4]*1.0
+
+def myprior_Bu2019bc_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        #cube[1] = cube[1]*5.0 - 5.0 
+        cube[1] = cube[1]*3.0 - 3.0
+        #cube[2] = cube[2]*2.5 - 3.0
+        if not Global.phi==-1:
+            cube[2] = cube[2]*0.1 + Global.phi - 0.05
+        else:
+            #cube[3] = cube[3]*30.0
+            #cube[3] = cube[3]*90.0
+            #cube[3] = cube[3]*30.0 + 30.0
+            cube[2] = cube[2]*60.0 + 15.0
+        if not Global.theta==-1:
+            cube[3] = cube[3]*0.1 + Global.theta - 0.05
+        else:
+            cube[3] = cube[3]*90.0
+        cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
+        #cube[4] = cube[4]*1.0
+
+
+def myprior_Bu2019lw_ejecta(cube, ndim, nparams):
+        cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
+        cube[1] = cube[1]*3.0 - 3.0
+        #cube[2] = cube[2]*2.5 - 3.0
+        if not Global.phi==-1:
+            cube[2] = cube[2]*0.1 + Global.phi - 0.05
+        else:
+            cube[2] = cube[2]*30.0 + 30.0
+        if not Global.theta==-1:
+            cube[3] = cube[3]*0.1 + Global.theta - 0.05
+        else:
+            cube[3] = cube[3]*90.0
+        cube[4] = cube[4]*2*Global.ZPRange - Global.ZPRange
         #cube[4] = cube[4]*1.0
 
 def myprior_Bu2019inc_TrPi2018(cube, ndim, nparams):

@@ -54,7 +54,7 @@ def parse_commandline():
 
     parser.add_option("-a","--analysis_type",default="inferred", help="measured,inferred,inferred_bulla,combined") 
 
-    parser.add_option("-f","--fit_type",default="linear", help="linear,gpr")
+    parser.add_option("-f","--fit_type",default="gpr", help="linear,gpr")
  
     parser.add_option("-g","--grb_name",default="GRB060614") 
 
@@ -584,6 +584,7 @@ elif opts.fit_type == "gpr":
     sigma2 = np.random.normal(loc=0.0, scale=sigma_best, size=N)
 
 mus = []
+arrays = []
 for ii in range(N):
     row = samples[idx[ii]]
     zp = row["zp"]
@@ -692,8 +693,6 @@ for ii in range(N):
             for i in range(len(param_mins)):
                 param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
 
-            print(np.atleast_2d(param_list_postprocess))
-
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
 
             param_list_postprocess_gw = np.array([np.log10(mej_gw),phi_gw,theta_gw])
@@ -718,6 +717,30 @@ for ii in range(N):
             mu = -( -M_K + M_pred + sigma[ii])
 
     mus.append(mu)
+
+    if "bulla" in opts.analysis_type:
+        arrays.append([np.log10(mej_gw), phi_gw, theta_gw, mu+0.13])
+    else:
+        arrays.append([np.log10(mej_gw), vej_gw, np.log10(Xlan_gw), mu-0.23])
+
+arrays = np.array(arrays)
+if "bulla" in opts.analysis_type:
+    labels = [r"${\rm log}_{10} (M_{\rm ej})$",r"$\Phi$",r"$\theta_{\rm obs}$",r"$\mu$"] 
+else:
+    labels = [r"${\rm log}_{10} (M_{\rm ej})$",r"$v_{\rm ej}$",r"${\rm log}_{10} (X_{\rm lan})$",r"$\mu$"]
+
+plotName = "%s/corner.pdf"%(plotDir)
+figure = corner.corner(arrays, labels=labels,
+                   quantiles=[0.16, 0.5, 0.84],
+                   show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                   label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
+                   smooth=3)
+figure.set_size_inches(18.0,18.0)
+plt.savefig(plotName)
+plt.close()
+
+print(plotDir)
+print(stop)
 
 mus = np.array(mus)
 dist = 10**((mus/5.0) + 1.0) / 1e6

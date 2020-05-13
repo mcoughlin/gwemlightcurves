@@ -49,10 +49,11 @@ def parse_commandline():
     parser.add_option("-p","--plotDir",default="../plots")
     parser.add_option("-d","--dataDir",default="../data")
 
-    parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,inferred_bulla,combined")  
+    parser.add_option("-a","--analysis_type",default="combined", help="measured,inferred,inferred_bulla,inferred_bulla_lanthanide,combined")
 
     parser.add_option("-f","--fit_type",default="linear", help="linear,gpr")
- 
+    parser.add_option("-l","--lanthanide_type",default="lr", help="lr,lf")
+
     parser.add_option("--nsamples",default=-1,type=int)
 
     #parser.add_option("--multinest_samples", default="../plots/gws/Ka2017_FixZPT0/u_g_r_i_z_y_J_H_K/0_14/ejecta/GW170817/1.00/2-post_equal_weights.dat")
@@ -102,7 +103,7 @@ def myprior_combined(cube, ndim, nparams):
         cube[4] = cube[4]*50.0 - 25.0
         cube[5] = cube[5]*50.0 - 25.0
 	cube[6] = cube[6]*1.0
-         
+
 def myloglike_combined(cube, ndim, nparams):
         const = cube[0]
         alpha = cube[1]
@@ -187,7 +188,7 @@ def myloglike_H0(cube, ndim, nparams):
         pvp = (1/np.sqrt(2*np.pi*vp_std**2))*np.exp((-1/2.0)*((vp_mu-vp)/vp_std)**2)
         prob_dist = kde_eval_single(kdedir_dist,[d])[0]
         #print(H0, d, vp, np.log(pvr), np.log(pvp), np.log(prob_dist))
- 
+
         prob = np.log(pvr) + np.log(pvp) + np.log(prob_dist)
 
         if np.isnan(prob):
@@ -259,11 +260,19 @@ max_iter = 0
 title_fontsize = 26
 label_fontsize = 30
 
-if "bulla" in opts.analysis_type:
+if opts.analysis_type == "inferred_bulla":
     filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_bulla.dat')
     data = np.loadtxt(filename)
     mej, phi, theta, color, Mag, dmdti, dmdt = data.T
     mej = np.log10(mej)
+    dmdt = np.log10(dmdt)
+    dmdti = np.log10(dmdti)
+elif opts.analysis_type == "inferred_bulla_lanthanide":
+    filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_bulla_%s.dat' % opts.lanthanide_type)
+    data = np.loadtxt(filename)
+    mejdyn, mejwind, phi, theta, color, Mag, dmdti, dmdt = data.T
+    mejdyn = np.log10(mejdyn)
+    mejwind = np.log10(mejwind)
     dmdt = np.log10(dmdt)
     dmdti = np.log10(dmdti)
 else:
@@ -291,6 +300,8 @@ if opts.fit_type == "gpr":
         param_array = np.vstack((mej,vej,Xlan)).T
     elif opts.analysis_type == "inferred_bulla":
         param_array = np.vstack((mej,phi,theta)).T
+    elif opts.analysis_type == "inferred_bulla_lanthanide":
+        param_array = np.vstack((mejdyn,mejwind,phi,theta)).T
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -305,6 +316,7 @@ if opts.fit_type == "gpr":
     M, sigma2_pred = gp.predict(np.atleast_2d(param_array_postprocess), return_std=True)
     sigma_best = np.median(sigma2_pred)
     sigma = sigma_best*np.ones(M.shape)
+    sigma = sigma2_pred
 
 elif opts.fit_type == "linear":
 
@@ -312,48 +324,48 @@ elif opts.fit_type == "linear":
         parameters = ["K","alpha","beta","gamma","delta","zeta","sigma"]
         labels = [r'K', r'$\alpha$', r'$\beta$', r'$\gamma$', r"$\delta$",r"$\zeta$",r'$\sigma$']
         n_params = len(parameters)
-        
+
         pymultinest.run(myloglike_combined, myprior_combined, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-        
+
         multifile = "%s/2-post_equal_weights.dat"%plotDir
         data = np.loadtxt(multifile)
-        
+
         K, alpha, beta, gamma, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
         idx = np.argmax(loglikelihood)
         K_best, alpha_best, beta_best, gamma_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
-        
+
         M = K_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*(mej) + delta_best*(vej) + zeta_best*Xlan
     elif opts.analysis_type == "measured":
         parameters = ["kappa","alpha","beta","gamma","sigma"]
         labels = [r'$\kappa$', r'$\alpha$', r'$\beta$',r'$\gamma$',r'$\sigma$']
         n_params = len(parameters)
-     
+
         pymultinest.run(myloglike_measured, myprior_measured, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-     
+
         multifile = "%s/2-post_equal_weights.dat"%plotDir
         data = np.loadtxt(multifile)
-     
+
         kappa, alpha, beta, gamma, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
         idx = np.argmax(loglikelihood)
         kappa_best, alpha_best, beta_best, gamma_best, sigma_best = data[idx,0:-1]
-     
+
         M = kappa_best + alpha_best*(dmdt) + beta_best*(color) + gamma_best*dmdti
     elif opts.analysis_type == "inferred":
         parameters = ["tau","nu","delta","zeta","sigma"]
         labels = [r'$\tau$', r'$\nu$', r"$\delta$",r"$\zeta$",r'$\sigma$']
         n_params = len(parameters)
-     
+
         pymultinest.run(myloglike_inferred, myprior_inferred, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-     
+
         multifile = "%s/2-post_equal_weights.dat"%plotDir
         data = np.loadtxt(multifile)
-     
+
         tau, nu, delta, zeta, sigma, loglikelihood = data[:,0], data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
         idx = np.argmax(loglikelihood)
         tau_best, nu_best, delta_best, zeta_best, sigma_best = data[idx,0:-1]
-     
+
         M = tau_best + nu_best*(mej) + delta_best*(vej) + zeta_best*Xlan
-    
+
     sigma = sigma_best*np.ones(M.shape)
 
     plotName = "%s/corner.pdf"%(plotDir)
@@ -366,7 +378,45 @@ elif opts.fit_type == "linear":
     plt.savefig(plotName)
     plt.close()
 
-if "bulla" in opts.analysis_type:
+if opts.analysis_type == "inferred_bulla":
+
+    phi_unique, theta_unique = np.unique(phi), np.unique(theta)
+    phi_unique = phi_unique[::-1]
+
+    fig = plt.figure(figsize=(28, 16))
+    gs = gridspec.GridSpec(len(phi_unique), len(theta_unique),
+                           hspace=0.05, wspace=0.30)
+    for ii in range(len(phi_unique)):
+        for jj in range(len(theta_unique)):
+            ax = fig.add_subplot(gs[ii, jj])
+            plt.axes(ax)
+            idx = np.where((phi == phi_unique[ii]) & (theta == theta_unique[jj]))[0]
+
+            plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
+            plt.plot(10**mej[idx], Mag[idx], 'bo')
+            if not ii == len(phi_unique) - 1:
+                plt.setp(ax.get_xticklabels(), visible=False)
+            else:
+                plt.xlabel('$\Theta = %.0f^\circ$' % theta_unique[jj], fontsize=24)
+            if not jj == 0:
+                plt.setp(ax.get_yticklabels(), visible=False)
+            else:
+                plt.ylabel('$\Phi = %.0f^\circ$' % phi_unique[ii], fontsize=24)
+
+            plt.xlim([0.001,0.1])
+            #plt.ylim([-17,-9])
+            #plt.ylim([-10,0])
+            plt.gca().invert_yaxis()
+            ax.set_xscale('log')
+
+    fig.text(0.5, 0.03, 'Ejecta Mass [solar mass]', ha='center', fontsize=30)
+    fig.text(0.05, 0.5, 'Absolute Magnitude', va='center', rotation='vertical', fontsize=30)
+    plt.show()
+    plotName = os.path.join(plotDir,'fitall.pdf')
+    plt.savefig(plotName, bbox_inches='tight')
+    plt.close()
+
+elif opts.analysis_type == "inferred_bulla_lanthanide":
 
     phi_unique, theta_unique = np.unique(phi), np.unique(theta)
     phi_unique = phi_unique[::-1]
@@ -379,8 +429,8 @@ if "bulla" in opts.analysis_type:
             plt.axes(ax)
             idx = np.where((phi == phi_unique[ii]) & (theta == theta_unique[jj]))[0]
 
-            plt.errorbar(10**mej[idx], M[idx], sigma[idx], fmt='k.')
-            plt.plot(10**mej[idx], Mag[idx], 'bo')
+            plt.errorbar(10**mejwind[idx], M[idx], sigma[idx], fmt='k.')
+            plt.plot(10**mejwind[idx], Mag[idx], 'bo')
             if not ii == len(phi_unique) - 1:
                 plt.setp(ax.get_xticklabels(), visible=False)
             else:
@@ -407,7 +457,7 @@ else:
 
     vej_unique, Xlan_unique = np.unique(vej), np.unique(Xlan)
     vej_unique = vej_unique[::-1]
-    
+
     fig = plt.figure(figsize=(16, 16))
     gs = gridspec.GridSpec(len(vej_unique), len(Xlan_unique))
     for ii in range(len(vej_unique)):
@@ -425,19 +475,21 @@ else:
                 plt.setp(ax.get_yticklabels(), visible=False)
             else:
                 plt.ylabel('$v_{\mathrm{ej}} = %.2f\,c$' % vej_unique[ii], fontsize=24)
-    
-            plt.xlim([0.001,0.1])
-            #plt.ylim([-17,-9])
+
+            plt.xlim([0.0005,0.2])
+            plt.ylim([-17,-9])
             #plt.ylim([-10,0])
             plt.gca().invert_yaxis()
             ax.set_xscale('log')
-    
+
     fig.text(0.5, 0.02, 'Ejecta Mass [solar mass]', ha='center', fontsize=30)
     fig.text(0.02, 0.5, 'Absolute Magnitude', va='center', rotation='vertical', fontsize=30)
     plt.show()
     plotName = os.path.join(plotDir,'fitall.pdf')
     plt.savefig(plotName)
     plt.close()
+
+    print(stop)
 
 M_trials = np.linspace(np.min(Mag), np.max(Mag), 100)
 
@@ -469,8 +521,13 @@ if not "FixZPT0" in opts.multinest_samples:
 if opts.nsamples > 0:
     samples = samples.downsample(Nsamples=opts.nsamples)
 
+
 # restrict ejecta masses
-samples = samples[samples["mej"] < 0.1]
+if opts.analysis_type == "inferred_bulla_lanthanide":
+    samples = samples[samples["mej_dyn"] < 0.1]
+    samples = samples[samples["mej_wind"] < 0.1]
+else:
+    samples = samples[samples["mej"] < 0.1]
 
 # These are the default values supplied with respect to generating lightcurves
 tini = 0.1
@@ -511,7 +568,7 @@ if opts.fit_type == "linear":
         delta_mean, delta_std = np.mean(delta), np.std(delta)
         zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
         sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
-        
+
         K = np.random.normal(loc=K_mean, scale=K_std, size=N)
         alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
         beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
@@ -525,7 +582,7 @@ if opts.fit_type == "linear":
         delta_mean, delta_std = np.mean(delta), np.std(delta)
         zeta_mean, zeta_std = np.mean(zeta), np.std(zeta)
         sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
-     
+
         tau = np.random.normal(loc=tau_mean, scale=tau_std, size=N)
         nu = np.random.normal(loc=nu_mean, scale=nu_std, size=N)
         delta = np.random.normal(loc=delta_mean, scale=delta_std, size=N)
@@ -537,7 +594,7 @@ if opts.fit_type == "linear":
         beta_mean, beta_std = np.mean(beta), np.std(beta)
         gamma_mean, gamma_std = np.mean(gamma), np.std(gamma)
         sigma_mean, sigma_std = np.mean(sigma), np.std(sigma)
-    
+
         kappa = np.random.normal(loc=kappa_mean, scale=kappa_std, size=N)
         alpha = np.random.normal(loc=alpha_mean, scale=alpha_std, size=N)
         beta = np.random.normal(loc=beta_mean, scale=beta_std, size=N)
@@ -546,7 +603,7 @@ if opts.fit_type == "linear":
 elif opts.fit_type == "gpr":
     sigma = np.random.normal(loc=0.0, scale=sigma_best, size=N)
 
-if opts.model == "Bu2019inc":
+if opts.model in ["Bu2019inc","Bu2019lr","Bu2019lf","Bu2019lm"]:
     incs = np.empty((0,1))
 
 mus = np.empty((0,1))
@@ -573,8 +630,10 @@ for ii in range(N):
 
     M_i = iband[jj] - iband[kk]
 
-    if "bulla" in opts.analysis_type:
+    if opts.analysis_type == "inferred_bulla":
         mej, phi, theta = row['mej'], row['phi'], row['theta']
+    elif opts.analysis_type == "inferred_bulla_lanthanide":
+        mejdyn, mejwind, phi, theta = row['mej_dyn'], row['mej_wind'], row['phi'], row['theta']
     else:
         mej, vej, Xlan = row['mej'], row['vej'], row['Xlan']
 
@@ -604,6 +663,13 @@ for ii in range(N):
 
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             mu = -( -M_K + M_pred + sigma[ii])
+        elif opts.analysis_type == "inferred_bulla_lanthanide":
+            param_list_postprocess = np.array([np.log10(mejdyn),np.log10(mejwind),phi,theta])
+            for i in range(len(param_mins)):
+                param_list_postprocess[i] = (param_list_postprocess[i]-param_mins[i])/(param_maxs[i]-param_mins[i])
+
+            M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            mu = -( -M_K + M_pred + sigma[ii])
         elif opts.analysis_type == "measured":
             if m7 == 0:
                 m7 = 0.01
@@ -616,12 +682,12 @@ for ii in range(N):
             M_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             mu = -( -M_K + M_pred + sigma[ii])
 
-    mu = mu - 2.6*zp
+    mu = mu - 0.9*zp
     #mu = mu + zp
 
     mus = np.append(mus,mu)
 
-    if opts.model == "Bu2019inc":
+    if opts.model in ["Bu2019inc","Bu2019lr","Bu2019lf","Bu2019lm"]:
         incs = np.append(incs,row["theta"])
 
 mus = np.array(mus)
@@ -629,7 +695,7 @@ dist = 10**((mus/5.0) + 1.0) / 1e6
 print(mus, dist)
 kdedir_dist = greedy_kde_areas_1d(dist)
 
-if opts.model == "Bu2019inc":
+if opts.model in ["Bu2019inc","Bu2019lr","Bu2019lf","Bu2019lm"]:
     filename = os.path.join(plotDir,'dist_inc.dat')
     fid = open(filename,'w')
     for d, i in zip(dist, incs):
@@ -794,10 +860,10 @@ ax = plt.subplot(111)
 plt.step(bins, hist_1, color = color1, linestyle='-',label='EM')
 plt.step(bins, hist_2, color = color2, linestyle='--',label='GW')
 plt.step(bins, hist_3, color = color3, linestyle='-.',label='GW-EM')
-plt.plot(bins_small, ss.norm.pdf(bins_small, loc=68.9, scale=4.6), color='pink', label='Superluminal') 
+plt.plot(bins_small, ss.norm.pdf(bins_small, loc=68.9, scale=4.6), color='pink', label='Superluminal')
 
 boxes = []
-planck_mu, planck_std = 67.74, 0.46 
+planck_mu, planck_std = 67.74, 0.46
 shoes_mu, shoes_std = 74.03, 1.42
 plt.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
 rect1 = Rectangle((planck_mu - planck_std, 0), 2*planck_std, 1, alpha=0.3, color='g')

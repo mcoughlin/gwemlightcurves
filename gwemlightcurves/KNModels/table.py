@@ -247,7 +247,20 @@ class KNTable(Table):
             if 'lam_tilde' in list(data_out.columns):
                 data_out['lambdat'] = data_out['lam_tilde']
                 print('setting lambdat to lam_tilde')
-    
+
+            if 'delta_lambda_tilde' in list(data_out.columns):
+                data_out['dlambdat'] = data_out['delta_lambda_tilde']
+                print('setting dlambdat to delta_lambda_tilde')
+            if 'lambda_tilde' in list(data_out.columns):
+                data_out['lambdat'] = data_out['lambda_tilde']
+                print('setting lambdat to lambda_tilde')   
+
+            if 'm1' not in list(data_out.columns):
+                eta = lightcurve_utils.q2eta(data_out['mass_ratio'])
+                m1, m2 = lightcurve_utils.mc2ms(data_out["chirp_mass"], eta)
+                data_out['m1'] = m1
+                data_out['m2'] = m2
+
             data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
             data_out['q'] = 1.0/data_out['q']
 
@@ -385,8 +398,10 @@ class KNTable(Table):
                 names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
         elif model == "Bu2019inc":
                         names=['t0', 'mej', 'phi', 'theta', 'zp', 'loglikelihood']
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
                         names=['t0', 'mej_dyn', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
+        elif model in ["Bu2019lw"]:
+                        names=['t0', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
         elif model == "Bu2019inc_TrPi2018":
                         names=['t0', 'mej', 'phi', 'theta', "E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B", 'zp', 'loglikelihood']
         else:
@@ -414,8 +429,10 @@ class KNTable(Table):
                 data_out['epsilon_B'] = 10**data_out['epsilon_B']
         elif model in ["Bu2019","Bu2019inc"]:
                         data_out['mej'] = 10**data_out['mej']
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
                         data_out['mej_dyn'] = 10**data_out['mej_dyn']
+                        data_out['mej_wind'] = 10**data_out['mej_wind']
+        elif model in ["Bu2019lw"]:
                         data_out['mej_wind'] = 10**data_out['mej_wind']
         elif model == "Bu2019inc_TrPi2018":
                         data_out['mej'] = 10**data_out['mej']

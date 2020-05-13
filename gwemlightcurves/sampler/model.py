@@ -309,6 +309,59 @@ def Ka2017inc_model_ejecta(mej,vej,Xlan,iota):
 
     return t, lbol, mag
 
+def Bu2019rb_model_ejecta(mej_1,mej_2,phi,theta,a):
+
+    Global.svd_mag_model = Global.svd_mag_model_1
+    Global.svd_lbol_model = Global.svd_lbol_model_1
+    tmag_1, lbol_1, mag_1 = Bu2019bc_model_ejecta(mej_1,phi,theta)
+    Global.svd_mag_model = Global.svd_mag_model_2
+    Global.svd_lbol_model = Global.svd_lbol_model_2
+    tmag_2, lbol_2, mag_2 = Bu2019re_model_ejecta(mej_2,a,theta)
+
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
+
+def Bu2019re_model_ejecta(mej,a,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['a'] = a
+    samples['theta'] = theta
+
+    model = "Bu2019re"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019bc_model_ejecta(mej,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019bc"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Ka2017x2_model_ejecta(mej_1,vej_1,Xlan_1,mej_2,vej_2,Xlan_2):
 
     tmag_1, lbol_1, mag_1 = Ka2017_model_ejecta(mej_1,vej_1,Xlan_1)
@@ -434,6 +487,46 @@ def Bu2019lr_model_ejecta(mej_dyn,mej_wind,phi,theta):
     samples['theta'] = theta
 
     model = "Bu2019lr"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019lm_model_ejecta(mej_dyn,mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lm"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019lw_model_ejecta(mej_wind,phi,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = 0.005
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019lw"
     t, lbol, mag = generate_lightcurve(model,samples)
 
     return t, lbol, mag
