@@ -150,8 +150,10 @@ plotDir = os.path.join(baseplotDir,"_".join(models))
 plotDir = os.path.join(plotDir,"event")
 plotDir = os.path.join(plotDir,opts.event)
 plotDir = os.path.join(plotDir,"_".join(filters))
+plotDir = os.path.join(plotDir,opts.analysisType)
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 plotDir = os.path.join(plotDir,opts.eostype)
+plotDir = os.path.join(plotDir,"Xlan_random")
 if opts.analysisType == "cbclist":
     plotDir = os.path.join(plotDir,opts.cbc_type)
     plotDir = os.path.join(plotDir,"%d_%d"%(opts.mindistance,opts.maxdistance))
@@ -167,13 +169,20 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     if opts.analysisType == "posterior":
         samples = KNTable.read_samples(opts.posterior_samples)
         samples["dist"] = opts.distance
+        
+        Xlans = []
+        Xlan_min, Xlan_max = -9, -1
+        for i in range(len(samples)):
+                Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
+        samples["Xlan"] = Xlans
+        
     else:
         if opts.nsamples < 1:
             print('Please set nsamples >= 1')
             exit(0)
         # read samples from template analysis
-        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
-
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples)
+ 
         m1s, m2s, dists = [], [], []
         lambda1s, lambda2s, chi_effs = [], [], []
         Xlans = []
@@ -245,7 +254,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
  
     print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
     print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
-    
+
     # Downsample 
     samples = samples.downsample(Nsamples=100)
     # Calc lambdas
@@ -274,7 +283,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
         from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
         # calc the mass of ejecta
-        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c1'], samples['m2'])
+        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
         # calc the velocity of ejecta
         vej2 = calc_vave(samples['q'])
 
@@ -418,7 +427,7 @@ plt.close()
 # Can compare low-latency numbers directly to PE runs
 if opts.doAddPosteriors:
     samples_posteriors = KNTable.read_samples(opts.posterior_samples)
-    
+
 plotName = "%s/mass_parameters.pdf"%(plotDir)
 fig = plt.figure(figsize=(14,12))
 gs = gridspec.GridSpec(1, 2)
@@ -475,7 +484,7 @@ kwargs["doSpec"] = False
 # Create dict of tables for the various models, calculating mass ejecta velocity of ejecta and the lightcurve from the model
 pcklFile = os.path.join(plotDir,"data.pkl")
 if os.path.isfile(pcklFile):
-    f = open(pcklFile, 'r')
+    f = open(pcklFile, 'rb')
     (model_tables) = pickle.load(f)
     f.close()
 else:
@@ -551,7 +560,7 @@ if opts.doEvent:
     filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
     if os.path.isfile(filename):
         data_out = lightcurve_utils.loadEvent(filename)
-        for ii,key in enumerate(data_out.iterkeys()):
+        for ii,key in enumerate(data_out.keys()):
             if key == "t":
                 continue
             else:
@@ -579,7 +588,7 @@ plt.figure(figsize=(10,8))
 cnt = 0
 for ii, model in enumerate(models):
     maglen, ttlen = lbol_all[model].shape
-    for jj in xrange(maglen):
+    for jj in range(maglen):
         for filt, color, magidx in zip(filts,colors,magidxs):
             if cnt == 0 and ii == 0:
                 plt.plot(tt,mag_all[model][filt][jj,:],alpha=0.2,c=color,label=filt,linestyle=linestyles[ii])
