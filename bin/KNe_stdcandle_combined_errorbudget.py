@@ -235,17 +235,15 @@ baseplotDir = os.path.join(opts.plotDir,'standard_candles','inferred')
 if not os.path.isdir(baseplotDir):
     os.makedirs(baseplotDir)
 
+baseplotDir = os.path.join(opts.plotDir,'standard_candles','inferred')
 plotDir1 = os.path.join(baseplotDir,'0.10')
-if not os.path.isdir(plotDir1):
-    os.makedirs(plotDir1)
-
 plotDir2 = os.path.join(baseplotDir,'0.25')
-if not os.path.isdir(plotDir2):
-    os.makedirs(plotDir2)
-
 plotDir3 = os.path.join(baseplotDir,'1.00')
-if not os.path.isdir(plotDir3):
-    os.makedirs(plotDir3)
+
+baseplotDir = os.path.join(opts.plotDir,'standard_candles','inferred_bulla')
+plotDir1b = os.path.join(baseplotDir,'0.10')
+plotDir2b = os.path.join(baseplotDir,'0.25')
+plotDir3b = os.path.join(baseplotDir,'1.00')
 
 baseplotDir = os.path.join(opts.plotDir,'standard_candles','inferred','errorbudget')
 if not os.path.isdir(baseplotDir):
@@ -266,10 +264,26 @@ f = open(pcklFile3, 'r')
 (dist_3,samples_all,H0_EM_3,H0_GW,H0_GWEM_3,Mag_3,M_3,sigma_best_3) = pickle.load(f)
 f.close()
 
+pcklFile1b = os.path.join(plotDir1b, "H0.pkl")
+f = open(pcklFile1b, 'r')
+(dist_1b,samples_all,H0_EM_1b,H0_GW,H0_GWEM_1b,Mag_1b,M_1b,sigma_best_1b) = pickle.load(f)
+f.close()
+
+pcklFile2b = os.path.join(plotDir2b, "H0.pkl")
+f = open(pcklFile2b, 'r')
+(dist_2b,samples_all,H0_EM_2b,H0_GW,H0_GWEM_2b,Mag_2b,M_2b,sigma_best_2b) = pickle.load(f)
+f.close()
+
+pcklFile3b = os.path.join(plotDir3b, "H0.pkl")
+f = open(pcklFile3b, 'r')
+(dist_3b,samples_all,H0_EM_3b,H0_GW,H0_GWEM_3b,Mag_3b,M_3b,sigma_best_3b) = pickle.load(f)
+f.close()
+
 color1 = 'cornflowerblue'
 color2 = 'coral'
 color3 = 'darkgreen'
 color4 = 'pink'
+color5 = 'cyan'
 
 M_trials = np.linspace(-20, 0, 100)
 
@@ -287,22 +301,38 @@ kdedir_dist_1 = greedy_kde_areas_1d(dist_1)
 kdedir_dist_2 = greedy_kde_areas_1d(dist_2)
 kdedir_dist_3 = greedy_kde_areas_1d(dist_3)
 
+hist_1b, bin_edges_1b = np.histogram(dist_1b, bin_edges, density=True)
+hist_2b, bin_edges_2b = np.histogram(dist_2b, bin_edges, density=True)
+hist_3b, bin_edges_3b = np.histogram(dist_3b, bin_edges, density=True)
+bins_1b = (bin_edges_1b[:-1] + bin_edges_1b[1:])/2.0
+bins_2b = (bin_edges_2b[:-1] + bin_edges_2b[1:])/2.0
+bins_3b = (bin_edges_3b[:-1] + bin_edges_3b[1:])/2.0
+
+kdedir_dist_1b = greedy_kde_areas_1d(dist_1b)
+kdedir_dist_2b = greedy_kde_areas_1d(dist_2b)
+kdedir_dist_3b = greedy_kde_areas_1d(dist_3b)
+
 xticks_1 = np.array([10,30,50,70,90,110])
 
 fig = plt.figure(figsize=(9,6))
 ax = plt.gca()
 
+gwdist = samples_all['high']['luminosity_distance_Mpc']
+kdedir_gwdist = greedy_kde_areas_1d(gwdist)
+plt.plot(bins, [kde_eval_single(kdedir_gwdist,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW', linewidth=3, zorder=10)
+
 #plt.plot([dist_10,dist_10],[0,1],'--',color=color1)
 #plt.plot([dist_50,dist_50],[0,1],'--',color=color1)
 #plt.plot([dist_90,dist_90],[0,1],'--',color=color1)
-plt.plot(bins, [kde_eval_single(kdedir_dist_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (0.10)', linewidth=3)
-plt.plot(bins, [kde_eval_single(kdedir_dist_2,[d])[0] for d in bins], color = color2, linestyle='-',label='EM (0.25)', linewidth=3)
-plt.plot(bins, [kde_eval_single(kdedir_dist_3,[d])[0] for d in bins], color = color4, linestyle='-',label='EM (1.00)', linewidth=3)
+plt.plot(bins, [kde_eval_single(kdedir_dist_2,[d])[0] for d in bins], color = color1, linestyle='-',label='Kasen et al. - 0.25', linewidth=3)
+plt.plot(bins, [kde_eval_single(kdedir_dist_2b,[d])[0] for d in bins], color = color1, linestyle='--',label='Bulla - 0.25', linewidth=3)
+plt.plot(bins, [kde_eval_single(kdedir_dist_1,[d])[0] for d in bins], color = color3, linestyle='-',label='Kasen et al. - 0.10', linewidth=3)
+plt.plot(bins, [kde_eval_single(kdedir_dist_1b,[d])[0] for d in bins], color = color3, linestyle='--',label='Bulla - 0.10', linewidth=3)
 
 #plt.step(bins_1, hist_1, color = color1, linestyle='-',label='EM (inferred)', linewidth=3)
 #plt.step(bins_2, hist_2, color = color2, linestyle='-',label='EM (measured)', linewidth=3)
 plt.xticks(xticks_1)
-plt.xlim([0,100])
+plt.xlim([10,80])
 
 color_names = [color2, color3]
 for ii, key in enumerate(samples_all.keys()):
@@ -316,11 +346,8 @@ for ii, key in enumerate(samples_all.keys()):
     else:
         linestyle='-'
     #plt.step(bins_1, hist_1, color = color3, linestyle=linestyle,label=label,linewidth=3)
-    kdedir_gwdist = greedy_kde_areas_1d(gwdist)
-    plt.plot(bins, [kde_eval_single(kdedir_gwdist,[d])[0] for d in bins], color = color3, linestyle=linestyle,label=label, linewidth=3)
-
-gwdist = samples_all['low']['luminosity_distance_Mpc']
-kdedir_gwdist = greedy_kde_areas_1d(gwdist)
+    #kdedir_gwdist = greedy_kde_areas_1d(gwdist)
+    #plt.plot(bins, [kde_eval_single(kdedir_gwdist,[d])[0] for d in bins], color = color3, linestyle=linestyle,label=label, linewidth=3)
 
 fp_mu, fp_std = 44.0, 7.5
 sbf_mu, sbf_std = 40.7, np.sqrt(1.4**2 + 1.9**2)
@@ -337,10 +364,10 @@ ax.add_patch(rect2)
 ax.add_patch(rect3)
 ax.add_patch(rect4)
 
-plt.legend()
+plt.legend(loc=1)
 plt.xlabel('Distance [Mpc]')
 plt.ylabel('Probability')
-plt.ylim([0,0.125])
+plt.ylim([0,0.2])
 plt.grid(True)
 plt.show()
 plotName = os.path.join(baseplotDir,'dist.pdf')

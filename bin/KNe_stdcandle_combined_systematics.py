@@ -231,6 +231,41 @@ def myloglike_H0_GWEM(cube, ndim, nparams):
 
         return prob
 
+def weighted_quantile(values, quantiles, sample_weight=None, 
+                      values_sorted=False, old_style=False):
+    """ Very close to numpy.percentile, but supports weights.
+    NOTE: quantiles should be in [0, 1]!
+    :param values: numpy.array with data
+    :param quantiles: array-like with many quantiles needed
+    :param sample_weight: array-like of the same length as `array`
+    :param values_sorted: bool, if True, then will avoid sorting of
+        initial array
+    :param old_style: if True, will correct output to be consistent
+        with numpy.percentile.
+    :return: numpy.array with computed quantiles.
+    """
+    values = np.array(values)
+    quantiles = np.array(quantiles)
+    if sample_weight is None:
+        sample_weight = np.ones(len(values))
+    sample_weight = np.array(sample_weight)
+    assert np.all(quantiles >= 0) and np.all(quantiles <= 1), \
+        'quantiles should be in [0, 1]'
+
+    if not values_sorted:
+        sorter = np.argsort(values)
+        values = values[sorter]
+        sample_weight = sample_weight[sorter]
+
+    weighted_quantiles = np.cumsum(sample_weight) - 0.5 * sample_weight
+    if old_style:
+        # To be convenient with numpy.percentile
+        weighted_quantiles -= weighted_quantiles[0]
+        weighted_quantiles /= weighted_quantiles[-1]
+    else:
+        weighted_quantiles /= np.sum(sample_weight)
+    return np.interp(quantiles, weighted_quantiles, values)
+
 # Parse command line
 opts = parse_commandline()
 
@@ -300,6 +335,18 @@ rect6b = Rectangle((superluminal_mu - 2*superluminal_std, 0), 4*superluminal_std
 bins = np.arange(5,170,1)
 
 fig, ax1 = plt.subplots(figsize=(9,6))
+
+kdedir_em_1 = greedy_kde_areas_1d(H0_EM_1)
+kdedir_em_2 = greedy_kde_areas_1d(H0_EM_2)
+kdedir_em_3 = greedy_kde_areas_1d(H0_EM_3)
+kdedir_em_4 = greedy_kde_areas_1d(H0_EM_4)
+
+H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_1,16), np.percentile(H0_EM_1,50), np.percentile(H0_EM_1,84)
+print('SBF: $%.0f^{+%.0f}_{-%.0f}$ & ' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
+H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_3,16), np.percentile(H0_EM_3,50), np.percentile(H0_EM_3,84)
+print('SBF - $M_{\\rm ej}: $%.0f^{+%.0f}_{-%.0f}$ & ' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
+H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_4,16), np.percentile(H0_EM_4,50), np.percentile(H0_EM_4,84)
+print('SBF - $X_{\\rm lan}: $%.0f^{+%.0f}_{-%.0f}$ & ' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
 
 ax1.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='SBF', linewidth=3, zorder=10)
 ax1.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color2, linestyle='--',label='GW', linewidth=3, zorder=10)

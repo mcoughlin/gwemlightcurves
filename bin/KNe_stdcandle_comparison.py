@@ -239,15 +239,11 @@ plotDir1 = os.path.join(baseplotDir,'inferred/1.00')
 if not os.path.isdir(plotDir1):
     os.makedirs(plotDir1)
 
-plotDir2 = os.path.join(baseplotDir,'measured')
+plotDir2 = os.path.join(baseplotDir,'inferred_bulla_Temp/0.25_old')
 if not os.path.isdir(plotDir2):
     os.makedirs(plotDir2)
 
-plotDir3 = os.path.join(baseplotDir,'inferred_bulla_Temp/0.25_old')
-if not os.path.isdir(plotDir3):
-    os.makedirs(plotDir3)
-
-baseplotDir = os.path.join(opts.plotDir,'standard_candles/combined')
+baseplotDir = os.path.join(opts.plotDir,'standard_candles/comparison')
 if not os.path.isdir(baseplotDir):
     os.makedirs(baseplotDir)
 
@@ -260,26 +256,6 @@ pcklFile2 = os.path.join(plotDir2, "H0.pkl")
 f = open(pcklFile2, 'r')
 (dist_2,samples_all,H0_EM_2,H0_GW,H0_GWEM_2,Mag_2,M_2,sigma_best_2) = pickle.load(f)
 f.close()
-
-pcklFile3 = os.path.join(plotDir3, "H0.pkl")
-f = open(pcklFile3, 'r')
-(dist_3,samples_all,H0_EM_3,H0_GW,H0_GWEM_3,Mag_3,M_3,sigma_best_3) = pickle.load(f)
-f.close()
-
-dist_16, dist_50, dist_84 = np.percentile(dist_1,16), np.percentile(dist_1,50), np.percentile(dist_1,84)
-H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_1,16), np.percentile(H0_EM_1,50), np.percentile(H0_EM_1,84)
-print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
-print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
-
-dist_16, dist_50, dist_84 = np.percentile(dist_2,16), np.percentile(dist_2,50), np.percentile(dist_2,84)
-H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_2,16), np.percentile(H0_EM_2,50), np.percentile(H0_EM_2,84)
-print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
-print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
-
-dist_16, dist_50, dist_84 = np.percentile(dist_3,16), np.percentile(dist_3,50), np.percentile(dist_3,84)
-H0_EM_16, H0_EM_50, H0_EM_84 = np.percentile(H0_EM_3,16), np.percentile(H0_EM_3,50), np.percentile(H0_EM_3,84)
-print('Distance: %.0f +%.0f -%.0f' % (dist_50, dist_84-dist_50, dist_50-dist_16))
-print('H0 EM: %.0f +%.0f -%.0f' % (H0_EM_50, H0_EM_84-H0_EM_50, H0_EM_50-H0_EM_16))
 
 color1 = 'cornflowerblue'
 color2 = 'coral'
@@ -325,18 +301,22 @@ bins_2 = (bin_edges_2[:-1] + bin_edges_2[1:])/2.0
 
 kdedir_dist_1 = greedy_kde_areas_1d(dist_1)
 kdedir_dist_2 = greedy_kde_areas_1d(dist_2)
-kdedir_dist_3 = greedy_kde_areas_1d(dist_3)
 
 xticks_1 = np.array([10,30,50,70,90,110])
 
-fig = plt.figure(figsize=(8,5))
+fig = plt.figure(figsize=(8,6))
 ax = plt.gca()
 
-plt.plot(bins, [kde_eval_single(kdedir_dist_1,[d])[0] for d in bins], color = color1, linestyle='-',label='Kasen et al. - inf.', linewidth=3)
-plt.plot(bins, [kde_eval_single(kdedir_dist_2,[d])[0] for d in bins], color = color1, linestyle='--',label='Kasen et al. - meas.', linewidth=3)
-plt.plot(bins, [kde_eval_single(kdedir_dist_3,[d])[0] for d in bins], color = color3, linestyle='-.',label='Bulla - inf.', linewidth=3)
+#plt.plot([dist_10,dist_10],[0,1],'--',color=color1)
+#plt.plot([dist_50,dist_50],[0,1],'--',color=color1)
+#plt.plot([dist_90,dist_90],[0,1],'--',color=color1)
+plt.plot(bins, [kde_eval_single(kdedir_dist_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (Kasen et al.)', linewidth=3)
+plt.plot(bins, [kde_eval_single(kdedir_dist_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (Bulla)', linewidth=3)
 
+#plt.step(bins_1, hist_1, color = color1, linestyle='-',label='EM (inferred)', linewidth=3)
+#plt.step(bins_2, hist_2, color = color2, linestyle='-',label='EM (measured)', linewidth=3)
 plt.xticks(xticks_1)
+plt.xlim([0,100])
 
 color_names = [color2, color3]
 for ii, key in enumerate(samples_all.keys()):
@@ -377,9 +357,9 @@ ax.tick_params(axis='both', which='minor', labelsize=20)
 plt.legend()
 plt.xlabel('Distance [Mpc]',fontsize=20)
 plt.ylabel('Probability',fontsize=20)
-plt.xlim([5,90])
-plt.ylim([0,0.09])
-#plt.grid(True)
+plt.xlim([5,85])
+plt.ylim([0,0.10])
+plt.grid(True)
 plt.show()
 plotName = os.path.join(baseplotDir,'dist.pdf')
 plt.savefig(plotName, bbox_inches='tight')
@@ -396,7 +376,6 @@ bins = (bin_edges[:-1] + bin_edges[1:])/2.0
 kdedir_gw = greedy_kde_areas_1d(H0_GW)
 kdedir_em_1 = greedy_kde_areas_1d(H0_EM_1)
 kdedir_em_2 = greedy_kde_areas_1d(H0_EM_2)
-kdedir_em_3 = greedy_kde_areas_1d(H0_EM_3)
 kdedir_gwem_1 = greedy_kde_areas_1d(H0_GWEM_1)
 kdedir_gwem_2 = greedy_kde_areas_1d(H0_GWEM_2)
 
@@ -422,18 +401,12 @@ bins = np.arange(5,170,1)
 fig, ax1 = plt.subplots(figsize=(9,6))
 # These are in unitless percentages of the figure size. (0,0 is bottom left)
 left, bottom, width, height = [0.15, 0.55, 0.25, 0.30]
-#ax2 = fig.add_axes([left, bottom, width, height])
+ax2 = fig.add_axes([left, bottom, width, height])
 
 ax1.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW (low spin)', linewidth=3, zorder=10)
-#ax1.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (inferred)', linewidth=3, zorder=10)
-#ax1.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (measured)', linewidth=3, zorder=10)
-#ax1.plot(bins, [kde_eval_single(kdedir_gwem_1,[d])[0] for d in bins], color = 'k', linestyle='-',label='GW-EM (inferred)', linewidth=3, zorder=10)
+ax1.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (Kasen et al.)', linewidth=3, zorder=10)
+ax1.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (Bulla)', linewidth=3, zorder=10)
 #ax1.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
-
-ax1.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='Kasen et al. - inf.', linewidth=3, zorder=10)
-ax1.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='Kasen et al. - meas.', linewidth=3, zorder=10)
-ax1.plot(bins, [kde_eval_single(kdedir_gwem_1,[d])[0] for d in bins], color = 'k', linestyle='-',label='GW + Kasen et al. - inf.', linewidth=3, zorder=10)
-ax1.plot(bins, [kde_eval_single(kdedir_em_3,[d])[0] for d in bins], color = color3, linestyle='-.',label='Bulla - inf.', linewidth=3, zorder=10)
 
 ax1.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
 ax1.plot([shoes_mu,shoes_mu],[0,1],alpha=0.3, color='r',label='SHoES')
@@ -451,24 +424,23 @@ ax1.tick_params(axis='both', which='minor', labelsize=20)
 
 ax1.set_xlabel('$H_0$ [km $\mathrm{s}^{-1}$ $\mathrm{Mpc}^{-1}$]',fontsize=20)
 ax1.set_ylabel('Probability',fontsize=20)
-#ax1.grid(True)
+ax1.grid(True)
 ax1.legend()
-ax1.set_xlim([40,150])
+ax1.set_xlim([10,150])
 ax1.set_ylim([0,0.05])
 
-#ax2.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW (low spin)', linewidth=3, zorder=10)
-#ax2.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (inferred)', linewidth=3, zorder=10)
-#ax2.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (measured)', linewidth=3, zorder=10)
-#ax2.plot(bins, [kde_eval_single(kdedir_gwem_1,[d])[0] for d in bins], color = 'k', linestyle='-',label='GW-EM (inferred)', linewidth=3, zorder=10)
+ax2.plot(bins, [kde_eval_single(kdedir_gw,[d])[0] for d in bins], color = color2, linestyle='-.',label='GW (low spin)', linewidth=3, zorder=10)
+ax2.plot(bins, [kde_eval_single(kdedir_em_1,[d])[0] for d in bins], color = color1, linestyle='-',label='EM (Kasen et al.)', linewidth=3, zorder=10)
+ax2.plot(bins, [kde_eval_single(kdedir_em_2,[d])[0] for d in bins], color = color1, linestyle='--',label='EM (Bulla)', linewidth=3, zorder=10)
 #ax2.plot(bins, [kde_eval_single(kdedir_gwem_2,[d])[0] for d in bins], color = color3, linestyle='--',label='GW-EM (measured)', linewidth=3, zorder=10)
 #
 ##ax2.plot([planck_mu,planck_mu],[0,1],alpha=0.3, color='g',label='Planck')
 ##ax2.plot([shoes_mu,shoes_mu],[0,1],alpha=0.3, color='r',label='SHoES')
 ##ax2.plot([superluminal_mu,superluminal_mu],[0,1],alpha=0.3, color='c',label='Superluminal')
 #
-#ax2.errorbar(planck_mu, 0.047, xerr=planck_std, fmt='o', color='g',label='Planck',zorder=10)
-#ax2.errorbar(shoes_mu, 0.050, xerr=shoes_std, fmt='o', color='r',label='SHoES',zorder=10)
-#ax2.errorbar(superluminal_mu, 0.053, xerr=superluminal_std, fmt='o', color='c',label='Superluminal')
+ax2.errorbar(planck_mu, 0.047, xerr=planck_std, fmt='o', color='g',label='Planck',zorder=10)
+ax2.errorbar(shoes_mu, 0.050, xerr=shoes_std, fmt='o', color='r',label='SHoES',zorder=10)
+ax2.errorbar(superluminal_mu, 0.053, xerr=superluminal_std, fmt='o', color='c',label='Superluminal')
 #
 ##ax2.add_patch(rect1b)
 ##ax2.add_patch(rect2b)
@@ -477,13 +449,13 @@ ax1.set_ylim([0,0.05])
 ##ax2.add_patch(rect5b)
 ##ax2.add_patch(rect6b)
 #
-#plt.setp( ax2.get_yticklabels(), visible=False)
+plt.setp( ax2.get_yticklabels(), visible=False)
 
-#ax2.set_xlim([55,95])
-#ax2.xaxis.grid(True)
-#ax2.set_ylim([0,0.06])
-#xticks_1 = np.array([65,75,85])
-#ax2.set_xticks(xticks_1)
+ax2.set_xlim([55,95])
+ax2.xaxis.grid(True)
+ax2.set_ylim([0,0.06])
+xticks_1 = np.array([65,75,85])
+ax2.set_xticks(xticks_1)
 
 plt.show()
 plotName = os.path.join(baseplotDir,'H0.pdf')

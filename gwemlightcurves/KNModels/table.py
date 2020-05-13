@@ -247,7 +247,20 @@ class KNTable(Table):
             if 'lam_tilde' in list(data_out.columns):
                 data_out['lambdat'] = data_out['lam_tilde']
                 print('setting lambdat to lam_tilde')
-    
+
+            if 'delta_lambda_tilde' in list(data_out.columns):
+                data_out['dlambdat'] = data_out['delta_lambda_tilde']
+                print('setting dlambdat to delta_lambda_tilde')
+            if 'lambda_tilde' in list(data_out.columns):
+                data_out['lambdat'] = data_out['lambda_tilde']
+                print('setting lambdat to lambda_tilde')   
+
+            if 'm1' not in list(data_out.columns):
+                eta = lightcurve_utils.q2eta(data_out['mass_ratio'])
+                m1, m2 = lightcurve_utils.mc2ms(data_out["chirp_mass"], eta)
+                data_out['m1'] = m1
+                data_out['m2'] = m2
+
             data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
             data_out['q'] = 1.0/data_out['q']
 
