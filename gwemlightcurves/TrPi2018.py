@@ -3,7 +3,8 @@ import os, sys
 import numpy as np
 from scipy.interpolate import interpolate as interp
 import scipy
-import grbpy
+#import grbpy
+import afterglowpy as grbpy
 from functools import wraps
 import signal, errno
 
