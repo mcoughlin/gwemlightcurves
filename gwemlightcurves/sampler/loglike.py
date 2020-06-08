@@ -355,6 +355,42 @@ def myloglike_Bu2019inc_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Bu2019op_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    kappaLF = 10**cube[1]
+    gammaLF = cube[2]
+    kappaLR = 10**cube[3]
+    gammaLR = cube[4]
+    zp_unit = cube[5]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+
+    tmag, lbol, mag = Bu2019op_model_ejecta(kappaLF, gammaLF,
+                                            kappaLR, gammaLR)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
+def myloglike_Bu2019ops_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    kappaLF = 10**cube[1]
+    kappaLR = 10**cube[2]
+    gammaLR = cube[3]
+    zp_unit = cube[4]
+
+    zp_mu, zp_std = 0.0, Global.ZPRange
+    zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
+
+    tmag, lbol, mag = Bu2019ops_model_ejecta(kappaLF, kappaLR, gammaLR)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
 def myloglike_Bu2019lf_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej_dyn = 10**cube[1]
@@ -421,12 +457,10 @@ def myloglike_Bu2019lw_ejecta(cube, ndim, nparams):
     zp_mu, zp_std = 0.0, Global.ZPRange
     zp = scipy.stats.norm(zp_mu, zp_std).ppf(zp_unit)
 
-    print(mej_wind,phi,theta)
-
     tmag, lbol, mag = Bu2019lw_model_ejecta(mej_wind,phi,theta)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
 
-    print(phi, prob)
+    print(mej_wind, phi, theta, prob)
 
     return prob
 
@@ -1094,8 +1128,11 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
             else:
                 continue
 
+            print(maginterp, zp)
             maginterp = maginterp + zp
             sigma = np.sqrt(errorbudget**2 + sigma_y**2)
+
+            print(t, maginterp, y, sigma)
 
             chisquarevals = np.zeros(y.shape)
             chisquarevals = ((y-maginterp)/sigma)**2

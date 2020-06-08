@@ -451,6 +451,45 @@ def Bu2019inc_model_ejecta(mej,phi,theta):
 
     return t, lbol, mag
 
+def Bu2019op_model_ejecta(kappaLF, gammaLF, kappaLR, gammaLR):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['kappaLF'] = kappaLF
+    samples['gammaLF'] = gammaLF
+    samples['kappaLR'] = kappaLR
+    samples['gammaLR'] = gammaLR
+
+    model = "Bu2019op"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019ops_model_ejecta(kappaLF, kappaLR, gammaLR):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['kappaLF'] = kappaLF
+    samples['kappaLR'] = kappaLR
+    samples['gammaLR'] = gammaLR
+
+    model = "Bu2019ops"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Bu2019lf_model_ejecta(mej_dyn,mej_wind,phi,theta):
 
     tini = 0.1

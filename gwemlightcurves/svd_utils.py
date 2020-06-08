@@ -43,6 +43,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_blue_cone"
     elif model == "Bu2019re":
         fileDir = "../output/bulla_red_ellipse"
+    elif model == "Bu2019op":
+        fileDir = "../output/bulla_opacity"
+    elif model == "Bu2019ops":
+        fileDir = "../output/bulla_opacity_slim"
 
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
@@ -78,6 +82,19 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif "gamma" in key:
+            kappaLF = float(keySplit[2].replace("kappaLF",""))
+            gammaLF = float(keySplit[3].replace("gammaLF",""))
+            kappaLR = float(keySplit[4].replace("kappaLR",""))
+            gammaLR = float(keySplit[5].replace("gammaLR",""))
+            theta = float(keySplit[6])
+
+            lbols[key]["kappaLF"] = kappaLF
+            lbols[key]["gammaLF"] = gammaLF
+            lbols[key]["kappaLR"] = kappaLR
+            lbols[key]["gammaLR"] = gammaLR
+            lbols[key]["theta"] = theta
+
         elif "nsns" in key:
 
             mejdyn = float(keySplit[2].replace("mejdyn",""))
@@ -173,6 +190,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
         elif model == "Bu2019re":
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["a"],lbols[key]["theta"]])
+        elif model == "Bu2019op":
+            param_array.append([np.log10(lbols[key]["kappaLF"]),lbols[key]["gammaLF"],np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
+        elif model == "Bu2019ops":
+            param_array.append([np.log10(lbols[key]["kappaLF"]),np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -253,6 +274,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_blue_cone"
     elif model == "Bu2019re":
         fileDir = "../output/bulla_red_ellipse"
+    elif model == "Bu2019op":
+        fileDir = "../output/bulla_opacity"
+    elif model == "Bu2019ops":
+        fileDir = "../output/bulla_opacity_slim"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -299,6 +324,20 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+
+        elif "gamma" in key:
+            kappaLF = float(keySplit[2].replace("kappaLF",""))
+            gammaLF = float(keySplit[3].replace("gammaLF",""))
+            kappaLR = float(keySplit[4].replace("kappaLR",""))
+            gammaLR = float(keySplit[5].replace("gammaLR",""))
+            theta = float(keySplit[6])
+
+            mags[key]["kappaLF"] = kappaLF
+            mags[key]["gammaLF"] = gammaLF
+            mags[key]["kappaLR"] = kappaLR
+            mags[key]["gammaLR"] = gammaLR
+            mags[key]["theta"] = theta
+
         elif "nsns" in key:
 
             mejdyn = float(keySplit[2].replace("mejdyn",""))
@@ -394,6 +433,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
         elif model == "Bu2019re":
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["a"],mags[key]["theta"]])
+        elif model == "Bu2019op":
+            param_array.append([np.log10(mags[key]["kappaLF"]),mags[key]["gammaLF"],np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
+        elif model == "Bu2019ops":
+            param_array.append([np.log10(mags[key]["kappaLF"]),np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
