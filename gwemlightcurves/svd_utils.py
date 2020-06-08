@@ -410,7 +410,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             maginterp = f(tt)
             mags[key]["data"][:,jj] = maginterp
 
-        mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+        mags[key]["data_vector"] = np.reshape(mags[key]["data"],(len(tt)*len(filters),1))
 
     magkeys = mags.keys()
     param_array = []
@@ -538,7 +538,7 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
             else:
                 mags[key]["data"][:,jj] = 0.0
 
-        mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+        mags[key]["data_vector"] = np.reshape(mags[key]["data"],(len(tt)*len(filters),1))
 
     magkeys = mags.keys()
     param_array = []
