@@ -75,6 +75,8 @@ def parse_commandline():
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
+
+    parser.add_option("--doComparison",  action="store_true", default=False)
     parser.add_option("--comparisonFile",default="../output/kasen_kilonova_grid/knova_d1_n10_m0.050_vk0.20_fd1.0_Xlan1e-3.0.dat") 
 
     opts, args = parser.parse_args()
@@ -429,10 +431,11 @@ if opts.doAB:
 
     color1 = 'coral'
     color2 = 'cornflowerblue'
-    
-    mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
-    key = list(mag_d_comparison[0].keys())[0]
-    mag_d_comparison = mag_d_comparison[0][key]
+   
+    if opts.doComparison: 
+        mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
+        key = list(mag_d_comparison[0].keys())[0]
+        mag_d_comparison = mag_d_comparison[0][key]
 
     tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
@@ -453,7 +456,9 @@ if opts.doAB:
             ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
     
         magave1 = mag[magidx,:]
-        magave2 = mag_d_comparison[filt]
+ 
+        if opts.doComparison:
+            magave2 = mag_d_comparison[filt]
 
         ii = np.where(~np.isnan(magave1))[0]
         if len(ii) > 1:
@@ -463,14 +468,15 @@ if opts.doAB:
             plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
             plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
             plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
-    
-        ii = np.where(~np.isnan(magave2))[0]
-        f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
-        maginterp2 = f(tt)
-        plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
-        plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
-        plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
-        plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
+   
+        if opts.doComparison: 
+            ii = np.where(~np.isnan(magave2))[0]
+            f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
+            maginterp2 = f(tt)
+            plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
+            plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+            plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+            plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
     
         plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
         plt.xlim([0.0, 14.0])
