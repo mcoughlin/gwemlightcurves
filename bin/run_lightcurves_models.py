@@ -281,21 +281,21 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap or opts.doFixedLim
         for filt, limit in zip(filters,limits):
             data_out[filt] = limit*np.ones(tt.shape)
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(list(data_out.iterkeys())):
         if key == "t":
             continue
         else:
             data_out[key] = np.vstack((data_out["t"],data_out[key],errorbudget*np.ones(data_out["t"].shape))).T
 
     idxs = np.intersect1d(np.where(data_out["t"]>=mint)[0],np.where(data_out["t"]<=maxt)[0])
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(list(data_out.iterkeys())):
         if key == "t":
             continue
         else:
             data_out[key] = data_out[key][idxs,:]
 
     tt = np.arange(mint,maxt,dt)
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(list(data_out.iterkeys())):
         if key == "t":
             continue
         else:
@@ -316,11 +316,11 @@ if opts.doModels or opts.doGoingTheDistance or opts.doMassGap or opts.doFixedLim
 
     if opts.doReduced:
         tt = np.array([2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0])
-        for ii,key in enumerate(data_out.iterkeys()):
+        for ii,key in enumerate(list(data_out.iterkeys())):
             maginterp = np.interp(tt,data_out[key][:,0],data_out[key][:,1],left=np.nan, right=np.nan)
             data_out[key] = np.vstack((tt,maginterp,errorbudget*np.ones(tt.shape))).T
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(list(data_out.iterkeys())):
         if ii == 0:
             samples = data_out[key].copy()
         else:
@@ -346,7 +346,7 @@ else:
 
         data_out = data_out[opts.name]
 
-    for ii,key in enumerate(data_out.keys()):
+    for ii,key in enumerate(list(data_out.keys())):
         if key == "t":
             continue
         else:
@@ -354,25 +354,25 @@ else:
             if not opts.doZTF:
                 data_out[key][:,1] = data_out[key][:,1] - 5*(np.log10(opts.distance*1e6) - 1)
 
-    for ii,key in enumerate(data_out.keys()):
+    for ii,key in enumerate(list(data_out.keys())):
         if key == "t":
             continue
         else:
             idxs = np.intersect1d(np.where(data_out[key][:,0]>=mint)[0],np.where(data_out[key][:,0]<=maxt)[0])
             data_out[key] = data_out[key][idxs,:]
 
-    for ii,key in enumerate(data_out.keys()):
+    for ii,key in enumerate(list(data_out.keys())):
         idxs = np.where(~np.isnan(data_out[key][:,2]))[0]
         if key == "t":
             continue
         else:
             data_out[key] = data_out[key][idxs,:]
 
-    for ii,key in enumerate(data_out.keys()):
+    for ii,key in enumerate(list(data_out.keys())):
         if not key in filters:
             del data_out[key]
 
-    for ii,key in enumerate(data_out.keys()):
+    for ii,key in enumerate(list(data_out.keys())):
         if ii == 0:
             samples = data_out[key].copy()
         else:
