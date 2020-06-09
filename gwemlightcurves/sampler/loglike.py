@@ -1128,11 +1128,8 @@ def calc_prob(tmag, lbol, mag, t0, zp, errorbudget=Global.errorbudget):
             else:
                 continue
 
-            print(maginterp, zp)
             maginterp = maginterp + zp
             sigma = np.sqrt(errorbudget**2 + sigma_y**2)
-
-            print(t, maginterp, y, sigma)
 
             chisquarevals = np.zeros(y.shape)
             chisquarevals = ((y-maginterp)/sigma)**2
