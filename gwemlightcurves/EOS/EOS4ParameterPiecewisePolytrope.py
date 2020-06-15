@@ -10,7 +10,7 @@ class EOS4ParameterPiecewisePolytrope(object):
     def __init__(self, EOS):
         """Initialize EOS and calculate a family of TOV stars.
         """
-        print(find_executable('polytrope_table.dat'))
+        #print(find_executable('polytrope_table.dat'))
         # load in polytop table
         polytable = Table.read(find_executable('polytrope_table.dat'), format='ascii')
         polytable = polytable[polytable['col1'] == EOS]
