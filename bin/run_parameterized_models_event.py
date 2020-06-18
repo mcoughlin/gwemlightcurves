@@ -241,7 +241,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                         mbns = np.max(marray)
                 elif opts.eostype == "Sly":
                     lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    #mbns = np.max(marray)      
+                    mbns = eos.maxmass()
+                    #print(mbns)      
                 
                 m1s.append(m1)
                 m2s.append(m2)
@@ -282,11 +283,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         #idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
        
         idx1 = np.where((samples['m1'] < samples['mbns']) & (samples['m2'] < samples['mbns']))[0]
-        idx2 = np.where((samples['m1'] > samples['mbns']) | (samples['m2'] > samples['mbns']))[0]
+        idx2 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] < samples['mbns']))[0]
         idx3 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] > samples['mbns']))[0]
-        print(idx1)
-        print(idx2)
-        print(idx3)
 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
 
@@ -307,16 +305,16 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         vej2 = calc_vave(samples['q'])
 
         # calc the mass of ejecta
-        mej3 = 0 * idx3
+        mej3 = 0
         # calc the velocity of ejecta
-        vej3 = 0 * idx3
+        vej3 = 0
 
         mej[idx1], vej[idx1] = mej1[idx1], vej1[idx1]
         mej[idx2], vej[idx2] = mej2[idx2], vej2[idx2]
-        mej[idx3], vej[idx3] = mej3[idx3], vej3[idx3]
+        mej[idx3], vej[idx3] = mej3, vej3
 
         samples['mej'] = mej
-        samples['vej'] = vej
+        samples['vej'] = vej 
 
         # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
         erroropt = 'none'
