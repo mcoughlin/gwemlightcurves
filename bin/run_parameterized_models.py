@@ -60,14 +60,23 @@ def parse_commandline():
     parser.add_option("--vej2",default=0.2,type=float)
     parser.add_option("--Xlan2",default=1e-3,type=float)
 
+    parser.add_option("--a",default=2.0,type=float)
+
     parser.add_option("--T",default=6000.0,type=float)
     parser.add_option("--phi",default=0.0,type=float)
     parser.add_option("--iota",default=0.0,type=float)
     parser.add_option("--colormodel",default="a2.0")
 
+    parser.add_option("--kappaLF",default=10,type=float)
+    parser.add_option("--gammaLF",default=-1.0,type=float)
+    parser.add_option("--kappaLR",default=10,type=float)
+    parser.add_option("--gammaLR",default=-1.0,type=float)
+
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
+
+    parser.add_option("--doComparison",  action="store_true", default=False)
     parser.add_option("--comparisonFile",default="../output/kasen_kilonova_grid/knova_d1_n10_m0.050_vk0.20_fd1.0_Xlan1e-3.0.dat") 
 
     opts, args = parser.parse_args()
@@ -100,6 +109,7 @@ Ye = opts.Ye
 iota = opts.iota
 phi = opts.phi
 T = opts.T
+a = opts.a
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -181,6 +191,7 @@ samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['Xlan'] = Xlan
 samples['Ye'] = Ye
+samples['a'] = a
 
 samples['theta_0'] = theta_0
 samples['theta_r'] = theta_r
@@ -201,6 +212,11 @@ samples['Xlan_2'] = Xlan2
 samples['iota'] = iota
 samples['phi'] = phi
 samples['T'] = T
+
+samples['kappaLF'] = opts.kappaLF
+samples['gammaLF'] = opts.gammaLF
+samples['kappaLR'] = opts.kappaLR
+samples['gammaLR'] = opts.gammaLR
 
 if len(colormodel) == 1:
     samples['colormodel'] = colormodel[0]
@@ -316,6 +332,21 @@ elif opts.model in "Bu2019lf":
 elif opts.model in "Bu2019lr":
     if opts.doEjecta:
         name = "Bu2019lr_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
+elif opts.model in "Bu2019lm":
+    if opts.doEjecta:
+        name = "Bu2019lm_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
+elif opts.model in "Bu2019lw":
+    if opts.doEjecta:
+        name = "Bu2019lw_Mwind%03dP%d"%(opts.mej_wind*1000,opts.phi)
+elif opts.model in "Bu2019re":
+    if opts.doEjecta:
+        name = "Bu2019re_M%03dP%d"%(opts.mej*1000,opts.phi)
+elif opts.model in "Bu2019op":
+    if opts.doEjecta:
+        name = "Bu2019bc_kappaLF%03dgammaLF%.1fkappaLR%03dgammaLR%.1f"%(opts.kappaLF,opts.gammaLF,opts.kappaLR,opts.gammaLR)
+elif opts.model in "Bu2019ops":
+    if opts.doEjecta:
+        name = "Bu2019bc_kappaLF%03dkappaLR%03d"%(opts.kappaLF,opts.kappaLR)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     #t0 = 0.0
@@ -337,7 +368,7 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow")
+   print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow,")
    exit(0)
 
 if opts.doAB:
@@ -351,17 +382,17 @@ elif opts.doSpec:
 
 baseoutputDir = opts.outputDir
 if not os.path.isdir(baseoutputDir):
-    os.mkdir(baseoutputDir)
+    os.makedirs(baseoutputDir)
 outputDir = os.path.join(baseoutputDir,opts.model)
 if not os.path.isdir(outputDir):
-    os.mkdir(outputDir)
+    os.makedirs(outputDir)
 
 baseplotDir = opts.plotDir
 if not os.path.isdir(baseplotDir):
-    os.mkdir(baseplotDir)
+    os.makedirs(baseplotDir)
 plotDir = os.path.join(baseplotDir,opts.model)
 if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
+    os.makedirs(plotDir)
 
 if opts.doAB:
     filename = "%s/%s.dat"%(outputDir,name)
@@ -400,10 +431,11 @@ if opts.doAB:
 
     color1 = 'coral'
     color2 = 'cornflowerblue'
-    
-    mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
-    key = list(mag_d_comparison[0].keys())[0]
-    mag_d_comparison = mag_d_comparison[0][key]
+   
+    if opts.doComparison: 
+        mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
+        key = list(mag_d_comparison[0].keys())[0]
+        mag_d_comparison = mag_d_comparison[0][key]
 
     tini, tmax, dt = 0.0, 21.0, 0.1
     tt = np.arange(tini,tmax,dt)
@@ -424,7 +456,9 @@ if opts.doAB:
             ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
     
         magave1 = mag[magidx,:]
-        magave2 = mag_d_comparison[filt]
+ 
+        if opts.doComparison:
+            magave2 = mag_d_comparison[filt]
 
         ii = np.where(~np.isnan(magave1))[0]
         if len(ii) > 1:
@@ -434,14 +468,15 @@ if opts.doAB:
             plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
             plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
             plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
-    
-        ii = np.where(~np.isnan(magave2))[0]
-        f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
-        maginterp2 = f(tt)
-        plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
-        plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
-        plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
-        plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
+   
+        if opts.doComparison: 
+            ii = np.where(~np.isnan(magave2))[0]
+            f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
+            maginterp2 = f(tt)
+            plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
+            plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+            plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+            plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
     
         plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
         plt.xlim([0.0, 14.0])

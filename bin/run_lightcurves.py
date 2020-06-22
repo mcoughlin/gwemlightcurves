@@ -145,7 +145,7 @@ else:
 
     data_out = data_out[opts.name]
 
-    for ii,key in enumerate(data_out.iterkeys()):
+    for ii,key in enumerate(list(data_out.iterkeys())):
         if ii == 0:
             samples = data_out[key].copy()
         else:

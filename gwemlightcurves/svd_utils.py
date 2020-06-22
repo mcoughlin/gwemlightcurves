@@ -35,6 +35,18 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_2Component_lfree"
     elif model == "Bu2019lr":
         fileDir = "../output/bulla_2Component_lrich"
+    elif model == "Bu2019lm":
+        fileDir = "../output/bulla_2Component_lmid"
+    elif model == "Bu2019lw":
+        fileDir = "../output/bulla_2Component_lmid_0p005"
+    elif model == "Bu2019bc":
+        fileDir = "../output/bulla_blue_cone"
+    elif model == "Bu2019re":
+        fileDir = "../output/bulla_red_ellipse"
+    elif model == "Bu2019op":
+        fileDir = "../output/bulla_opacity"
+    elif model == "Bu2019ops":
+        fileDir = "../output/bulla_opacity_slim"
 
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
@@ -70,6 +82,30 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             lbols[key]["mej"], lbols[key]["vej"], lbols[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+        elif "gamma" in key:
+            kappaLF = float(keySplit[2].replace("kappaLF",""))
+            gammaLF = float(keySplit[3].replace("gammaLF",""))
+            kappaLR = float(keySplit[4].replace("kappaLR",""))
+            gammaLR = float(keySplit[5].replace("gammaLR",""))
+            theta = float(keySplit[6])
+
+            lbols[key]["kappaLF"] = kappaLF
+            lbols[key]["gammaLF"] = gammaLF
+            lbols[key]["kappaLR"] = kappaLR
+            lbols[key]["gammaLR"] = gammaLR
+            lbols[key]["theta"] = theta
+
+        elif "nsns" in key:
+
+            mejdyn = float(keySplit[2].replace("mejdyn",""))
+            mejwind = float(keySplit[3].replace("mejwind",""))
+            phi0 = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            lbols[key]["mej_dyn"] = mejdyn
+            lbols[key]["mej_wind"] = mejwind
+            lbols[key]["phi"] = phi0
+            lbols[key]["theta"] = theta
 
         elif "mejdyn" in key:
 
@@ -81,6 +117,26 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["mej_dyn"] = mejdyn
             lbols[key]["mej_wind"] = mejwind
             lbols[key]["phi"] = phi0
+            lbols[key]["theta"] = theta
+
+        elif "bluecone" in key:
+
+            mej = float(keySplit[2].replace("mej",""))
+            phi0 = float(keySplit[3].replace("th",""))
+            theta = float(keySplit[4])
+
+            lbols[key]["mej"] = mej
+            lbols[key]["phi"] = 90-phi0
+            lbols[key]["theta"] = theta
+
+        elif "redellips" in key:
+
+            mej = float(keySplit[2].replace("mej",""))
+            a0 = float(keySplit[3].replace("a",""))
+            theta = float(keySplit[4])
+
+            lbols[key]["mej"] = mej
+            lbols[key]["a"] = a0
             lbols[key]["theta"] = theta
 
         elif keySplit[0] == "nph1.0e+06":
@@ -103,6 +159,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             #lbols[key]["T"] = T0
             lbols[key]["theta"] = theta
 
+
+
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
@@ -124,8 +182,18 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model in ["Bu2019lw"]:
+            param_array.append([np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model == "Bu2019bc":
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model == "Bu2019re":
+            param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["a"],lbols[key]["theta"]])
+        elif model == "Bu2019op":
+            param_array.append([np.log10(lbols[key]["kappaLF"]),lbols[key]["gammaLF"],np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
+        elif model == "Bu2019ops":
+            param_array.append([np.log10(lbols[key]["kappaLF"]),np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -198,6 +266,18 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_2Component_lfree"
     elif model == "Bu2019lr":
         fileDir = "../output/bulla_2Component_lrich"
+    elif model == "Bu2019lm":
+        fileDir = "../output/bulla_2Component_lmid"
+    elif model == "Bu2019lw":
+        fileDir = "../output/bulla_2Component_lmid_0p005"
+    elif model == "Bu2019bc":
+        fileDir = "../output/bulla_blue_cone"
+    elif model == "Bu2019re":
+        fileDir = "../output/bulla_red_ellipse"
+    elif model == "Bu2019op":
+        fileDir = "../output/bulla_opacity"
+    elif model == "Bu2019ops":
+        fileDir = "../output/bulla_opacity_slim"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -244,6 +324,32 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["Xlan"] = Xlan0
         elif keySplit[0] == "SED":
             mags[key]["mej"], mags[key]["vej"], mags[key]["Ye"] = lightcurve_utils.get_macronovae_rosswog(key)
+
+        elif "gamma" in key:
+            kappaLF = float(keySplit[2].replace("kappaLF",""))
+            gammaLF = float(keySplit[3].replace("gammaLF",""))
+            kappaLR = float(keySplit[4].replace("kappaLR",""))
+            gammaLR = float(keySplit[5].replace("gammaLR",""))
+            theta = float(keySplit[6])
+
+            mags[key]["kappaLF"] = kappaLF
+            mags[key]["gammaLF"] = gammaLF
+            mags[key]["kappaLR"] = kappaLR
+            mags[key]["gammaLR"] = gammaLR
+            mags[key]["theta"] = theta
+
+        elif "nsns" in key:
+
+            mejdyn = float(keySplit[2].replace("mejdyn",""))
+            mejwind = float(keySplit[3].replace("mejwind",""))
+            phi0 = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            mags[key]["mej_dyn"] = mejdyn
+            mags[key]["mej_wind"] = mejwind
+            mags[key]["phi"] = phi0
+            mags[key]["theta"] = theta
+
         elif "mejdyn" in key:
 
             mejdyn = float(keySplit[1].replace("mejdyn",""))
@@ -254,6 +360,26 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["mej_dyn"] = mejdyn
             mags[key]["mej_wind"] = mejwind
             mags[key]["phi"] = phi0
+            mags[key]["theta"] = theta
+
+        elif "bluecone" in key:
+
+            mej = float(keySplit[2].replace("mej",""))
+            phi0 = float(keySplit[3].replace("th",""))
+            theta = float(keySplit[4])
+
+            mags[key]["mej"] = mej
+            mags[key]["phi"] = 90-phi0
+            mags[key]["theta"] = theta
+
+        elif "redellips" in key:
+
+            mej = float(keySplit[2].replace("mej",""))
+            a0 = float(keySplit[3].replace("a",""))
+            theta = float(keySplit[4])
+
+            mags[key]["mej"] = mej
+            mags[key]["a"] = a0
             mags[key]["theta"] = theta
 
         elif keySplit[0] == "nph1.0e+06":
@@ -284,7 +410,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             maginterp = f(tt)
             mags[key]["data"][:,jj] = maginterp
 
-        mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+        mags[key]["data_vector"] = np.reshape(mags[key]["data"],(len(tt)*len(filters),1))
 
     magkeys = mags.keys()
     param_array = []
@@ -299,8 +425,18 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model in ["Bu2019lw"]:
+            param_array.append([np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model == "Bu2019bc":
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model == "Bu2019re":
+            param_array.append([np.log10(mags[key]["mej"]),mags[key]["a"],mags[key]["theta"]])
+        elif model == "Bu2019op":
+            param_array.append([np.log10(mags[key]["kappaLF"]),mags[key]["gammaLF"],np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
+        elif model == "Bu2019ops":
+            param_array.append([np.log10(mags[key]["kappaLF"]),np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -402,7 +538,7 @@ def calc_svd_color_model(tini,tmax,dt, n_coeff = 100, model = "a2.0"):
             else:
                 mags[key]["data"][:,jj] = 0.0
 
-        mags[key]["data_vector"] = np.reshape(mags[key]["data"],len(tt)*len(filters),1)
+        mags[key]["data_vector"] = np.reshape(mags[key]["data"],(len(tt)*len(filters),1))
 
     magkeys = mags.keys()
     param_array = []

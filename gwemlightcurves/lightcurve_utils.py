@@ -304,10 +304,13 @@ def read_posterior_samples(filename_samples):
 
     data_out = Table.read(filename_samples, format='ascii')
 
-    if 'm1_source' in list(data_out.columns):
-        data_out['m1'] = data_out['m1_source']
-    if 'm2_source' in list(data_out.columns):
-        data_out['m2'] = data_out['m2_source']
+    if 'mass_1_source' in list(data_out.columns):
+        data_out['m1'] = data_out['mass_1_source']
+    if 'mass_2_source' in list(data_out.columns):
+        data_out['m2'] = data_out['mass_2_source']
+
+    data_out['mchirp'], data_out['eta'], data_out['q'] = ms2mc(data_out['m1'], data_out['m2'])
+    data_out['q'] = 1.0/data_out['q']
 
     return data_out
 

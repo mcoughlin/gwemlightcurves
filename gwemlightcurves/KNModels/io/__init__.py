@@ -34,7 +34,13 @@ from . import (  # pylint: disable=unused-import
     Bu2019, # Bulla (2019) Model (2-component)
     Bu2019inc, # Bulla (2019) Model (2-component)
     Bu2019lf, # Bulla (2019) Model (Dynamic+Wind Lathanide Free)
-    Bu2019lr # Bulla (2019) Model (Dynamic+Wind Lathanide Rich)
+    Bu2019lr, # Bulla (2019) Model (Dynamic+Wind Lathanide Rich)
+    Bu2019lm, # Bulla (2019) Model (Dynamic+Wind Lathanide Middle)
+    Bu2019lw, # Bulla (2019) Model (Dynamic 0.005+Wind Lathanide Middle),
+    Bu2019re, # Bulla (2019) Model (Red ellipse),
+    Bu2019bc, # Bulla (2019) Model (Blue cone),
+    Bu2019op, # Bulla (2019) Model (opacity),
+    Bu2019ops # Bulla (2019) Model (opacity slim)
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'

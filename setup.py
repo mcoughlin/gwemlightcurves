@@ -71,6 +71,8 @@ install_requires = [
     'matplotlib',
     'sncosmo',
     'pymultinest',
+    'requests',
+    'penquins',
 ]
 tests_require = [
     'pytest'

@@ -58,6 +58,8 @@ def parse_commandline():
 
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
 
+    parser.add_option("--doNoGW170817",  action="store_true", default=False)
+
     opts, args = parser.parse_args()
 
     return opts
@@ -141,7 +143,10 @@ def myloglike_H0(cube, ndim, nparams):
 # Parse command line
 opts = parse_commandline()
 
-baseplotDir = os.path.join(opts.plotDir,'standard_candles','GRB_GW','all')
+if opts.doNoGW170817:
+    baseplotDir = os.path.join(opts.plotDir,'standard_candles','GRB_GW','no')
+else:
+    baseplotDir = os.path.join(opts.plotDir,'standard_candles','GRB_GW','all')
 plotDir = os.path.join(baseplotDir,opts.analysis_type)
 plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
 if not os.path.isdir(plotDir):
@@ -175,6 +180,9 @@ for pickle_sample in pickle_samples:
         name = "GW170817"
         distance = 40.7
         redshift = 0.009783
+        if opts.doNoGW170817:
+            continue
+
         data_struct[name] = {}
         data_struct[name]["dist"] = dist
         data_struct[name]["H0"] = H0_EM

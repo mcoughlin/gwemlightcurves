@@ -9,7 +9,7 @@ def calc_meje(q,chi_eff,c,mb,mns):
 
     a1= 0.007116
     a2=0.001436
-    a3=−0.0276
+    a3=-0.0276
     n1=0.8636
     n2=1.6840
 
@@ -17,7 +17,7 @@ def calc_meje(q,chi_eff,c,mb,mns):
     tmp2=-a2*(q**n2)*(r_isco(chi_eff))
     tmp3=a3
 
-    meje_fit=mb*np.maximum(tmp1+tmp2+tmp3,0);
+    meje_fit=mb*np.maximum(tmp1+tmp2+tmp3,0)
 
     return meje_fit
 

@@ -96,6 +96,8 @@ def get_legend(model):
         legend_name = "2 Component"
     elif model == "RoFe2017":
         legend_name = "Rosswog et al. (2017)"
+    elif model == "Bu2019inc":
+        legend_name = "Bu2019inc"
 
     return legend_name
 
@@ -115,8 +117,8 @@ limits = [float(x) for x in opts.limits.split(",")]
 
 models = opts.model.split(",")
 for model in models:
-    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017"]:
-        print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016,Ka2017,RoFe2017")
+    if not model in ["DiUj2017","KaKy2016","Me2017","SmCh2017","WoKo2017","BaKa2016","Ka2017","RoFe2017", "Bu2019inc"]:
+        print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016,Ka2017,RoFe2017,Bu2019inc")
         exit(0)
 
 lightcurvesDir = opts.lightcurvesDir
@@ -182,10 +184,11 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             exit(0)
         # read samples from template analysis
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples)
- 
+        
         m1s, m2s, dists = [], [], []
         lambda1s, lambda2s, chi_effs = [], [], []
         Xlans = []
+        mbnss = []
  
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
@@ -218,6 +221,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     marray, larray = data_out["M"], data_out["Lambda"]
                     f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
                     lambda1, lambda2 = f(m1), f(m2)
+                    mbns = np.max(marray)
                 elif opts.eostype == "gp":
                     lambda1, lambda2 = 0.0, 0.0
                     phasetr = 0
@@ -234,9 +238,12 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                         if (lambda2_tmp>0) and (lambda2 == 0.0):
                             lambda2 = lambda2_tmp
                         phasetr = phasetr + 1
+                        mbns = np.max(marray)
                 elif opts.eostype == "Sly":
                     lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-
+                    mbns = eos.maxmass()
+                    #print(mbns)      
+                
                 m1s.append(m1)
                 m2s.append(m2)
                 dists.append(dist)
@@ -244,10 +251,11 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 lambda2s.append(lambda2)
                 chi_effs.append(chi_eff)
                 Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
+                mbnss.append(mbns)
 
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions
-        data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'dist', 'lambda1', 'lambda2','chi_eff','Xlan'))
+        data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans, mbnss)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist', 'lambda1', 'lambda2','chi_eff','Xlan', 'mbns'))
 
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
@@ -264,10 +272,19 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # Calc baryonic mass
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
     
+    #print('----------------------------------------')
+    #print(np.max(marray))
+    #print('----------------------------------------')
+
+ 
     if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
-        mbns = 2.1
-        idx1 = np.where((samples['m1'] < mbns) & (samples['m2'] < mbns))[0]
-        idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
+        #mbns = 2.1
+        #idx1 = np.where((samples['m1'] < mbns) & (samples['m2'] < mbns))[0]
+        #idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
+       
+        idx1 = np.where((samples['m1'] < samples['mbns']) & (samples['m2'] < samples['mbns']))[0]
+        idx2 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] < samples['mbns']))[0]
+        idx3 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] > samples['mbns']))[0]
 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
 
@@ -287,11 +304,17 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # calc the velocity of ejecta
         vej2 = calc_vave(samples['q'])
 
+        # calc the mass of ejecta
+        mej3 = 0
+        # calc the velocity of ejecta
+        vej3 = 0
+
         mej[idx1], vej[idx1] = mej1[idx1], vej1[idx1]
         mej[idx2], vej[idx2] = mej2[idx2], vej2[idx2]
+        mej[idx3], vej[idx3] = mej3, vej3
 
         samples['mej'] = mej
-        samples['vej'] = vej
+        samples['vej'] = vej 
 
         # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
         erroropt = 'none'
@@ -305,6 +328,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
         idx = np.where(samples['mej'] > 0)[0]
         samples = samples[idx]
+
 elif opts.analysisType == "multinest":
     multinest_samples = opts.multinest_samples.split(",")
     samples_all = {}
@@ -476,6 +500,8 @@ samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['theta_r'] = theta_r
 samples['Ye'] = Ye
+samples['phi'] = 45.0
+samples['theta'] = 30.0
 
 kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
 kwargs["doAB"] = True
@@ -817,7 +843,7 @@ for ii, model in enumerate(models):
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)
     plt.fill_between(tt,lbolmin,lbolmax,facecolor=colors_names[ii],alpha=0.2)
 
-plt.xlim([0.0, 50.0])
+plt.xlim([0.1, 50.0])
 plt.legend(loc="best")
 plt.xlabel('Time [days]')
 plt.ylabel('Bolometric Luminosity [erg/s]')
