@@ -233,13 +233,22 @@ class KNTable(Table):
  
         else:
             data_out = Table.read(filename_samples, format='ascii')
-    
+   
+            #print(data_out.columns)
+ 
             if 'mass_1_source' in list(data_out.columns):
                 data_out['m1'] = data_out['mass_1_source']
-                print('setting m1 to m1_source')
+                print('setting m1 to mass_1_source')
             if 'mass_2_source' in list(data_out.columns):
                 data_out['m2'] = data_out['mass_2_source']
-                print('setting m2 to m2_source')
+                print('setting m2 to mass_2_source')
+
+            if 'm1_detector_frame_Msun' in list(data_out.columns):
+                data_out['m1'] = data_out['m1_detector_frame_Msun']
+                print('setting m1 to m1_detector_frame_Msun')
+            if 'm2_detector_frame_Msun' in list(data_out.columns):
+                data_out['m2'] = data_out['m2_detector_frame_Msun']
+                print('setting m2 to m2_detector_frame_Msun')
  
             if 'dlam_tilde' in list(data_out.columns):
                 data_out['dlambdat'] = data_out['dlam_tilde']
