@@ -120,6 +120,10 @@ Xlan2 = opts.Xlan2
 
 colormodel = opts.colormodel.split(",")
 
+if opts.model!="SN" and opts.model!="Afterglow":
+    if not opts.doAB and not opts.doSpec:
+        print("ERROR! Must use --model SN, --model Afterglow, --doAB, or --doSpec, otherwise tmax will not be defined")
+
 if opts.eos == "APR4":
     c = 0.180
     mb = 1.50
