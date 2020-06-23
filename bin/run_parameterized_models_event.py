@@ -463,7 +463,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         
        
         if (opts.model == "Bu2019inc"):  
-                idx = np.where(samples['mej'] <= 1e-5)[0]
+                idx = np.where(samples['mej'] <= 1e-6)[0]
                 samples['mej'][idx] = 1e-11
         elif (opts.model == "Ka2017"):
                 idx = np.where(samples['mej'] <= 1e-3)[0]
@@ -599,7 +599,7 @@ else:
     for model in models:
         model_tables[model] = KNTable.model(model, samples, **kwargs)
         if (opts.model == "Bu2019inc"):
-                idx = np.where(model_tables[model]['mej'] <= 1e-5)[0]
+                idx = np.where(model_tables[model]['mej'] <= 1e-6)[0]
                 model_tables[model]['mag'][idx] = 10.
                 model_tables[model]['lbol'][idx] = 1e30
         elif (opts.model == "Ka2017"):
@@ -1057,17 +1057,6 @@ plt.xticks(fontsize=24)
 plt.yticks(fontsize=24)
 plt.savefig(plotName)
 plt.close()
-
-#save temporary data
-dtype = [('mej', float), ('vej', float)]
-data_init = []
-for i in range(len(samples)):
-        data_init.append((samples['mej'][i], samples['vej'][i]))
-data_init = np.array(data_init, dtype=dtype)
-np.save(os.path.join(plotDir,"mej_vej.npy"), data_init)
-
-
-
 
 
 
