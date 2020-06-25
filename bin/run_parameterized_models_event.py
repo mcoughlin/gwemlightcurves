@@ -30,7 +30,6 @@ from gwemlightcurves import __version__
 
 from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
 
-os.chdir("/home/cosmin.stachie/gwemlightcurves/bin")
 
 def parse_commandline():
     """
