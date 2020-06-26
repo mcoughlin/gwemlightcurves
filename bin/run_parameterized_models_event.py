@@ -82,7 +82,7 @@ def parse_commandline():
     parser.add_argument("--sigma_ra", type=float, default=6.8)
     parser.add_argument("--sigma_dec", type=float, default=6.8)
     parser.add_argument("--waveform", type=str)
-     
+    parser.add_argument("--twixie_flag", default = False, action='store_true')  
 
     args = parser.parse_args()
  
@@ -291,7 +291,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             print('Please set nsamples >= 1')
             exit(0)
         # read samples from template analysis
-        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples) 
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag) 
        
  
         m1s, m2s, dists_mbta = [], [], []

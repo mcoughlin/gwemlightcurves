@@ -259,7 +259,7 @@ class KNTable(Table):
         return KNTable(data_out)
 
     @classmethod
-    def read_mchirp_samples(cls, filename_samples, Nsamples=100):
+    def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
                 """
                 Read low latency posterior_samples
                 """
@@ -293,28 +293,20 @@ class KNTable(Table):
                                       (data_out['m1'] + data_out['m2']))
 
                 #modify 'weight' using twixie informations
-                twixie_file = "/home/reed.essick/mass-dip/production/O1O2-ALL_BandpassPowerLaw-MassDistBeta/twixie-sample-emcee_O1O2-ALL_MassDistBandpassPowerLaw1D-MassDistBeta2D_CLEAN.hdf5"
-
-                (data_twixie, logprob_twixie, params_twixie), (massDist1D_twixie, massDist2D_twixie), (ranges_twixie, fixed_twixie), (posteriors_twixie, injections_twixie) = backends.load_emcee_samples(twixie_file, backends.DEFAULT_EMCEE_NAME)
-
-                nstp_twixie, nwlk_twixie, ndim_twixie = data_twixie.shape
-
-
-                num_1D_params_twixie = len(distributions.KNOWN_MassDist1D[massDist1D_twixie]._params)
-                mass_model_twixie = distributions.KNOWN_MassDist1D[massDist1D_twixie](*data_twixie[0,0,:num_1D_params_twixie]) ### assumes 1D model params always come first, which should be OK
-
-                mass_model_twixie = distributions.KNOWN_MassDist2D[massDist2D_twixie](mass_model_twixie, *data_twixie[0,0,num_1D_params_twixie:])
-
-                min_mass_twixie, max_mass_twixie = 1.0, 100.0
-                m_grid_twixie = np.linspace(min_mass_twixie, max_mass_twixie, 100)
-
-                ans_twixie = utils.qdist(data_twixie, mass_model_twixie, m_grid_twixie, np.median(data_out['q']), num_points=100)
-                ans_twixie = np.array([list(item) for item in ans_twixie])
-
-                twixie_func = interpolate.interp1d(ans_twixie[:,0], ans_twixie[:,1])
-                data_out['weight'] = data_out['weight'] * twixie_func(data_out['q'])
-                
-                
+                if (twixie_flag):
+                          twixie_file = "/home/reed.essick/mass-dip/production/O1O2-ALL_BandpassPowerLaw-MassDistBeta/twixie-sample-emcee_O1O2-ALL_MassDistBandpassPowerLaw1D-MassDistBeta2D_CLEAN.hdf5"
+                          (data_twixie, logprob_twixie, params_twixie), (massDist1D_twixie, massDist2D_twixie), (ranges_twixie, fixed_twixie), (posteriors_twixie, injections_twixie) = backends.load_emcee_samples(twixie_file, backends.DEFAULT_EMCEE_NAME)
+                          nstp_twixie, nwlk_twixie, ndim_twixie = data_twixie.shape
+                          num_1D_params_twixie = len(distributions.KNOWN_MassDist1D[massDist1D_twixie]._params)
+                          mass_model_twixie = distributions.KNOWN_MassDist1D[massDist1D_twixie](*data_twixie[0,0,:num_1D_params_twixie]) ### assumes 1D model params always come first, which should be OK
+                          mass_model_twixie = distributions.KNOWN_MassDist2D[massDist2D_twixie](mass_model_twixie, *data_twixie[0,0,num_1D_params_twixie:])
+                          min_mass_twixie, max_mass_twixie = 1.0, 100.0
+                          m_grid_twixie = np.linspace(min_mass_twixie, max_mass_twixie, 100)
+                          ans_twixie = utils.qdist(data_twixie, mass_model_twixie, m_grid_twixie, np.median(data_out['q']), num_points=100)
+                          ans_twixie = np.array([list(item) for item in ans_twixie])
+                          twixie_func = interpolate.interp1d(ans_twixie[:,0], ans_twixie[:,1])
+                          data_out['weight'] = data_out['weight'] * twixie_func(data_out['q'])
+               
 
                 data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
                 kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
