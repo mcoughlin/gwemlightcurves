@@ -33,6 +33,8 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
 
 from gwemlightcurves import lightcurve_utils
+from twixie import backends, distributions, utils
+from scipy import interpolate
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos', 'construct_eos_from_polytrope']
@@ -214,60 +216,50 @@ class KNTable(Table):
         if not os.path.isfile(filename_samples):
             raise ValueError("Sample file supplied does not exist")
 
-        if "hdf5" in filename_samples:
+        if "hdf" in filename_samples:
+            print("on est ici")
             samples_out = h5py.File(filename_samples, 'r')
-            key = samples_out.keys()[0]
-            samples_out = samples_out[key]
-            key = samples_out.keys()[0]
-            samples_out = samples_out[key]
-            key = samples_out.keys()[0]
-            samples_out = samples_out[key]
-            data_out = pd.DataFrame.from_records(np.array(samples_out))
-            data_out.rename(columns={'mc': 'mchirp'}, inplace=True)
+            samples_out = samples_out['lalinference']
 
-            data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
-            data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
-            data_out['q'] = 1.0/data_out['q']  
+            data_out = Table(samples_out)
+            data_out['q'] = data_out['m1'] / data_out['m2']
+            data_out['mchirp'] = (data_out['m1'] * data_out['m2'])**(3./5.) / (data_out['m1'] + data_out['m2'])**(1./5.)
+            
+            data_out['theta'] = data_out['iota']
+            idx = np.where(data_out['theta'] > 90.)[0]
+            data_out['theta'][idx] = 180 - data_out['theta'][idx]
 
-            data_out = Table.from_pandas(data_out)
+
  
         else:
-            data_out = Table.read(filename_samples, format='ascii')
+            sys.exit()
+            #data_out = Table.read(filename_samples, format='ascii')
     
-            if 'mass_1_source' in list(data_out.columns):
-                data_out['m1'] = data_out['mass_1_source']
-                print('setting m1 to m1_source')
-            if 'mass_2_source' in list(data_out.columns):
-                data_out['m2'] = data_out['mass_2_source']
-                print('setting m2 to m2_source')
- 
-            if 'dlam_tilde' in list(data_out.columns):
-                data_out['dlambdat'] = data_out['dlam_tilde']
-                print('setting dlambdat to dlam_tilde')
-            if 'lam_tilde' in list(data_out.columns):
-                data_out['lambdat'] = data_out['lam_tilde']
-                print('setting lambdat to lam_tilde')
-
-            if 'delta_lambda_tilde' in list(data_out.columns):
-                data_out['dlambdat'] = data_out['delta_lambda_tilde']
-                print('setting dlambdat to delta_lambda_tilde')
-            if 'lambda_tilde' in list(data_out.columns):
-                data_out['lambdat'] = data_out['lambda_tilde']
-                print('setting lambdat to lambda_tilde')   
-
-            if 'm1' not in list(data_out.columns):
-                eta = lightcurve_utils.q2eta(data_out['mass_ratio'])
-                m1, m2 = lightcurve_utils.mc2ms(data_out["chirp_mass"], eta)
-                data_out['m1'] = m1
-                data_out['m2'] = m2
-
-            data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
-            data_out['q'] = 1.0/data_out['q']
+            #if 'm1_detector_frame_Msun' in list(data_out.columns):
+            #    data_out['m1'] = data_out['m1_detector_frame_Msun']
+            #    print('setting m1 to m1_source')
+            #if 'm2_detector_frame_Msun' in list(data_out.columns):
+            #    data_out['m2'] = data_out['m2_detector_frame_Msun']
+            #    print('setting m2 to m2_source')
+    
+            #if 'dlam_tilde' in list(data_out.columns):
+            #    data_out['dlambdat'] = data_out['dlam_tilde']
+            #    print('setting dlambdat to dlam_tilde')
+            #if 'lam_tilde' in list(data_out.columns):
+            #    data_out['lambdat'] = data_out['lam_tilde']
+            #    print('setting lambdat to lam_tilde')
+    
+            #data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
+            #data_out['q'] = 1.0/data_out['q']
+            #data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
+            #                           data_out['m2'] * data_out['spin2']) /
+            #                          (data_out['m1'] + data_out['m2']))
+            #data_out["dist"] = data_out["luminosity_distance_Mpc"] 
 
         return KNTable(data_out)
 
     @classmethod
-    def read_mchirp_samples(cls, filename_samples, Nsamples=100):
+    def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
                 """
                 Read low latency posterior_samples
                 """
@@ -277,35 +269,57 @@ class KNTable(Table):
 
                 try:
                     names = ['SNRdiff', 'erf', 'weight', 'm1', 'm2',
-                             'spin1', 'spin2', 'dist']
+                             'spin1', 'spin2', 'dist_mbta']
                     data_out = Table.read(filename_samples,
                                           names=names,
                                           format='ascii')
                 except:
-                    names = ['SNRdiff', 'erf', 'weight',
-                             'm1', 'm2', 'dist']
-                    data_out = Table.read(filename_samples,
-                                          names=names,
-                                          format='ascii')
-                    data_out['spin1'] = 0.0
-                    data_out['spin2'] = 0.0
+                    #names = ['SNRdiff', 'erf', 'weight',
+                    #         'm1', 'm2', 'dist']
+                    #data_out = Table.read(filename_samples,
+                    #                      names=names,
+                    #                      format='ascii')
+                    #data_out['spin1'] = 0.0
+                    #data_out['spin2'] = 0.0
+                    sys.exit()
 
+                #print("we put the data from the mchirp file")
+                #print("data_out")
+                #print(data_out)
                 data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
 
                 data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
                                        data_out['m2'] * data_out['spin2']) /
                                       (data_out['m1'] + data_out['m2']))
+
+                #modify 'weight' using twixie informations
+                if (twixie_flag):
+                          twixie_file = "/home/reed.essick/mass-dip/production/O1O2-ALL_BandpassPowerLaw-MassDistBeta/twixie-sample-emcee_O1O2-ALL_MassDistBandpassPowerLaw1D-MassDistBeta2D_CLEAN.hdf5"
+                          (data_twixie, logprob_twixie, params_twixie), (massDist1D_twixie, massDist2D_twixie), (ranges_twixie, fixed_twixie), (posteriors_twixie, injections_twixie) = backends.load_emcee_samples(twixie_file, backends.DEFAULT_EMCEE_NAME)
+                          nstp_twixie, nwlk_twixie, ndim_twixie = data_twixie.shape
+                          num_1D_params_twixie = len(distributions.KNOWN_MassDist1D[massDist1D_twixie]._params)
+                          mass_model_twixie = distributions.KNOWN_MassDist1D[massDist1D_twixie](*data_twixie[0,0,:num_1D_params_twixie]) ### assumes 1D model params always come first, which should be OK
+                          mass_model_twixie = distributions.KNOWN_MassDist2D[massDist2D_twixie](mass_model_twixie, *data_twixie[0,0,num_1D_params_twixie:])
+                          min_mass_twixie, max_mass_twixie = 1.0, 100.0
+                          m_grid_twixie = np.linspace(min_mass_twixie, max_mass_twixie, 100)
+                          ans_twixie = utils.qdist(data_twixie, mass_model_twixie, m_grid_twixie, np.median(data_out['q']), num_points=100)
+                          ans_twixie = np.array([list(item) for item in ans_twixie])
+                          twixie_func = interpolate.interp1d(ans_twixie[:,0], ans_twixie[:,1])
+                          data_out['weight'] = data_out['weight'] * twixie_func(data_out['q'])
+               
+
                 data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
                 kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
                 gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
-                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist'])).T
+                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
+                #params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'])).T
                 data = np.array(data_out['weight'])
                 gp.fit(params, data)
 
                 mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
                 q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
                 chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
-                dist_min, dist_max = np.min(data_out['dist']), np.max(data_out['dist'])
+                dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
 
                 cnt = 0
                 samples = []
@@ -313,32 +327,35 @@ class KNTable(Table):
                     mchirp = np.random.uniform(mchirp_min, mchirp_max)
                     q = np.random.uniform(q_min, q_max)
                     chi_eff = np.random.uniform(chi_min, chi_max)
-                    dist = np.random.uniform(dist_min, dist_max)
-                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist]))
+                    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
+                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
+                    #samp = np.atleast_2d(np.array([mchirp,q,chi_eff]))
                     weight = gp.predict(samp)[0]
                     thresh = np.random.uniform(0,1)
                     if weight > thresh:
-                        samples.append([mchirp,q,chi_eff,dist])
+                        samples.append([mchirp,q,chi_eff,dist_mbta])
+                        #samples.append([mchirp,q,chi_eff])
                         cnt = cnt + 1
                 samples = np.array(samples)
-                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist'])
+                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
+                #data_out = Table(data=samples, names=['mchirp','q','chi_eff'])
                 data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
                 data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
                 data_out["q"] = 1.0 / data_out["q"]
 
-                if 'm1_source' in list(data_out.columns):
-                        data_out['m1'] = data_out['m1_source']
-                        print('setting m1 to m1_source')
-                if 'm2_source' in list(data_out.columns):
-                        data_out['m2'] = data_out['m2_source']
-                        print('setting m2 to m2_source')
+                #if 'm1_source' in list(data_out.columns):
+                #        data_out['m1'] = data_out['m1_source']
+                #        print('setting m1 to m1_source')
+                #if 'm2_source' in list(data_out.columns):
+                #        data_out['m2'] = data_out['m2_source']
+                #        print('setting m2 to m2_source')
 
-                if 'dlam_tilde' in list(data_out.columns):
-                        data_out['dlambdat'] = data_out['dlam_tilde']
-                        print('setting dlambdat to dlam_tilde')
-                if 'lam_tilde' in list(data_out.columns):
-                        data_out['lambdat'] = data_out['lam_tilde']
-                        print('setting lambdat to lam_tilde')
+                #if 'dlam_tilde' in list(data_out.columns):
+                #        data_out['dlambdat'] = data_out['dlam_tilde']
+                #        print('setting dlambdat to dlam_tilde')
+                #if 'lam_tilde' in list(data_out.columns):
+                #        data_out['lambdat'] = data_out['lam_tilde']
+                #        print('setting lambdat to lam_tilde')
 
                 return KNTable(data_out)
 
@@ -398,10 +415,8 @@ class KNTable(Table):
                 names=['t0', 'mej', 'vej', 'Xlan', 'A', 'zp', 'loglikelihood']
         elif model == "Bu2019inc":
                         names=['t0', 'mej', 'phi', 'theta', 'zp', 'loglikelihood']
-        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
+        elif model in ["Bu2019lf","Bu2019lr"]:
                         names=['t0', 'mej_dyn', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
-        elif model in ["Bu2019lw"]:
-                        names=['t0', 'mej_wind', 'phi', 'theta', 'zp', 'loglikelihood']
         elif model == "Bu2019inc_TrPi2018":
                         names=['t0', 'mej', 'phi', 'theta', "E0","theta_c","theta_w","n","p","epsilon_E","epsilon_B", 'zp', 'loglikelihood']
         else:
@@ -429,10 +444,8 @@ class KNTable(Table):
                 data_out['epsilon_B'] = 10**data_out['epsilon_B']
         elif model in ["Bu2019","Bu2019inc"]:
                         data_out['mej'] = 10**data_out['mej']
-        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
+        elif model in ["Bu2019lf","Bu2019lr"]:
                         data_out['mej_dyn'] = 10**data_out['mej_dyn']
-                        data_out['mej_wind'] = 10**data_out['mej_wind']
-        elif model in ["Bu2019lw"]:
                         data_out['mej_wind'] = 10**data_out['mej_wind']
         elif model == "Bu2019inc_TrPi2018":
                         data_out['mej'] = 10**data_out['mej']
@@ -797,5 +810,9 @@ class KNTable(Table):
         -----"""
         # standard registered fetch
         from .io.model import get_model
+        print("format_") 
+        print(format_) 
+        print("cls")
+        print(cls) 
         model = get_model(format_, cls)
         return model(*args, **kwargs)

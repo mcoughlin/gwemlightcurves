@@ -598,11 +598,11 @@ def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], mag
     # Initiaize peak mag dictionarts
     model_table_tts = {}
     model_table_mags = {}
-    model_table_appmags = {}
+    #model_table_appmags = {}
     for filt, magidx in zip(filts, magidxs):
         model_table_tts[filt] = []
         model_table_mags[filt] = []
-        model_table_appmags[filt] = []
+        #model_table_appmags[filt] = []
 
     for row in model_table:
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
@@ -611,17 +611,17 @@ def calc_peak_mags(model_table, filts=["u","g","r","i","z","y","J","H","K"], mag
             if len(idx) == 0:
                 model_table_tts[filt].append(np.nan)
                 model_table_mags[filt].append(np.nan)
-                model_table_appmags[filt].append(np.nan)
+                #model_table_appmags[filt].append(np.nan)
             else:
                 ii = np.argmin(mag[magidx][idx])
                 model_table_tts[filt].append(t[idx][ii])
                 model_table_mags[filt].append(mag[magidx][idx][ii])
-                model_table_appmags[filt].append(mag[magidx][idx][ii]+5*(np.log10(row["dist"]*1e6) - 1))
+                #model_table_appmags[filt].append(mag[magidx][idx][ii]+5*(np.log10(row["dist"]*1e6) - 1))
 
     for filt, magidx in zip(filts, magidxs):
         model_table["peak_tt_%s"%filt] = model_table_tts[filt]
         model_table["peak_mag_%s"%filt] = model_table_mags[filt]        
-        model_table["peak_appmag_%s"%filt] = model_table_appmags[filt]  
+        #model_table["peak_appmag_%s"%filt] = model_table_appmags[filt]  
 
     return model_table
 

@@ -20,4 +20,4 @@ Wollaeger
 
 Tim Dietrich and Maximiliano Ujevic
 -----------------------------------
-`here <(https://arxiv.org/pdf/1612.03665.pdf>`_
+`here <https://arxiv.org/pdf/1612.03665.pdf>`_
