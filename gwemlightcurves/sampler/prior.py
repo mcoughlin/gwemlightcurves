@@ -353,7 +353,7 @@ def myprior_Bu2019op_ejecta(cube, ndim, nparams):
         cube[0] = cube[0]*2*Global.T0Range - Global.T0Range
         #cube[1] = cube[1]*5.0 - 5.0
         cube[1] = cube[1]*4.0 + 1.0
-        cube[2] = cube[2]*0.9 - 0.7
+        cube[2] = cube[2]*0.7 - 0.7
         cube[3] = cube[3]*4.0 + 1.0
         cube[4] = cube[4]*1.0 - 1.0
         cube[5] = cube[5]*1.0
