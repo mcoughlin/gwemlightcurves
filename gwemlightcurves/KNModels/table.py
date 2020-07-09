@@ -379,6 +379,70 @@ class KNTable(Table):
                 return KNTable(data_out)
 
     @classmethod
+    def initialize_object(cls, input_samples, Nsamples=1000, twixie_flag=False):
+                """
+                Read low latency posterior_samples
+                """
+                names = ['weight', 'm1', 'm2', 'spin1', 'spin2', 'dist_mbta']
+                data_out = Table(input_samples, names=names)
+              
+                data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
+
+                data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
+                                       data_out['m2'] * data_out['spin2']) /
+                                      (data_out['m1'] + data_out['m2']))
+
+                #modify 'weight' using twixie informations
+                if (twixie_flag):
+                          twixie_file = "/home/reed.essick/mass-dip/production/O1O2-ALL_BandpassPowerLaw-MassDistBeta/twixie-sample-emcee_O1O2-ALL_MassDistBandpassPowerLaw1D-MassDistBeta2D_CLEAN.hdf5"
+                          (data_twixie, logprob_twixie, params_twixie), (massDist1D_twixie, massDist2D_twixie), (ranges_twixie, fixed_twixie), (posteriors_twixie, injections_twixie) = backends.load_emcee_samples(twixie_file, backends.DEFAULT_EMCEE_NAME)
+                          nstp_twixie, nwlk_twixie, ndim_twixie = data_twixie.shape
+                          num_1D_params_twixie = len(distributions.KNOWN_MassDist1D[massDist1D_twixie]._params)
+                          mass_model_twixie = distributions.KNOWN_MassDist1D[massDist1D_twixie](*data_twixie[0,0,:num_1D_params_twixie]) ### assumes 1D model params always come first, which should be OK
+                          mass_model_twixie = distributions.KNOWN_MassDist2D[massDist2D_twixie](mass_model_twixie, *data_twixie[0,0,num_1D_params_twixie:])
+                          min_mass_twixie, max_mass_twixie = 1.0, 100.0
+                          m_grid_twixie = np.linspace(min_mass_twixie, max_mass_twixie, 100)
+                          ans_twixie = utils.qdist(data_twixie, mass_model_twixie, m_grid_twixie, np.median(data_out['q']), num_points=100)
+                          ans_twixie = np.array([list(item) for item in ans_twixie])
+                          twixie_func = interpolate.interp1d(ans_twixie[:,0], ans_twixie[:,1])
+                          data_out['weight'] = data_out['weight'] * twixie_func(data_out['q'])
+               
+
+                data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
+                kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+                gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
+                data = np.array(data_out['weight'])
+                gp.fit(params, data)
+
+                mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
+                q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
+                chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
+                dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
+
+                cnt = 0
+                samples = []
+                while cnt < Nsamples:
+                    mchirp = np.random.uniform(mchirp_min, mchirp_max)
+                    q = np.random.uniform(q_min, q_max)
+                    chi_eff = np.random.uniform(chi_min, chi_max)
+                    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
+                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
+                    weight = gp.predict(samp)[0]
+                    thresh = np.random.uniform(0,1)
+                    if weight > thresh:
+                        samples.append([mchirp,q,chi_eff,dist_mbta])
+                        cnt = cnt + 1
+                samples = np.array(samples)
+                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
+                data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
+                data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
+                data_out["q"] = 1.0 / data_out["q"]
+
+                return KNTable(data_out)
+    
+
+    @classmethod
     def read_cbc_list(cls, filename_samples):
         """
         Read CBC list
