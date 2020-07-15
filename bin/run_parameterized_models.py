@@ -351,6 +351,10 @@ elif opts.model in "Bu2019op":
 elif opts.model in "Bu2019ops":
     if opts.doEjecta:
         name = "Bu2019bc_kappaLF%03dkappaLR%03d"%(opts.kappaLF,opts.kappaLR)
+elif opts.model in ["Bu2019rp", "Bu2019rps"]:
+    if opts.doEjecta:
+        name = "Bu2019lm_M1%03dM2%03dP%d"%(opts.mej1*1000,opts.mej2*1000,opts.phi)
+
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     #t0 = 0.0

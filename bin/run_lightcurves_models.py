@@ -86,8 +86,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019inc_TrPi2018"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019inc_TrPi2018")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps")
     exit(0)
 
 if opts.doFixZPT0:
@@ -137,7 +137,7 @@ if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
     plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -414,7 +414,7 @@ if opts.doFixT:
 if opts.doFixXlan:
     Global.phi = opts.phi
 
-if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr"]:
+if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr","Bu2019rp","Bu2019rps"]:
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
@@ -454,6 +454,26 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         Global.svd_mag_model = svd_mag_model
 
         modelfile = os.path.join(ModelPath,'Bu2019lr_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019rp":
+        modelfile = os.path.join(ModelPath,'Bu2019rp_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath,'Bu2019rp_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019rps":
+        modelfile = os.path.join(ModelPath,'Bu2019rps_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath,'Bu2019rps_lbol.pkl')
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model

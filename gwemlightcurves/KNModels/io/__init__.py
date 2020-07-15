@@ -40,7 +40,9 @@ from . import (  # pylint: disable=unused-import
     Bu2019re, # Bulla (2019) Model (Red ellipse),
     Bu2019bc, # Bulla (2019) Model (Blue cone),
     Bu2019op, # Bulla (2019) Model (opacity),
-    Bu2019ops # Bulla (2019) Model (opacity slim)
+    Bu2019ops, # Bulla (2019) Model (opacity slim)
+    Bu2019rp, # Bulla (2019) Model (Red ellipse + Blue cone reprocessing)
+    Bu2019rps # Bulla (2019) Model (Red ellipse + Blue cone reprocessing slim)
 )
 
 __author__ = 'Duncan Macleod <duncan.macleod@ligo.org>'
