@@ -47,6 +47,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_opacity"
     elif model == "Bu2019ops":
         fileDir = "../output/bulla_opacity_slim"
+    elif model == "Bu2019rp":
+        fileDir = "../output/bulla_reprocess"
+    elif model == "Bu2019rps":
+        fileDir = "../output/bulla_reprocess_slim"
 
     filenames = glob.glob('%s/*_Lbol.dat'%fileDir)
 
@@ -140,15 +144,6 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             lbols[key]["theta"] = theta
 
         elif keySplit[0] == "nph1.0e+06":
-            #if len(keySplit) == 5:
-            #    mej0 = float(keySplit[3].replace("mej",""))
-            #    phi0 = float(keySplit[2].replace("opang",""))
-            #    T0 = float(keySplit[4].replace("T",""))
-            #elif len(keySplit) == 6:
-            #    mej0 = float(keySplit[2].replace("mej",""))
-            #    phi0 = float(keySplit[3].replace("phi",""))
-            #    T0 = float(keySplit[4].replace("T",""))
-            #    theta = float(keySplit[5])
  
             mej0 = float(keySplit[1].replace("mej",""))
             phi0 = float(keySplit[2].replace("phi",""))
@@ -159,7 +154,19 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             #lbols[key]["T"] = T0
             lbols[key]["theta"] = theta
 
+        elif keySplit[0] == "kasenReprocess":
 
+            mej1 = float(keySplit[2].replace("mejcone",""))
+            mej2 = float(keySplit[3].replace("mejell",""))
+            phi = float(keySplit[4].replace("th",""))
+            a = float(keySplit[5].replace("a",""))
+            theta = float(keySplit[6])
+
+            lbols[key]["mej_1"] = mej1
+            lbols[key]["mej_2"] = mej2
+            lbols[key]["phi"] = phi
+            lbols[key]["a"] = a
+            lbols[key]["theta"] = theta
 
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
@@ -194,6 +201,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(lbols[key]["kappaLF"]),lbols[key]["gammaLF"],np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
         elif model == "Bu2019ops":
             param_array.append([np.log10(lbols[key]["kappaLF"]),np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
+        elif model == "Bu2019rp":
+            param_array.append([np.log10(lbols[key]["mej_1"]),np.log10(lbols[key]["mej_2"]),lbols[key]["phi"],lbols[key]["a"],lbols[key]["theta"]])
+        elif model == "Bu2019rps":
+            param_array.append([np.log10(lbols[key]["mej_1"]),np.log10(lbols[key]["mej_2"]),lbols[key]["a"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)
@@ -278,6 +289,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         fileDir = "../output/bulla_opacity"
     elif model == "Bu2019ops":
         fileDir = "../output/bulla_opacity_slim"
+    elif model == "Bu2019rp":
+        fileDir = "../output/bulla_reprocess"
+    elif model == "Bu2019rps":
+        fileDir = "../output/bulla_reprocess_slim"
 
     filenames_all = glob.glob('%s/*.dat'%fileDir)
     idxs = []
@@ -402,6 +417,20 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             mags[key]["phi"] = phi0
             mags[key]["theta"] = theta
 
+        elif keySplit[0] == "kasenReprocess":
+
+            mej1 = float(keySplit[2].replace("mejcone",""))
+            mej2 = float(keySplit[3].replace("mejell",""))
+            phi = float(keySplit[4].replace("th",""))
+            a = float(keySplit[5].replace("a",""))
+            theta = float(keySplit[6])
+
+            mags[key]["mej_1"] = mej1
+            mags[key]["mej_2"] = mej2
+            mags[key]["phi"] = phi
+            mags[key]["a"] = a
+            mags[key]["theta"] = theta
+
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
 
         for jj,filt in enumerate(filters):
@@ -437,6 +466,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
             param_array.append([np.log10(mags[key]["kappaLF"]),mags[key]["gammaLF"],np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
         elif model == "Bu2019ops":
             param_array.append([np.log10(mags[key]["kappaLF"]),np.log10(mags[key]["kappaLR"]),mags[key]["gammaLR"]])
+        elif model == "Bu2019rp":
+            param_array.append([np.log10(mags[key]["mej_1"]),np.log10(mags[key]["mej_2"]),mags[key]["phi"],mags[key]["a"],mags[key]["theta"]])
+        elif model == "Bu2019rps":
+            param_array.append([np.log10(mags[key]["mej_1"]),np.log10(mags[key]["mej_2"]),mags[key]["a"]])
 
     param_array_postprocess = np.array(param_array)
     param_mins, param_maxs = np.min(param_array_postprocess,axis=0),np.max(param_array_postprocess,axis=0)

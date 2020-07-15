@@ -324,6 +324,46 @@ def Bu2019rb_model_ejecta(mej_1,mej_2,phi,theta,a):
 
     return tmag, lbol, mag
 
+def Bu2019rp_model_ejecta(mej_1,mej_2,phi,theta,a):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_1'] = mej_1
+    samples['mej_2'] = mej_2
+    samples['a'] = a
+    samples['phi'] = phi
+    samples['theta'] = theta
+
+    model = "Bu2019rp"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Bu2019rps_model_ejecta(mej_1,mej_2,a):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_1'] = mej_1
+    samples['mej_2'] = mej_2
+    samples['a'] = a
+
+    model = "Bu2019rps"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Bu2019re_model_ejecta(mej,a,theta):
 
     tini = 0.1
