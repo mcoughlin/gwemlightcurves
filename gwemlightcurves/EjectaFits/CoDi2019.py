@@ -44,6 +44,8 @@ def calc_meje(m1,c1,m2,c2, zeta=0.3):
     p = np.poly1d(coeff)
     lambda1 = p(c1)
     lambda2 = p(c2)
+    lambda1[lambda1 < 0] = 0
+    lambda2[lambda2 < 0] = 0
     q = m1/m2
 
     lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)

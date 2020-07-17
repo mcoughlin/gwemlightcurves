@@ -73,6 +73,7 @@ install_requires = [
     'pymultinest',
     'requests',
     'penquins',
+    'afterglowpy'
 ]
 tests_require = [
     'pytest'

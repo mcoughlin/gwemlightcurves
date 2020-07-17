@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # ---- Import standard modules to the python path.
-
+import scipy as sp
 import healpy as hp
 import itertools
 from ligo.skymap.io import fits
@@ -239,6 +239,14 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples["Xlan"] = 10**opts.Xlan_fixed
         samples['mbns'] = 0. 
 
+        if opts.eostype == "gp":
+            # read Phil + Reed's EOS files
+            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+            idxs = np.array(eospostdat["eos"])
+            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
+        elif opts.eostype == "Sly":
+            eosname = "SLy"
+            eos = EOS4ParameterPiecewisePolytrope(eosname)
         
         for ii, row in enumerate(samples):
             m1, m2 = row["m1"], row["m2"]
@@ -252,7 +260,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     index = indices[jj] 
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
+                    eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                     marray, larray = data_out["M"], data_out["Lambda"]
                     f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
@@ -261,8 +269,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 elif opts.eostype == "gp":
                     lambda1, lambda2 = 0.0, 0.0
                     phasetr = 0
+                    mbns = 0
                     while (lambda1==0.0) or (lambda2 == 0.0):
-                        eospath = "/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-%06d-%d.csv" % (idxs[index], phasetr)
+                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
                         if not os.path.isfile(eospath):
                             break
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
@@ -274,7 +283,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                         if (lambda2_tmp>0) and (lambda2 == 0.0):
                             lambda2 = lambda2_tmp
                         phasetr = phasetr + 1
-                        mbns = np.max(marray)
+                        if np.max(marray) > mbns: mbns = np.max(marray)
                 elif opts.eostype == "Sly":
                     lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
                     mbns = eos.maxmass()
@@ -300,12 +309,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         mbnss = []
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
-            filenames = glob.glob("/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-*-0.csv")
-            idxs = []
-            for filename in filenames:
-                filenameSplit = filename.replace(".csv","").split("/")[-1].split("-")
-                idxs.append(int(filenameSplit[1]))
-            idxs = np.array(idxs)
+            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+            idxs = np.array(eospostdat["eos"])
+            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
         elif opts.eostype == "Sly":
             eosname = "SLy"
             eos = EOS4ParameterPiecewisePolytrope(eosname)
@@ -318,13 +324,13 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2395, size=nsamples)
             elif opts.eostype == "gp":
-                indices = np.random.randint(0, len(idxs), size=nsamples)
+                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights)
             for jj in range(nsamples):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
+                    eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                     marray, larray = data_out["M"], data_out["Lambda"]
                     f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
@@ -333,8 +339,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 elif opts.eostype == "gp":
                     lambda1, lambda2 = 0.0, 0.0
                     phasetr = 0
+                    mbns = 0
                     while (lambda1==0.0) or (lambda2 == 0.0):
-                        eospath = "/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-%06d-%d.csv" % (idxs[index], phasetr)
+                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
                         if not os.path.isfile(eospath):
                             break
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
@@ -346,9 +353,10 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                         if (lambda2_tmp>0) and (lambda2 == 0.0):
                             lambda2 = lambda2_tmp
                         phasetr = phasetr + 1
-                        mbns = np.max(marray)
+                        if np.max(marray) > mbns: mbns = np.max(marray)
                 elif opts.eostype == "Sly":
                     lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                    mbns = eos.maxmass()
 
                 m1s.append(m1)
                 m2s.append(m2)
