@@ -239,7 +239,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples["Xlan"] = 10**opts.Xlan_fixed
         samples['mbns'] = 0. 
 
-	if opts.eostype == "gp":
+        if opts.eostype == "gp":
             # read Phil + Reed's EOS files
             eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
             idxs = np.array(eospostdat["eos"])
