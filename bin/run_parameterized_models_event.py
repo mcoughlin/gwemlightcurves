@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # ---- Import standard modules to the python path.
-
+import scipy as sp
 import healpy as hp
 import itertools
 from ligo.skymap.io import fits
