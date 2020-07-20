@@ -55,3 +55,9 @@ class EOS4ParameterPiecewisePolytrope(object):
         k2 = self.k2ofm(m)
         return (2./3.)*k2*( (lal.C_SI**2*r*1000.0)/(lal.G_SI*m*lal.MSUN_SI) )**5
 
+    def maxmass(self):
+        """Fuction to return the max mass
+        """
+
+        return self.mmax
+
