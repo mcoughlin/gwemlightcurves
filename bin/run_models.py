@@ -66,7 +66,7 @@ def getMagAbsAB(filename_AB,filename_bol,filtname,model):
             wavelength_interp = 9603.1
 
             mag = np.zeros(t.shape)
-            for ii in xrange(len(t)):
+            for ii in range(len(t)):
                 mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,1:])
         else:
             cols = ["t","u","g","r","i","z","J","H","K"]
@@ -78,7 +78,7 @@ def getMagAbsAB(filename_AB,filename_bol,filtname,model):
             wavelength_interp = 3543
 
             mag = np.zeros(t.shape)
-            for ii in xrange(len(t)):
+            for ii in range(len(t)):
                 mag[ii] = np.interp(wavelength_interp,wavelengths,u[ii,2:])
         else:
             cols = ["t","g","r","i","z","y","J","H","K"]
@@ -473,7 +473,7 @@ def getSpecH5(filename,model):
     vmin, vmax = np.nanmin(np.log10(spec_d)), np.nanmax(np.log10(spec_d))
 
     spec_new = np.zeros((len(t_d),len(lambdas)))
-    for jj in xrange(len(t_d)):
+    for jj in range(len(t_d)):
         ii = np.where(np.isfinite(np.log10(spec_d[jj,:])))[0]
         #ii = np.where(np.log10(spec_d[jj,:]) >= vmax-4)[0]
         if len(ii) == 0:
@@ -591,7 +591,7 @@ else:
 
 if opts.doAB:
     mag_ds = {}
-    for ii in xrange(9):
+    for ii in range(9):
         mag_ds[ii] = np.array([])
     
     #filts = np.genfromtxt('../input/PS1_filters.txt')
@@ -599,7 +599,7 @@ if opts.doAB:
     #g = filts[:,1], r=2, i=3, z=4, y=5
     filts = np.genfromtxt('../input/filters.dat')
     filtnames = ["u","g","r","i","z","y","J","H","K"]
-    for ii in xrange(9):
+    for ii in range(9):
     #for ii in [6]:
         band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
         if opts.model in specmodels:
@@ -636,9 +636,9 @@ if opts.doAB:
 
     fid = open(filename,'w')
     fid.write('# t[days] u g r i z y J H K\n')
-    for ii in xrange(len(t_d)):
+    for ii in range(len(t_d)):
         fid.write("%.5f "%t_d[ii])
-        for jj in xrange(9):
+        for jj in range(9):
             fid.write("%.3f "%mag_ds[jj][ii])
         fid.write("\n")
     fid.close()
@@ -733,7 +733,7 @@ if opts.doAB:
     filename = "%s/%s_Lbol.dat"%(outputDir,basename)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
-    for ii in xrange(len(t_d)):
+    for ii in range(len(t_d)):
         fid.write("%.5f %.5e\n"%(t_d[ii],L_d[ii]))
     fid.close()
     
@@ -768,12 +768,12 @@ elif opts.doSpec:
         filename = "%s/%s_%.1f_spec.dat"%(outputDir,opts.name,opts.theta)
     fid = open(filename,'w')
     fid.write("nan")
-    for jj in xrange(len(lambda_d)):
+    for jj in range(len(lambda_d)):
         fid.write(" %.3f"%lambda_d[jj])
     fid.write("\n")
-    for ii in xrange(len(t_d)):
+    for ii in range(len(t_d)):
         fid.write("%.5f "%t_d[ii])
-        for jj in xrange(len(lambda_d)):
+        for jj in range(len(lambda_d)):
             fid.write("%.5e "%spec_d[ii][jj])
         fid.write("\n")
     fid.close()

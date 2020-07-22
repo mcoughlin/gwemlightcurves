@@ -259,7 +259,7 @@ def calc_lc(tini,tmax,dt,mej,vej,beta,kappa_r):
     marray = np.tile(m,(tprec,1)).T
     dmarray = np.tile(dm,(tprec,1)).T
 
-    for j in xrange(tprec-1):
+    for j in range(tprec-1):
         # one zone calculation
         temp[j] = 1.0e10*(3.0*E[j]/(arad*4.0*np.pi*R[j]**(3.0)))**(0.25)
         if (temp[j] > 4000.):
