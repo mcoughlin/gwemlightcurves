@@ -67,7 +67,7 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
     tvec_days = np.arange(tini,tmax+dt,dt)
     mAB = np.zeros((len(tvec_days),8))
 
-    for ii in xrange(len(ints)):
+    for ii in range(len(ints)):
         idx = np.arange(ndata/9) + ii*(ndata/9)
         data_out_slice = data_out[idx,:]
 
@@ -121,7 +121,7 @@ def calc_lc(tini,tmax,dt,mej,vej,theta_r,kappa_r,model="DZ2"):
     wavelength_interp = 3543
 
     mAB_y = np.zeros(tvec_days.shape)
-    for ii in xrange(len(tvec_days)):
+    for ii in range(len(tvec_days)):
         mAB_y[ii] = np.interp(wavelength_interp,wavelengths,mAB[ii,:])
     mAB_new = np.zeros((len(tvec_days),9))
     mAB_new[:,0] = np.squeeze(mAB_y)

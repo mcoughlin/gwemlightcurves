@@ -123,7 +123,7 @@ elif opts.doMassGap:
     a1 = data_out[:,7]
     a2 = data_out[:,8]
 
-    for ii in xrange(len(injnum)):
+    for ii in range(len(injnum)):
         if not ((q[ii] >= 3) and (q[ii] <=9)): continue
         if not ((m2[ii] >= 1) and (m2[ii] <=3)): continue
         #if not ((q[ii] >= 3) and (q[ii] <=5)): continue

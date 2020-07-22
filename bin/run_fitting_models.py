@@ -2914,8 +2914,8 @@ if opts.model == "KaKy2016":
     c = 0.147
     mb = 1.47
     mns = 1.35
-    for ii in xrange(len(qlin)):
-        for jj in xrange(len(chilin)):
+    for ii in range(len(qlin)):
+        for jj in range(len(chilin)):
             MGRID[ii,jj] = KaKy2016.calc_meje(qlin[ii],chilin[jj],c,mb,mns)
             VGRID[ii,jj] = KaKy2016.calc_vave(qlin[ii])
 
