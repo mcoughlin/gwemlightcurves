@@ -69,6 +69,7 @@ install_requires = [
     'h5py',
     'pandas',
     'george',
+    'h5py',
     'scikit-learn>=0.18',
     'matplotlib',
     'sncosmo',

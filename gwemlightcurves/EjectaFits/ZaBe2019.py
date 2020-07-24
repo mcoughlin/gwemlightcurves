@@ -51,10 +51,10 @@ def bbh_UIBfits_setup(m1, m2, chi1, chi2):
     # symmetric mass ratio
     eta  = m1*m2/msq
     if np.any(eta>0.25):
-      print "Truncating eta from above to 0.25. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs..."
+      print("Truncating eta from above to 0.25. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs...")
       eta = np.minimum(eta,0.25)
     if np.any(eta<0.0):
-      print "Truncating negative eta to 0.0. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs..."
+      print("Truncating negative eta to 0.0. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs...")
       eta = np.maximum(eta,0.0)
     eta2 = eta*eta
     eta3 = eta2*eta
@@ -299,10 +299,10 @@ def bbh_UIBfits_setup_2(m1, m2, chi1, chi2):
     # symmetric mass ratio
     eta  = m1*m2/msq
     if np.any(eta>0.25):
-      print "Truncating eta from above to 0.25. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs..."
+      print("Truncating eta from above to 0.25. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs...")
       eta = np.minimum(eta,0.25)
     if np.any(eta<0.0):
-      print "Truncating negative eta to 0.0. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs..."
+      print("Truncating negative eta to 0.0. This should only be necessary in some rounding corner cases, but better check your m1 and m2 inputs...")
       eta = np.maximum(eta,0.0)
     eta2 = eta*eta
     eta3 = eta2*eta
@@ -683,19 +683,19 @@ if __name__=='__main__':
     '''Small examples'''
  	
     ## Final BH mass for aligned BH initial spins
-    print BHNS_mass_aligned(m1, m2, chi1, lam)
+    print(BHNS_mass_aligned(m1, m2, chi1, lam))
     
     ## Final BH mass for precessing binaries
-    print BHNS_mass_precessing(m1, m2, chi1, lam, beta)
+    print(BHNS_mass_precessing(m1, m2, chi1, lam, beta))
    	
     ## Final BH spin for aligned BH initial spins
-    print BHNS_spin_aligned(m1, m2, chi1, lam)
+    print(BHNS_spin_aligned(m1, m2, chi1, lam))
     
     ## Final BH spin for precessing binaries
-    print BHNS_spin_precessing(m1, m2, chi1, lam, beta, M_omega0)
+    print(BHNS_spin_precessing(m1, m2, chi1, lam, beta, M_omega0))
 
     ## GW luminosity 
-    print BHNS_luminosity(m1, m2, chi1, lam)
+    print(BHNS_luminosity(m1, m2, chi1, lam))
 
     Xdot = BHNS_mass_aligned(m1, m2, chi1, lam)
     Egw = BHNS_luminosity(m1, m2, chi1, lam)
