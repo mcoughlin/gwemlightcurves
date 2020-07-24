@@ -79,6 +79,8 @@ def parse_commandline():
     parser.add_option("--doComparison",  action="store_true", default=False)
     parser.add_option("--comparisonFile",default="../output/kasen_kilonova_grid/knova_d1_n10_m0.050_vk0.20_fd1.0_Xlan1e-3.0.dat") 
 
+    parser.add_option("--gptype",default="sklearn")
+
     opts, args = parser.parse_args()
  
     return opts
@@ -226,6 +228,8 @@ if len(colormodel) == 1:
     samples['colormodel'] = colormodel[0]
 else:
     samples['colormodel'] = colormodel
+
+samples["gptype"] = opts.gptype
 
 if opts.doEjecta:
     samples['mej'] = opts.mej

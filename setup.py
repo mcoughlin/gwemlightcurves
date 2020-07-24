@@ -67,6 +67,7 @@ install_requires = [
     'scipy',
     'astropy',
     'george',
+    'h5py',
     'scikit-learn>=0.18',
     'matplotlib',
     'sncosmo',

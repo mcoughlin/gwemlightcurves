@@ -12,10 +12,29 @@ from gwemlightcurves import lightcurve_utils, Global
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, ConstantKernel, RationalQuadratic
 
+try:
+    import torch
+    import gpytorch
+
+    # We will use the simplest form of GP model, exact inference
+    class ExactGPModel(gpytorch.models.ExactGP):
+        def __init__(self, train_x, train_y, likelihood):
+            super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
+            self.mean_module = gpytorch.means.ConstantMean()
+            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+
+        def forward(self, x):
+            mean_x = self.mean_module(x)
+            covar_x = self.covar_module(x)
+            return gpytorch.distributions.MultivariateNormal(mean_x,                                                                    covar_x)
+except:
+    print('Install gpytorch if you want to use it...')
+
 #import george
 #from george import kernels
 
-def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
+def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
+                  gptype="sklearn"):
 
     print("Calculating SVD model of bolometric luminosity...")
 
@@ -233,16 +252,65 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
     cAstd = np.sqrt(cAvar)
 
     nsvds, nparams = param_array_postprocess.shape
-    kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-    gps = []
-    for i in range(n_coeff):
-        gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
-        gp.fit(param_array_postprocess, cAmat[i,:])
-        gps.append(gp)
+    if gptype == "sklearn":
+        kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+        gps = []
+        for i in range(n_coeff):
+            gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+            gp.fit(param_array_postprocess, cAmat[i,:])
+            gps.append(gp)
+    elif gptype == "gpytorch":
+        # initialize likelihood and model
+        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        #training_iter = 10
+        training_iter = 1
+
+        gps = []
+        for i in range(n_coeff):
+            if np.mod(i,5) == 0:
+                print('Coefficient %d/%d...' % (i, n_coeff))
+
+            train_x = torch.from_numpy(param_array_postprocess).float()
+            train_y = torch.from_numpy(cAmat[i,:]).float()
+
+            if torch.cuda.is_available():
+                train_x = train_x.cuda()
+                train_y = train_y.cuda()
+                likelihood = likelihood.cuda()
+
+            model = ExactGPModel(train_x, train_y, likelihood)
+            if torch.cuda.is_available():
+                model = model.cuda()
+
+            # Find optimal model hyperparameters
+            model.train()
+            likelihood.train()
+
+            # Use the adam optimizer
+            optimizer = torch.optim.Adam([{'params': model.parameters()}],
+                                         lr=0.1)
+
+            # "Loss" for GPs - the marginal log likelihood
+            mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood,
+                                                           model)
+
+            for j in range(training_iter):
+                # Zero gradients from previous iteration
+                optimizer.zero_grad()
+                # Output from model
+                output = model(train_x)
+                # Calc loss and backprop gradients
+                loss = -mll(output, train_y)
+                loss.backward()
+                #print('Coeff %d/%d Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (i+1, n_coeff, j + 1, training_iter, loss.item(), model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()))
+                optimizer.step()
+
+            gps.append(model.state_dict())
 
     svd_model = {}
     svd_model["n_coeff"] = n_coeff
     svd_model["param_array"] = param_array
+    svd_model["param_array_postprocess"] = param_array_postprocess
     svd_model["cAmat"] = cAmat
     svd_model["cAstd"] = cAstd
     svd_model["VA"] = VA
@@ -257,7 +325,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
 
     return svd_model
 
-def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
+def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
+                 gptype="sklearn"):
 
     print("Calculating SVD model of lightcurve magnitudes...")
 
@@ -504,18 +573,69 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016"):
         cAstd = np.sqrt(cAvar)
 
         nsvds, nparams = param_array_postprocess.shape
-        kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-        gps = []
-        for i in range(n_coeff):
-            if np.mod(i,5) == 0:
-                print('Coefficient %d/%d...' % (i, n_coeff))
-            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=0)
-            gp.fit(param_array_postprocess, cAmat[i,:])
-            gps.append(gp)
+
+        if gptype == "sklearn":
+            kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+            gps = []
+            for i in range(n_coeff):
+                if np.mod(i,5) == 0:
+                    print('Coefficient %d/%d...' % (i, n_coeff))
+                gp = GaussianProcessRegressor(kernel=kernel,
+                                              n_restarts_optimizer=0)
+                gp.fit(param_array_postprocess, cAmat[i,:])
+                gps.append(gp)
+        elif gptype == "gpytorch":
+            # initialize likelihood and model
+            likelihood = gpytorch.likelihoods.GaussianLikelihood()
+            #training_iter = 10
+            training_iter = 11
+
+            gps = []
+            for i in range(n_coeff):
+                if np.mod(i,5) == 0:
+                    print('Coefficient %d/%d...' % (i, n_coeff))
+
+                train_x = torch.from_numpy(param_array_postprocess).float()
+                train_y = torch.from_numpy(cAmat[i,:]).float()
+
+                if torch.cuda.is_available():
+                    train_x = train_x.cuda()
+                    train_y = train_y.cuda()
+                    likelihood = likelihood.cuda()
+
+                model = ExactGPModel(train_x, train_y, likelihood)
+                if torch.cuda.is_available():
+                    model = model.cuda()
+
+                # Find optimal model hyperparameters
+                model.train()
+                likelihood.train()
+
+                # Use the adam optimizer
+                optimizer = torch.optim.Adam([{'params': model.parameters()}],
+                                             lr=0.1)
+
+                # "Loss" for GPs - the marginal log likelihood
+                mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood,
+                                                               model)
+
+                for j in range(training_iter):
+                    # Zero gradients from previous iteration
+                    optimizer.zero_grad()
+                    # Output from model
+                    output = model(train_x)
+                    # Calc loss and backprop gradients
+                    loss = -mll(output, train_y)
+                    loss.backward()
+                    #print('Coeff %d/%d Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (i+1, n_coeff, j + 1, training_iter, loss.item(), model.covar_module.base_kernel.lengthscale.item(), model.likelihood.noise.item()))
+                    optimizer.step()
+
+                gps.append(model.state_dict())
 
         svd_model[filt] = {}
         svd_model[filt]["n_coeff"] = n_coeff
         svd_model[filt]["param_array"] = param_array
+        svd_model[filt]["param_array_postprocess"] = param_array_postprocess
         svd_model[filt]["cAmat"] = cAmat
         svd_model[filt]["cAstd"] = cAstd
         svd_model[filt]["VA"] = VA
@@ -818,7 +938,8 @@ def calc_color(tini,tmax,dt,param_list,svd_mag_color_model=None, model = "a2.0")
     return np.squeeze(tt), mAB
 
 
-def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, model = "BaKa2016"):
+def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
+            model = "BaKa2016", gptype="sklearn"):
 
     tt = np.arange(tini,tmax+dt,dt)
 
@@ -832,6 +953,7 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     for jj,filt in enumerate(filters):
         n_coeff = svd_mag_model[filt]["n_coeff"]
         param_array = svd_mag_model[filt]["param_array"]
+        param_array_postprocess = svd_mag_model[filt]["param_array_postprocess"]
         cAmat = svd_mag_model[filt]["cAmat"]
         VA = svd_mag_model[filt]["VA"]
         param_mins = svd_mag_model[filt]["param_mins"]
@@ -849,9 +971,29 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
         cAstd = np.zeros((n_coeff,))
         for i in range(n_coeff):
             gp = gps[i]
-            y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
-            cAproj[i] = y_pred
-            cAstd[i] = sigma2_pred
+            if gptype == "sklearn":
+                y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+                cAproj[i] = y_pred
+                cAstd[i] = sigma2_pred
+
+            elif gptype == "gpytorch":
+                likelihood = gpytorch.likelihoods.GaussianLikelihood()
+                model = ExactGPModel(torch.from_numpy(param_array_postprocess).float(),
+                                     torch.from_numpy(cAmat[i,:]).float(), likelihood)
+                model.load_state_dict(gp)
+
+                # Get into evaluation (predictive posterior) mode
+                model.eval()
+                likelihood.eval()
+
+                f_preds = model(torch.from_numpy(np.atleast_2d(param_list_postprocess)).float())
+                y_preds = likelihood(model(torch.from_numpy(np.atleast_2d(param_list_postprocess)).float()))
+                f_mean = f_preds.mean
+                f_var = f_preds.variance
+                f_covar = f_preds.covariance_matrix               
+
+                cAproj[i] = f_mean
+                cAstd[i] = f_var
 
         coverrors = np.dot(VA[:,:n_coeff],np.dot(np.power(np.diag(cAstd[:n_coeff]),2),VA[:,:n_coeff].T))
         errors = np.diag(coverrors)
@@ -886,8 +1028,27 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None, mode
     cAproj = np.zeros((n_coeff,))
     for i in range(n_coeff):
         gp = gps[i]
-        y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
-        cAproj[i] = y_pred
+        if gptype == "sklearn":
+            y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
+            cAproj[i] = y_pred
+        elif gptype == "gpytorch":
+            likelihood = gpytorch.likelihoods.GaussianLikelihood()
+            model = ExactGPModel(torch.from_numpy(param_array_postprocess).float(),
+                                 torch.from_numpy(cAmat[i,:]).float(), likelihood)
+            model.load_state_dict(gp)
+
+            # Get into evaluation (predictive posterior) mode
+            model.eval()
+            likelihood.eval()
+
+            f_preds = model(torch.from_numpy(np.atleast_2d(param_list_postprocess)).float())
+            y_preds = likelihood(model(torch.from_numpy(np.atleast_2d(param_list_postprocess)).float()))
+            f_mean = f_preds.mean
+            f_var = f_preds.variance
+            f_covar = f_preds.covariance_matrix
+
+            cAproj[i] = f_mean
+            cAstd[i] = f_var
 
     lbol_back = np.dot(VA[:,:n_coeff],cAproj)
     lbol_back = lbol_back*(maxs-mins)+mins
