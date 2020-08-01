@@ -65,7 +65,7 @@ def parse_commandline():
     parser.add_option("--a",default=2.0,type=float)
 
     parser.add_option("--T",default=6000.0,type=float)
-    parser.add_option("--phi",default=0.0,type=float)
+    parser.add_option("--phi",default=45.0,type=float)
     parser.add_option("--iota",default=0.0,type=float)
     parser.add_option("--colormodel",default="a2.0")
 
@@ -375,7 +375,7 @@ elif opts.model in "Wo2020dw":
         name = "Wo2020dw_M%03dV%02dP%d"%(opts.mej*1000,opts.vej*100,opts.phi)
 elif opts.model in "Bu2019nsbh":
     if opts.doEjecta:
-        name = "Bu2019nsbh_M%03dV%02dP%d"(opts.mej*1000,opts.vej*100,opts.phi)
+        name = "Bu2019nsbh_M%03dV%02dP%d"%(opts.mej*1000,opts.vej*100,opts.phi)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     #t0 = 0.0

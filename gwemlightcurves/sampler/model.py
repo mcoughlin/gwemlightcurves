@@ -417,7 +417,7 @@ def Wo2020_model_ejecta(mej_1,mej_2,sd,a,rwind,theta):
 
     return tmag, lbol, mag
 
-def Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,phi,theta):
+def Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,theta):
 
     tini = 0.1
     tmax = 50.0
@@ -429,7 +429,6 @@ def Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,phi,theta):
     samples['dt'] = dt
     samples['mej_dyn'] = mej_dyn
     samples['mej_wind'] = mej_wind
-    samples['phi'] = phi
     samples['theta'] = theta
 
     model = "Bu2019nsbh"

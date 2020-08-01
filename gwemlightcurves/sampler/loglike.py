@@ -514,13 +514,13 @@ def myloglike_Bu2019nsbh_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej_dyn = 10**cube[1]
     mej_wind = 10**cube[2]
-    phi = cube[3]
-    theta = cube[4]
-    zp = cube[5]
+    theta = cube[3]
+    zp = cube[4]
 
-    tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,phi,theta)
+    tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,theta)
     prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
-                                                                                                      print(prob)
+    
+    print(prob)
 
     return prob
 

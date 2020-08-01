@@ -139,6 +139,18 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             lbols[key]["phi"] = phi0
             lbols[key]["theta"] = theta
 
+        elif keySplit[0] == "nsbh":
+
+            mej_dyn = float(keySplit[2].replace("mejdyn",""))
+            mej_wind = float(keySplit[3].replace("mejwind",""))
+            phi = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            lbols[key]["mej_dyn"] = mej_dyn
+            lbols[key]["mej_wind"] = mej_wind
+            #lbols[key]["phi"] = phi
+            lbols[key]["theta"] = theta
+
         elif "mejdyn" in key:
 
             mejdyn = float(keySplit[1].replace("mejdyn",""))
@@ -218,18 +230,6 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             lbols[key]["rwind"] = rwind
             lbols[key]["theta"] = theta
         
-        elif keySplit[0] == "nsbh":
-            
-            mej_dyn = float(keySplit[2].replace("mejdyn",""))
-            mej_wind = float(keySplit[3].replace("mejwind",""))
-            phi = float(keySplit[4].replace("phi",""))
-            theta = float(keySplit[5])
-
-            lbols[key]["mej_dyn"] = mej_dyn
-            lbols[key]["mej_wind"] = mej_wind
-            lbols[key]["phi"] = phi
-            lbols[key]["theta"] = theta
-
         ii = np.where(np.isfinite(lbols[key]["Lbol"]))[0]
         f = interp.interp1d(lbols[key]["tt"][ii], np.log10(lbols[key]["Lbol"][ii]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
@@ -251,8 +251,10 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             param_array.append([np.log10(lbols[key]["mej"]),np.log10(lbols[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm","Bu2019nsbh"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model in ["Bu2019nsbh"]:
+            param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["theta"]])
         elif model in ["Bu2019lw"]:
             param_array.append([np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
         elif model == "Bu2019bc":
@@ -263,7 +265,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             param_array.append([np.log10(lbols[key]["kappaLF"]),lbols[key]["gammaLF"],np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
         elif model == "Bu2019ops":
             param_array.append([np.log10(lbols[key]["kappaLF"]),np.log10(lbols[key]["kappaLR"]),lbols[key]["gammaLR"]])
-        elif model in ["Bu2019rp","Bu2019rpd":
+        elif model in ["Bu2019rp","Bu2019rpd"]:
             param_array.append([np.log10(lbols[key]["mej_1"]),np.log10(lbols[key]["mej_2"]),lbols[key]["phi"],lbols[key]["a"],lbols[key]["theta"]])
         elif model == "Bu2019rps":
             param_array.append([np.log10(lbols[key]["mej_1"]),np.log10(lbols[key]["mej_2"]),lbols[key]["a"]])
@@ -488,6 +490,18 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             mags[key]["phi"] = phi0
             mags[key]["theta"] = theta
 
+        elif keySplit[0] == "nsbh":
+
+            mej_dyn = float(keySplit[2].replace("mejdyn",""))
+            mej_wind = float(keySplit[3].replace("mejwind",""))
+            phi = float(keySplit[4].replace("phi",""))
+            theta = float(keySplit[5])
+
+            mags[key]["mej_dyn"] = mej_dyn
+            mags[key]["mej_wind"] = mej_wind
+            #mags[key]["phi"] = phi
+            mags[key]["theta"] = theta
+
         elif "mejdyn" in key:
 
             mejdyn = float(keySplit[1].replace("mejdyn",""))
@@ -576,15 +590,6 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             mags[key]["rwind"] = rwind
             mags[key]["theta"] = theta
 
-        elif keySplit[0] == "nsbh":
-
-            mej_dyn = float(keySplit[2].replace("mejdyn",""))
-            mej_wind = float(keySplit[3].replace("mejwind",""))                                               phi = float(keySplit[4].replace("phi",""))
-            theta = float(keySplit[5])
-
-            lbols[key]["mej_dyn"] = mej_dyn                                                                   lbols[key]["mej_wind"] = mej_wind                                                                 lbols[key]["phi"] = phi
-            lbols[key]["theta"] = theta
-
         mags[key]["data"] = np.zeros((len(tt),len(filters)))
 
         for jj,filt in enumerate(filters):
@@ -608,8 +613,10 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             param_array.append([np.log10(mags[key]["mej"]),np.log10(mags[key]["T"])])
         elif model == "Bu2019inc":
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
-        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm","Bu2019nsbh"]:
+        elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model in ["Bu2019nsbh"]:
+            param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["theta"]])
         elif model in ["Bu2019lw"]:
             param_array.append([np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
         elif model == "Bu2019bc":

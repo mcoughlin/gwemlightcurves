@@ -199,8 +199,8 @@ def multinest(opts,plotDir):
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019lw_ejecta, myprior_Bu2019lw_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019nsbh":
-                parameters = ["t0","mej_dyn","mej_wind","phi","theta","zp"]
-                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn})$",r"${\rm log}_{10} (M_{\rm ej,wind})$",r"$\Phi$",r"$\Theta$","ZP"]
+                parameters = ["t0","mej_dyn","mej_wind","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn})$",r"${\rm log}_{10} (M_{\rm ej,wind})$",r"$\Theta$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019nsbh_ejecta, myprior_Bu2019nsbh_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019rb":
@@ -652,7 +652,7 @@ def multinest(opts,plotDir):
             zp_mu, zp_std = 0.0, Global.ZPRange
             zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
             tmag, lbol, mag = Bu2019inc_model_ejecta(mej_best,phi_best,theta_best)
-    elif opts.model in ["Bu2019lf","Bu2019lr","Bu2019lm","Bu2019nsbh"]:
+    elif opts.model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
         if opts.doEjecta:
             t0, mej_dyn, mej_wind, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5], data[:,6]
             idx = np.argmax(loglikelihood)
@@ -665,8 +665,6 @@ def multinest(opts,plotDir):
                 tmag, lbol, mag = Bu2019lr_model_ejecta(mej_dyn_best,mej_wind_best,phi_best,theta_best)
             elif opts.model == "Bu2019lm":
                 tmag, lbol, mag = Bu2019lm_model_ejecta(mej_dyn_best,mej_wind_best,phi_best,theta_best)
-            elif opts.model == "Bu2019nsbh":
-                tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn_best,mej_wind_best,phi_best,theta_best)
     elif opts.model in ["Bu2019lw"]:
         if opts.doEjecta:
             t0, mej_wind, phi, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
@@ -676,6 +674,15 @@ def multinest(opts,plotDir):
             zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
             if opts.model == "Bu2019lw":
                 tmag, lbol, mag = Bu2019lw_model_ejecta(mej_wind_best,phi_best,theta_best)
+    elif opts.model in ["Bu2010nsbh"]:
+        if opts.doEjecta:
+            t0, mej_dyn, mej_wind, theta, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_dyn_best, mej_wind_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4]
+            zp_mu, zp_std = 0.0, Global.ZPRange
+            zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
+            if opts.model == "Bu2019nsbh":
+                tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn_best,mej_wind_best,theta_best)
     elif opts.model in ["Bu2019rb"]:
         if opts.doEjecta:
             t0, mej_1, mej_2, phi, theta, a, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
@@ -1342,7 +1349,7 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,phi_best,theta_best,zp_best))
             fid.close()
-    elif opts.model in ["Bu2019lf","Bu2019lr","Bu2019lm","Bu2019nsbh"]:
+    elif opts.model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
         if opts.doEjecta:
             filename = os.path.join(plotDir,'samples.dat')
             fid = open(filename,'w+')
@@ -1353,6 +1360,18 @@ def multinest(opts,plotDir):
             filename = os.path.join(plotDir,'best.dat')
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_dyn_best,mej_wind_best,phi_best,theta_best,zp_best))
+            fid.close()
+    elif opts.model in ["Bu2019nsbh"]:
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m in zip(t0,mej_dyn,mej_wind,theta,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_dyn_best,mej_wind_best,theta_best,zp_best))
             fid.close()
     elif opts.model in ["Bu2019lw"]:
         if opts.doEjecta:
