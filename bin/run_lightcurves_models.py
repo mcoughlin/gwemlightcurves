@@ -484,7 +484,8 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         Global.svd_mag_model = svd_mag_model
 
         modelfile = os.path.join(ModelPath,'Bu2019rpd_lbol.pkl')
-        with open(modelfile, 'rb') as handle:                                                                svd_mag_model = pickle.load(handle)
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
         Global.svd_mag_model = svd_mag_model
     elif opts.model == "Wo2020dyn":
         modelfile = os.path.join(ModelPath,'Wo2020dyn_mag.pkl')
