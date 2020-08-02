@@ -364,6 +364,78 @@ def Bu2019rps_model_ejecta(mej_1,mej_2,a):
 
     return t, lbol, mag
 
+def Wo2020dyn_model_ejecta(mej,sd,a,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['a'] = a
+    samples['sd'] = sd
+    samples['theta'] = theta
+
+    model = "Wo2020dyn"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Wo2020dw_model_ejecta(mej,rwind,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej'] = mej
+    samples['rwind'] = rwind
+    samples['theta'] = theta
+
+    model = "Wo2020dw"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
+def Wo2020_model_ejecta(mej_1,mej_2,sd,a,rwind,theta):
+
+    Global.svd_mag_model = Global.svd_mag_model_1
+    Global.svd_lbol_model = Global.svd_lbol_model_1
+    tmag_1, lbol_1, mag_1 = Wo2020dyn_model_ejecta(mej_1,sd,a,theta)
+    Global.svd_mag_model = Global.svd_mag_model_2
+    Global.svd_lbol_model = Global.svd_lbol_model_2
+    tmag_2, lbol_2, mag_2 = Wo2020dw_model_ejecta(mej_2,rwind,theta)                                                    
+    tmag = tmag_1
+    lbol = lbol_1 + lbol_2
+    mag = -2.5*np.log10(10**(-mag_1*0.4) + 10**(-mag_2*0.4))
+
+    return tmag, lbol, mag
+
+def Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,theta):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['theta'] = theta
+
+    model = "Bu2019nsbh"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Bu2019re_model_ejecta(mej,a,theta):
 
     tini = 0.1

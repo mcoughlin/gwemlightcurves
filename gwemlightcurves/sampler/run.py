@@ -15,7 +15,7 @@ def multinest(opts,plotDir):
     max_iter = opts.max_iter
     best = []
 
-    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019lw","Bu2019rb","Bu2019re","Bu2019bc","Bu2019op","Bu2019ops","Bu2019rp","Bu2019rps"]:
+    if opts.model in ["KaKy2016","DiUj2017","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019lw","Bu2019rb","Bu2019re","Bu2019bc","Bu2019op","Bu2019ops","Bu2019rp","Bu2019rps","Wo2020","Wo2020dyn","Wo2020dw"]:
     
         if opts.doMasses:
             if opts.model == "KaKy2016":
@@ -198,12 +198,17 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,wind})$",r"$\Phi$",r"$\Theta$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019lw_ejecta, myprior_Bu2019lw_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Bu2019nsbh":
+                parameters = ["t0","mej_dyn","mej_wind","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn})$",r"${\rm log}_{10} (M_{\rm ej,wind})$",r"$\Theta$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Bu2019nsbh_ejecta, myprior_Bu2019nsbh_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019rb":
                 parameters = ["t0","mej_1","mej_2","phi","theta","a","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,1})$",r"${\rm log}_{10} (M_{\rm ej,2})$",r"$\Phi$",r"$\Theta$","a","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019rb_ejecta, myprior_Bu2019rb_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
-            elif opts.model == "Bu2019rp":
+            elif opts.model in ["Bu2019rp","Bu2019rpd"]:
                 parameters = ["t0","mej_1","mej_2","phi","theta","a","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,1})$",r"${\rm log}_{10} (M_{\rm ej,2})$",r"$\Phi$",r"$\Theta$","a","ZP"]
                 n_params = len(parameters)
@@ -213,6 +218,23 @@ def multinest(opts,plotDir):
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,1})$",r"${\rm log}_{10} (M_{\rm ej,2})$","a","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019rps_ejecta, myprior_Bu2019rps_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Wo2020dyn":
+                parameters = ["t0","mej","sd","a","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$\sigma_{\rm tor}$","a",r"$\Theta$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Wo2020dyn_ejecta, myprior_Wo2020dyn_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+            elif opts.model == "Wo2020dw":
+                parameters = ["t0","mej","rwind","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$R_{\rm wind}$",r"$\Theta$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Wo2020dw_ejecta, myprior_Wo2020dw_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
+                
+
+            elif opts.model == "Wo2020":
+                parameters = ["t0","mej_1","mej_2","sd","a","rwind","theta","zp"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,1})$",r"${\rm log}_{10} (M_{\rm ej,2})$",r"$\sigma_{\rm tor}$","a",r"$R_{\rm wind}$",r"$\Theta$","ZP"]
+                n_params = len(parameters)
+                pymultinest.run(myloglike_Wo2020_ejecta, myprior_Wo2020_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019re":
                 parameters = ["t0","mej","theta","a","zp"]
                 labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej})$",r"$\Theta$","a","ZP"]
@@ -652,6 +674,15 @@ def multinest(opts,plotDir):
             zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
             if opts.model == "Bu2019lw":
                 tmag, lbol, mag = Bu2019lw_model_ejecta(mej_wind_best,phi_best,theta_best)
+    elif opts.model in ["Bu2010nsbh"]:
+        if opts.doEjecta:
+            t0, mej_dyn, mej_wind, theta, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_dyn_best, mej_wind_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4]
+            zp_mu, zp_std = 0.0, Global.ZPRange
+            zp_best = scipy.stats.norm(zp_mu, zp_std).ppf(zp_best)
+            if opts.model == "Bu2019nsbh":
+                tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn_best,mej_wind_best,theta_best)
     elif opts.model in ["Bu2019rb"]:
         if opts.doEjecta:
             t0, mej_1, mej_2, phi, theta, a, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
@@ -670,6 +701,24 @@ def multinest(opts,plotDir):
             idx = np.argmax(loglikelihood)
             t0_best, mej_1_best, mej_2_best, a_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4]
             tmag, lbol, mag = Bu2019rps_model_ejecta(mej_1_best,mej_2_best,a_best)
+    elif opts.model in ["Wo2020dyn"]:
+        if opts.doEjecta:
+            t0, mej, sd, a, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5], data[:,6]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_best, sd_best, a_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4], data[idx,5]
+            tmag, lbol, mag = Wo2020dyn_model_ejecta(mej_best,sd_best,a_best,theta_best)
+    elif opts.model in ["Wo2020dw"]:
+        if opts.doEjecta:
+            t0, mej, rwind, theta, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_best, rwind_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], data[idx,2], data[idx,3], data[idx,4]
+            tmag, lbol, mag = Wo2020dw_model_ejecta(mej_best,rwind_best,theta_best)
+    elif opts.model in ["Wo2020"]:
+        if opts.doEjecta:
+            t0, mej_1, mej_2, sd, a, rwind, theta, zp, loglikelihood = data[:,0], 10**data[:,1], 10**data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7], data[:,8]
+            idx = np.argmax(loglikelihood)
+            t0_best, mej_1_best, mej_2_best, sd_best, a_best, rwind_best, theta_best, zp_best = data[idx,0], 10**data[idx,1], 10**data[idx,2], data[idx,3], data[idx,4], data[idx,5], data[idx,6], data[idx,7]
+            tmag, lbol, mag = Wo2020dyn_model_ejecta(mej_1_best,mej_2_best,sd_best,a_best,rwind_best,theta_best)
     elif opts.model in ["Bu2019re"]:
         if opts.doEjecta:
             t0, mej, theta, a, zp, loglikelihood = data[:,0], 10**data[:,1], data[:,2], data[:,3], data[:,4], data[:,5]
@@ -1312,6 +1361,18 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_dyn_best,mej_wind_best,phi_best,theta_best,zp_best))
             fid.close()
+    elif opts.model in ["Bu2019nsbh"]:
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m in zip(t0,mej_dyn,mej_wind,theta,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_dyn_best,mej_wind_best,theta_best,zp_best))
+            fid.close()
     elif opts.model in ["Bu2019lw"]:
         if opts.doEjecta:
             filename = os.path.join(plotDir,'samples.dat')
@@ -1336,7 +1397,7 @@ def multinest(opts,plotDir):
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_1_best,mej_2_best,phi_best,theta_best,a_best,zp_best))
             fid.close()
-    elif opts.model in ["Bu2019rb","Bu2019rps"]:
+    elif opts.model in ["Bu2019rps"]:
         if opts.doEjecta:
             filename = os.path.join(plotDir,'samples.dat')
             fid = open(filename,'w+')
@@ -1347,6 +1408,42 @@ def multinest(opts,plotDir):
             filename = os.path.join(plotDir,'best.dat')
             fid = open(filename,'w')
             fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_1_best,mej_2_best,a_best,zp_best))
+            fid.close()
+    elif opts.model in ["Wo2020dyn"]:
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n in zip(t0,mej,sd,a,theta,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,sd_best,a_best,theta_best,zp_best))
+            fid.close()
+    elif opts.model in ["Wo2020dw"]:
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m in zip(t0,mej,rwind,theta,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_best,rwind_best,theta_best,zp_best))
+            fid.close()
+    elif opts.model in ["Wo2020"]:
+        if opts.doEjecta:
+            filename = os.path.join(plotDir,'samples.dat')
+            fid = open(filename,'w+')
+            for i, j, k, l, m, n, o, p in zip(t0,mej_1,mej_2,sd,a,rwind,theta,zp):
+                fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(i,j,k,l,m,n,o,p))
+            fid.close()
+
+            filename = os.path.join(plotDir,'best.dat')
+            fid = open(filename,'w')
+            fid.write('%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n'%(t0_best,mej_1_best,mej_2_best,sd_best,a_best,rwind_best,theta_best,zp_best))
             fid.close()
     elif opts.model in ["Bu2019bc"]:
         if opts.doEjecta:

@@ -14,7 +14,7 @@ matplotlib.rcParams.update({'font.size': 16})
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
-import statsmodels.api as sm
+#import statsmodels.api as sm
 from scipy.ndimage.filters import gaussian_filter
 
 def parse_commandline():
@@ -36,6 +36,24 @@ def parse_commandline():
     opts, args = parser.parse_args()
 
     return opts
+
+def extrap1d(interpolator, extrapolationOrder =1):
+    xs = interpolator.x
+    ys = interpolator.y
+
+    def pointwise(x):
+        if x < xs[0]:
+            return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
+        elif x > xs[-1]:
+            extrap = ys[-1]+(x-xs[-1])*(ys[-1]-ys[-1-extrapolationOrder])/(xs[-1]-xs[-1-extrapolationOrder])
+            return extrap
+        else:
+            return interpolator(x)
+
+    def ufunclike(xs):
+        return np.array(list(map(pointwise, np.array(xs))))
+
+    return ufunclike
 
 def easyint(x,y,xref):
     ir = (xref>=min(x))&(xref<=max(x))
@@ -334,7 +352,7 @@ def getMagSpec(filename,band,model,theta=0.0):
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
-    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess"]:
+    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
         u[:,2] /= 1.0
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
@@ -344,7 +362,7 @@ def getMagSpec(filename,band,model,theta=0.0):
 
     w=[]
     L=[]
-
+    #print(band[:,0])
     S = 0.1089/band[:,0]**2
 
     S1 = S*band[:,1]
@@ -387,12 +405,19 @@ def getMagSpec(filename,band,model,theta=0.0):
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
 
-    if model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess"]:
-
+    if model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
+        #print(mag_d)
         ii = np.where(~np.isnan(mag_d))[0]
-        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        f1 = interp.interp1d(t_d[ii], mag_d[ii])
+	f = extrap1d(f1,4)
         mag_d = f(t_d)
-
+        #print(mag_d)
+        L_d = np.log10(L_d)
+        ii = np.where((L_d > 0) & (t_d < 10))[0]
+        #print(L_d,ii)
+        f1 = interp.interp1d(t_d[ii], L_d[ii], fill_value='extrapolate')
+        L_d = 10**f1(t_d)
+        #print(L_d)
         ii = np.where((mag_d > 0.0) & (t_d > 2))[0]
         if len(ii) > 0:
             dm_dt = (mag_d[ii[0]] - mag_d[ii[0]-5])/(t_d[ii[0]] - t_d[ii[0]-5])
@@ -483,8 +508,8 @@ def getSpecH5(filename,model):
         f = interp.interp1d(lambda_d[ii], np.log10(spec_d[jj,ii]), fill_value='extrapolate')
         spec_new[jj,:] = 10**f(lambdas)
 
-    #    spec_d_lowess = sm.nonparametric.lowess(np.log10(spec_d[:,jj]), t_d, frac=0.05)
-    #    spec_d[:,jj] = 10**spec_d_lowess[:,1]
+        #spec_d_lowess = sm.nonparametric.lowess(np.log10(spec_d[:,jj]), t_d, frac=0.05)
+        #spec_d[:,jj] = 10**spec_d_lowess[:,1]
 
     lambda_d = lambdas
     spec_d = spec_new
@@ -564,7 +589,7 @@ if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 dataDir = opts.dataDir
 
-specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess"]
+specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]
 spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid","kasen_kilonova_2D"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
@@ -574,7 +599,7 @@ if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
 elif opts.model == "macronovae-rosswog":
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
-elif opts.model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess"]:
+elif opts.model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
     filename = "%s/%s/%s.txt"%(dataDir,opts.model,opts.name)
 elif opts.model == "korobkin_kilonova":
     filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
@@ -618,8 +643,8 @@ if opts.doAB:
         mag_ds[ii] = mag_d
 
     if np.any(np.array(L_d) == 0.0):
-        print "0's in bolometric luminosity.... quitting."
-        exit(0)
+        print("0's in bolometric luminosity....")
+        #exit(0)
 
     if np.isnan(opts.redshift):
         if np.isnan(opts.theta):
