@@ -168,18 +168,15 @@ datDir = os.path.join(plotDir,"dat")
 if not os.path.isdir(datDir):
     os.makedirs(datDir)
 
+#examples of commands to run code
+#python mass_grid.py --analysisType BNS
+
+
 twixie_tf = opts.twixie_flag
 model = opts.model
 Type = opts.analysisType
 def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twixie_tf, lan_override=False, lan_override_val=None, chirp_q = False):
 
-    #samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag)
-    #if opts.twixie_flag:
-    #    samples_twixie = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=100, twixie_flag = opts.twixie_flag)
-    #print('-------------')
-    #print(samples)
-    #print(samples.columns)
-    #print('-------------')
     if type_set == 'BNS_chirp_q':
         type_set = 'BNS' 
     if not chirp_q:
@@ -188,20 +185,16 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
         q = m2/m1
         mchirp = np.power((m1*m2), 3/5) / np.power((m1+m2), 1/5)
         eta = m1*m2/( (m1+m2)*(m1+m2) )
-    #print('--') 
     if chirp_q:
         print('running chirp_q')
-        #m1 = np.random.normal(m1, .05, 100)
-        #m2 = np.random.normal(m2, .05, 100)
-        m1 = np.ones(100) * m1
-        m2 = np.ones(100) * m2
+        m1 = np.random.normal(m1, .05, 100)
+        m2 = np.random.normal(m2, .05, 100)
+        #m1 = np.ones(100) * m1
+        #m2 = np.ones(100) * m2
         q = m2 
         mchirp = m1
         eta = lightcurve_utils.q2eta(q) 
         m1, m2 = lightcurve_utils.mc2ms(mchirp, eta)
-        #print(m1, m2)        
-        #m1 = np.random.normal(m1, .05, 100)
-        #m2 = np.random.normal(m2, .05, 100)
 
     dist = np.ones(100)
     #chi_eff = np.random.uniform(-1,1,100)
@@ -224,8 +217,6 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
 
     if twixie:
         samples_tmp = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=100, twixie_flag = twixie_tf)
-        #print(samples_tmp['m1'])
-        #print(samples_tmp['m2'])
 
     lambda1s=[]
     lambda2s=[]
@@ -311,10 +302,6 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
                 etas.append(eta)
                 mchirps.append(mchirp)
                 mbnss.append(mbns)
-                #term1_list.append(1)
-                #term2_list.append(1)
-                #term3_list.append(1)
-                #term4_list.append(1)
                   
                 
     if twixie:
@@ -322,7 +309,6 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
 
     data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans,c1,c2,mb1,mb2,mchirps,etas,qs,mej,vej, mbnss)).T
     samples = KNTable((data), names = ('m1','m2','dist','lambda1','lambda2','chi_eff','Xlan','c1','c2','mb1','mb2','mchirp','eta','q','mej','vej', 'mbns'))    
-    #print(samples)
 
     #calc compactness
     samples = samples.calc_compactness(fit=True)
@@ -335,7 +321,6 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
         from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
         #from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
-        #mej, term1, term2, term3, term4 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         mej = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         # calc the velocity of ejecta
         vej = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
@@ -344,12 +329,8 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
 
         samples['q'] = 1.0 / samples['q']
 
-        #print(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
-        #print('-----------------------------------------------')
         samples['mej'] = mej
         samples['vej'] = vej
-        #samples['term1'], samples['term2'], samples['term3'], samples['term4'] = term1, term2, term3, term4
-        #print(samples['mej'])
 
         if model_set == 'Bu2019inc':
             idx = np.where(samples['mej']<=1e-6)[0]
@@ -371,9 +352,7 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
 
         samples['mej'] = mej
         samples['vej'] = vej
-        #print('---')        
-        #print(mej)
-        #print('---')
+        
         if model_set == 'Bu2019inc':
             idx = np.where(samples['mej']<=1e-6)[0]
             samples['mej'][idx] = 1e-6
@@ -395,7 +374,6 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
             samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
         idx = np.where(samples['mej'] > 0)[0]
         samples = samples[idx]
-    #print(samples['mej'])
     print(EOS + ' calculation finished') 
     return samples
 
@@ -434,7 +412,8 @@ if __name__ == "__main__":
             for m2m in m2:
                 if m1m >= m2m or chirp_q_tf:
                     print('Initializing '+str(m1m)+' '+str(m2m))
-                    samples_gp = Test('gp', m1m, m2m, chi, chirp_q=chirp_q_tf)
+                    runType = 'gp'
+                    samples_gp = Test(runType, m1m, m2m, chi, chirp_q=chirp_q_tf)
                     #samples_Sly = Test('Sly', m1m, m2m)
                     #samples_spec = Test('spec', m1m, m2m)
                     samples=samples_gp
@@ -447,20 +426,7 @@ if __name__ == "__main__":
                     plt.figure(figsize=(15,10))
                     ax = plt.gca()
                     for ii,model in enumerate(models):
-                        #legend_name = get_legend(model) + ' EOS: spec'
-                        #bins, hist1 = lightcurve_utils.hist_results(np.log10(samples_spec["mej"]),Nbins=20,bounds=bounds)
-                        #plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-                        #lim = np.percentile(np.log10(samples_spec["mej"]), 90)
-                        #plt.plot([lim,lim],ylims,'k--')
-     
-                        #legend_name = get_legend(model) + ' EOS: Sly'
-                        #bins, hist1 = lightcurve_utils.hist_results(np.log10(samples_Sly["mej"]),Nbins=20,bounds=bounds)
-                        #plt.step(bins,hist1,'-',color='m',linewidth=3,label=legend_name,where='mid')
-                        #lim = np.percentile(np.log10(samples_Sly["mej"]), 90)
-                        #plt.plot([lim,lim],ylims,'k--')
-                        #print(np.log10(samples_gp["mej"]))            
-                        legend_name = get_legend(model) + ' EOS: gp'
-                        #bins, hist1 = lightcurve_utils.hist_results(np.log10(samples_gp["mej"]),Nbins=20,bounds=bounds)
+                        legend_name = get_legend(model) + ' EOS: '+runType
                         bins, hist1 = lightcurve_utils.hist_results(np.log10(samples_gp["mej"]),Nbins=20,bounds=bounds)
                         plt.step(bins,hist1,'-',color='b',linewidth=3,label=legend_name,where='mid')
                         lim = np.percentile(np.log10(samples_gp["mej"]), 90)
@@ -482,16 +448,8 @@ if __name__ == "__main__":
                     m2_plot.append(m2m)
                    
                     lambdatilde = (16.0/13.0)*(samples_gp['lambda2'] + samples_gp['lambda1']*(samples_gp['q']**5) + 12*samples_gp['lambda1']*(samples_gp['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
-                    #print('lambda '+str(lambdatilde))
-                    #print('lambdas '+str(lambdatildes))
                     lambdatildes.append(np.mean(np.array(lambdatilde)))
                    
-                    #term1_plot.append(np.mean(samples_gp['term1']))
-                    #term2_plot.append(np.mean(samples_gp['term2']))
-                    #term3_plot.append(np.mean(samples_gp['term3']))
-                    #term4_plot.append(np.mean(samples_gp['term4']))
-                   
-        #print(stds)       
         std_med=[]
         m1_0=[]
         m2_0=[]
@@ -505,7 +463,6 @@ if __name__ == "__main__":
                 medians[num] = np.nan
                 check = 1
             std_med.append(stds[num]/medians[num])
-            #print(std_med)
             if not twixie_tf:    
                 if std_med[num] > 10:
                     std_med[num] = 10
@@ -515,10 +472,6 @@ if __name__ == "__main__":
                 if check == 1:
                     m1_0.append(m1_plot[num])
                     m2_0.append(m2_plot[num])               
-        #print(lambdatildes)
-        #print('------------'+str(medians)) 
-        #print('------------'+str(stds))
-        #print('------------'+str(std_med))
         plotName = "/home/andrew.toivonen/gwemlightcurves/mass_plots/new/mej_mass_grid_"+str(opts.analysisType)+'_chi_'+str(chi)+".pdf"
         if twixie_tf:
             plotName = "/home/andrew.toivonen/gwemlightcurves/mass_plots/new/mej_mass_grid_"+str(opts.analysisType)+"_twixie.pdf"
@@ -532,11 +485,6 @@ if __name__ == "__main__":
             weight = 50
         plot=plt.scatter(m1_plot, m2_plot, c=np.log10(np.array(medians)), s=np.array(std_med)*weight, cmap='coolwarm')
         plt.scatter(m1_0, m2_0, c='black')
-        #ax2.set_xscale('log')
-        #ax2.set_yscale('log')
-        #bounds=[0, np.max(np.array(medians))]
-        #bar=np.linspace(bounds[0], bounds[1], 5)
-        #cbar = fig2.colorbar(mappable=plot, boundaries=bounds, ticks=bar)
         cbar = fig2.colorbar(mappable=plot)
         cbar.ax.set_ylabel('Log10 Median Ejecta Mass')
         plt.xlabel('m1', fontsize=24)
@@ -591,4 +539,3 @@ if __name__ == "__main__":
         plt.savefig(plotName)
 
 
-    #lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)

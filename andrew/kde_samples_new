@@ -50,20 +50,11 @@ from mass_grid import Test
 #-------------------------------------------------
 
 #-------------------------------------------------
-#data = np.loadtxt('/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/GW190425/-9.00/0.10/2-post_equal_weights.dat', usecols = 1)
-#print(data_test)
-
- 
-#mass = np.array([.1])
-#mass = np.linspace(-3, 0, 13)
-#events = ['GW190425', 'GW190901', 'S191205ah', 'S191213g', 'S191216ap', 'S200105ae', 'S200115j', 'S200213t']
-#events = ['GW190425', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
 lans = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
 event_prob = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608])
 
 #event_prob = np.array([0.2413, 0.5233, 0.8857, 0.5694, 0.3299, 0.3326, 0.3899, 0.5063, 0.0568, 0.2750, 0.5239, 0.2221, 0.7217])
 event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
-#event_names = ['GW190425']
 
 isbns = np.array([True, False, False, True, False, True, False, False, False, True, False, False, True])
 lowFAR = np.array([True, True, True, False, False, False, False, False, False, True, True, True, True])
@@ -93,8 +84,6 @@ prob_events = np.ones([13, mass_points])
 prob_norm_events = np.ones([13, mass_points])
 prob_events=[]
 prob_norm_events=[]
-#if combined_kde:
-#    lans = ['-9.00']
 
 
 def greedy_kde_areas_1d(pts):
@@ -103,7 +92,6 @@ def greedy_kde_areas_1d(pts):
     mu = np.mean(pts, axis=0)
 
     Npts = pts.shape[0]
-    #print(Npts)
     kde_pts = pts[:int(Npts/2)]
     den_pts = pts[int(Npts/2):]
 
@@ -207,10 +195,6 @@ def run_theoretical(Type, lan, chi, EOS):
                     print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
                     samples = Test(EOS, m1m, m2m, chi, type_set=Type, twixie = twixie_tf, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)
                     mej_samples = samples['mej']
-                    #m1_samples = samples['m1']
-                    #m2_samples = samples['m2']
-                    #print(mej_samples)
-                    #print('000000000000000')
                     mean=np.mean(mej_samples)
                     if math.isnan(mean):
                         mean = 0
@@ -317,7 +301,6 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
             cov = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608]) 
         for e, event in enumerate(event_name_list):
             filename = '/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/'+event+'/'+str(lan)+'/0.10/2-post_equal_weights.dat'
-            #dir = '/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/'+event+'/'+lan+'/0.10/'
             prob_list = []
             prob_norm_list = []
             if not os.path.exists(filename):
@@ -332,23 +315,11 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
             if not theor:
                 data = np.loadtxt(filename, usecols = 1)
                 all_data=data
-                #print(data)
-                #print(len(data))
             if theor:
                 EOS_type = 'Sly'
                 data, all_data = (run_theoretical(Type, lan, chi, EOS_type))
-                #print(data)
-                #data = np.log10(data)
-                #print(data)
-                #all_data = np.log10(all_data)
                 data = np.array(data)
-                #print('')
-                #print('---------------------------------------------------------------------------------------------------')
-                #print('')
-                #print(Type)
                 shape = np.shape(all_data)
-                #print(shape)
-                #print(all_data)
                 if not EOS_type == 'gp':
                     all_data_list = []
                     for index in range(len(all_data)):
@@ -358,16 +329,12 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                         all_data_list.append(data_list)   
                     all_data = np.array(all_data_list)
                 shape = np.shape(all_data)
-                #print(shape)
                 num = 1 
                 for n in range(len(shape)):
                     num = num * shape[n]
-                    #print(shape[n])
-                #num = np.shape(all_data)[0]*np.shape(all_data)[1]
                 print('-----------------'+str(num))
                 
                 all_data = np.reshape(np.array(all_data), (np.int(num)))
-                #print(all_data)
                 #data[data > 1e0] = 1e0
                 #data[data < 1e-6] =1e-6
                  
@@ -378,20 +345,11 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                 
                 all_data = np.log10(all_data)
                 #data = np.log10(data)
-                #print('-----')
-                #print(data)
-                #print(all_data)
-                #all_data = all_data[np.where(all_data > -6)[0]]
-                #all_data = all_data[np.where(all_data < 0)[0]] 
             print('Initializing '+str(event)+' '+str(lan))
-            #KDE = greedy_kde_areas_1d(all_data)
             KDE = greedy_kde_areas_1d(all_data)
-            #vals = np.array([.2413]).T
-        
         
             if not combined_kde:
                 samples = []
-            #1e4 
             Nsamples = 1e4
             if Nsamples < 1e3: 
                 print('Nsamples may be too small')
@@ -411,15 +369,9 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                         prob_norm = kde_eval_single(KDE, -3)[0]
                         prob_norm =1
                     thresh = np.random.uniform(0,1)
-                    #print(prob)
                     if prob > thresh:
-                        #samples.append([mej])
                         p_samples.append(cov[e]*prob)
                         p_norm_samples.append(cov[e]*prob_norm)
-                        #print(1-cov[e]*prob)
-                        #print(1-cov[e]*prob_norm)
-                        #print('-')
-
 
                 prob_list.append(np.mean(p_samples))
                 prob_norm_list.append((np.mean(p_norm_samples)))
@@ -438,8 +390,6 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                 mej_norm=1
                 prob_kde = np.array(prob_kde)
                 prob_kde = prob_kde / np.sum(prob_kde)
-                #plt.figure(figsize=(15,10))
-                #ax = plt.gca()
                 mej_probs = prob_kde
 
                 plotName = "/home/andrew.toivonen/gwemlightcurves/KDE_plots/test_"+str(Type)+'_'+str(event)+"_"+str(lan)+".pdf"
@@ -465,7 +415,6 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     NSBH = np.ones((len(mass))) 
     highsig_bns = np.ones((len(mass))) 
     highsig_nsbh = np.ones((len(mass))) 
-    #print(overall)
     l = len(mass)
 
     EOS_type = 'O3events'
@@ -492,40 +441,6 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
     colors = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
  
-    '''
-    bns_list = np.where(isbns == True)[0]
-    bns = prob_events[bns_list]           
-
-    promising_bns_list = np.where((isbns == True) & (lowFAR == True))[0]
-    promising_bns = prob_events[promising_bns_list]
-
-    nsbh_list = np.where(isbns == False)[0]
-    nsbh = prob_events[nsbh_list]
-    
-    promising_nsbh_list = np.where((isbns == False) & (lowFAR == True))[0]
-    promising_nsbh = prob_events[promising_nsbh_list]
-
-    overall, NSBH, BNS, highsig_nsbh, highsig_bns = np.ones(l), np.ones(l), np.ones(l), np.ones(l), np.ones(l)
-    theory_bns, theory_nsbh = np.ones(l), np.ones(l)
- 
-    
-
-    for m in range(l):
-        for e in range(len(prob_events)):
-            overall[m] = overall[m] * (1-prob_events[e][m])  
-    
-        for e in bns_list:
-            BNS[m] = BNS[m] * (1-prob_events[e][m]) 
-
-        for e in promising_bns_list:
-            highsig_bns[m] = highsig_bns[m] * (1-prob_events[e][m])  
- 
-        for e in nsbh_list:
-            NSBH[m] = NSBH[m] * (1-prob_events[e][m])  
-
-        for e in promising_nsbh_list:
-            highsig_nsbh[m] = highsig_nsbh[m] * (1-prob_events[e][m]) 
-    '''
 
     theory_bns = prob_events_bns
     theory_bns_equal = prob_events_bns_equal
