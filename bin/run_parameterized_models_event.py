@@ -254,7 +254,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights)
+                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
             for jj in range(nsamples):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
@@ -279,7 +279,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 elif opts.eostype == "gp":
                     while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                         phasetr = 0
-                    	eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
+                    	eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     	while os.path.isfile(eospath):
                     	    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                             marray, larray = data_out["M"], data_out["Lambda"]
@@ -289,9 +289,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     	    if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
                     	
                   	    phasetr += 1 # check all stable branches
-                    	    eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
+                    	    eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     	if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                    	    index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights)) # pick a different EOS if it returns negative Lambda or Mmax
+                    	    index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
                     	    lambda1, lambda2 = -1, -1
                     	    mbns = -1
                     	
@@ -334,7 +334,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights)
+                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
             for jj in range(nsamples):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
@@ -359,7 +359,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 elif opts.eostype == "gp":
                     while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                         phasetr = 0
-                    	eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
+                    	eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     	while os.path.isfile(eospath):
                     	    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                             marray, larray = data_out["M"], data_out["Lambda"]
@@ -369,9 +369,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     	    if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
                     	
                   	    phasetr += 1 # check all stable branches
-                    	    eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], phasetr)
+                    	    eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     	if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                    	    index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights)) # pick a different EOS if it returns negative Lambda or Mmax
+                    	    index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
                     	    lambda1, lambda2 = -1, -1
                     	    mbns = -1
                     	
