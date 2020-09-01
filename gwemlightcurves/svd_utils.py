@@ -1049,7 +1049,8 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
     for jj,filt in enumerate(filters):
         n_coeff = svd_mag_model[filt]["n_coeff"]
         param_array = svd_mag_model[filt]["param_array"]
-        param_array_postprocess = svd_mag_model[filt]["param_array_postprocess"]
+        if gptype == "sklearn":
+                param_array_postprocess = svd_mag_model[filt]["param_array_postprocess"]
         cAmat = svd_mag_model[filt]["cAmat"]
         VA = svd_mag_model[filt]["VA"]
         param_mins = svd_mag_model[filt]["param_mins"]

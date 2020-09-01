@@ -53,9 +53,9 @@ def get_Bu2019inc_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                if table['gptype'] == "sklearn":
+                if np.all(table['gptype'] == "sklearn"):
                     modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
-                elif table['gptype'] == "gpytorch":
+                elif np.all(table['gptype'] == "gpytorch"):
                     modelfile = os.path.join(ModelPath,'Bu2019inc_mag_gpy.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
@@ -77,9 +77,9 @@ def get_Bu2019inc_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                if table['gptype'] == "sklearn":
+                if np.all(table['gptype'] == "sklearn"):
                     modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
-                elif table['gptype'] == "gpytorch":
+                elif np.all(table['gptype'] == "gpytorch"):
                     modelfile = os.path.join(ModelPath,'Bu2019inc_lbol_gpy.pkl')
 
                 with open(modelfile, 'rb') as handle:
@@ -142,7 +142,7 @@ def get_Bu2019inc_model(table, **kwargs):
     for isample in range(len(table)):
         print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
-            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'])
+            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'][0])
         elif doSpec:
             table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Bu2019inc")
 
