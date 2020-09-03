@@ -45,7 +45,7 @@ def get_Bu2019inc_model(table, **kwargs):
             table['n_coeff'] = 21
 
     if not 'gptype' in table.colnames:
-        table['gptype'] = "sklearn"
+        table['gptype'] = 'sklearn'
 
     if doAB:
         if not Global.svd_mag_model == 0:
@@ -142,9 +142,9 @@ def get_Bu2019inc_model(table, **kwargs):
     for isample in range(len(table)):
         print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
-            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'][0])
+            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'][0], n_coeff_lim=table['n_coeff'][0])
         elif doSpec:
-            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Bu2019inc")
+            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Bu2019inc", n_coeff_lim=table['n_coeff'][0])
 
     return table
 
