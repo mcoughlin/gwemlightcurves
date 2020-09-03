@@ -134,7 +134,7 @@ def calc_lc_break(tini,tmax,dt,mej,vej,slope_r,kappa_r,t_break,slope_break):
     vphoto = np.zeros(tvec_days.shape)
     Rphoto = np.zeros(tvec_days.shape)
 
-    for i in xrange(Ntimes):
+    for i in range(Ntimes):
 
         t = tvec_days[i]*24*3600         # Time in seconds
         x = t/tau_m     # Arnett 1982 Eq 32 CHECKED

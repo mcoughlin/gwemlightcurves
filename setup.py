@@ -66,6 +66,8 @@ install_requires = [
     'numpy',
     'scipy',
     'astropy',
+    'h5py',
+    'pandas',
     'george',
     'h5py',
     'scikit-learn>=0.18',
@@ -74,7 +76,7 @@ install_requires = [
     'pymultinest',
     'requests',
     'penquins',
-    'afterglowpy'
+    'afterglowpy',
 ]
 tests_require = [
     'pytest'

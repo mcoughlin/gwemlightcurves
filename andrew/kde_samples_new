@@ -1,0 +1,666 @@
+#!/usr/bin/env python
+
+"""generate a KDE for mass ratio conditioned on a chirp mass based on a set of samples
+"""
+
+#-------------------------------------------------
+from __future__ import division
+import matplotlib
+font = {'family' : 'normal',
+        'weight' : 'normal',
+        'size'   : 16}
+matplotlib.rc('xtick', labelsize=16)
+matplotlib.rc('ytick', labelsize=16)
+matplotlib.rc('font', **font)
+from argparse import ArgumentParser
+import numpy as np
+import astropy.units as u
+from astropy.table import Table
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.cosmology import Planck15 as cosmo
+from astropy.cosmology import z_at_value
+from astropy.time import Time
+from astropy.io import ascii
+import pickle
+import argparse
+import sys
+import os
+import requests
+import glob
+import scipy.stats as ss
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from pandas import read_csv, DataFrame
+import healpy as hp
+from ligo.skymap import postprocess, distance
+from ligo.skymap.io import fits
+from matplotlib.lines import Line2D
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import math
+
+
+
+
+### non-standard libraries
+from twixie import kde
+from gwemlightcurves import lightcurve_utils
+from mass_grid import Test
+#-------------------------------------------------
+
+#-------------------------------------------------
+lans = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
+event_prob = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608])
+
+#event_prob = np.array([0.2413, 0.5233, 0.8857, 0.5694, 0.3299, 0.3326, 0.3899, 0.5063, 0.0568, 0.2750, 0.5239, 0.2221, 0.7217])
+event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
+
+isbns = np.array([True, False, False, True, False, True, False, False, False, True, False, False, True])
+lowFAR = np.array([True, True, True, False, False, False, False, False, False, True, True, True, True])
+test = np.array([True, True, True, True, True, True, True, True, True, True, True, True, True])
+color = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
+apparent_mags = np.array([21.5, 21.5, 21.0, 21.0, 20.3, 20.4, 20.1, 21.1, 17.9, 20.4, 20.2, 20.8, 21.2])
+#event_prob = np.array([0.2413, 0.5233, 0.8857, 0.5694, 0.3299, 0.3326, 0.3899, 0.5063, 0.0568, 0.2750, 0.5239, 0.2221, 0.7217])
+#event_prob2 = np.array([0.203, 0.094, 0.783, 0.465, 0.257, 0.236, 0.082, 0.0485, 0.368, 0.118, 0.377, 0.125, 0.472])
+#extinction = [0.06, 0.54, 0.00, 0.05, 0.10, 0.09, 0.08, 0.01, 0.06, 0.23, 0.05, 0.24, 0.11]
+extinction = [0.03, 0.34, 0.02, 0.03, 0.04, 0.08, 0.09, 0.05, 0.04, 0.30, 0.05, 0.13, 0.19]
+event_distances = [156,377,267,241,632,230,438,108,385,201,283,340,201]*u.Mpc
+
+# multiply the E(B-V) by 3.1 and overplot
+M = np.zeros(len(event_names))
+absmin = np.zeros(len(event_names))
+absmax = np.zeros(len(event_names))
+magerr = np.zeros(len(event_names))
+absmag = np.linspace(-20,-10, 50)
+
+mass_points = 30
+mass = np.linspace(-3, .5, mass_points) 
+mass_theory = np.linspace(-3, 0 ,100) 
+prob_lan_list=[]
+combined_kde = True
+samples = []
+prob_events = np.ones([13, mass_points])
+prob_norm_events = np.ones([13, mass_points])
+prob_events=[]
+prob_norm_events=[]
+
+
+def greedy_kde_areas_1d(pts):
+
+    pts = np.random.permutation(pts)
+    mu = np.mean(pts, axis=0)
+
+    Npts = pts.shape[0]
+    kde_pts = pts[:int(Npts/2)]
+    den_pts = pts[int(Npts/2):]
+
+    kde = ss.gaussian_kde(kde_pts.T)
+
+    kdedir = {}
+    kdedir["kde"] = kde
+    kdedir["mu"] = mu
+
+    return kdedir
+
+def kde_eval(kdedir,truth):
+
+    kde = kdedir["kde"]
+    mu = kdedir["mu"]
+    L = kdedir["L"]
+
+    truth = np.linalg.solve(L, truth-mu)
+    td = kde(truth)
+
+    return td
+
+def kde_eval_single(kdedir,truth):
+
+    kde = kdedir["kde"]
+    mu = kdedir["mu"]
+    td = kde(truth)
+
+    return td
+
+
+def run_theoretical(Type, lan, chi, EOS):
+    chi_list = [chi]
+    data = []
+    Type2=Type
+    chirp_q_tf = False
+    twixie_tf = False
+    #if Type == 'BNS_equal':
+        #Type = 'BNS'
+    for chi in chi_list:
+        if Type == 'NSBH':
+            #m1 = np.arange(3, 5.8, .1)
+            #m2 = np.arange(1, 1.5, .05)
+            m1 = np.arange(3, 8.1, .4)
+            m2 = np.arange(1, 2.4, .2)
+            m1 = np.arange(3, 8.1, 1)
+            m2 = np.arange(1, 2.4, .6)
+        #sample 3-10 for NSBH
+        if Type == 'BNS':
+            #m1 = np.arange(1, 2.4, .1)
+            #m2 = np.arange(1, 2.4, .1)
+            m1 = np.arange(1, 3.1, .2)
+            m2 = np.arange(1, 3.1, .2)
+            m1 = np.arange(1, 3.1, .5)
+            m2 = np.arange(1, 3.1, .5)
+
+        if Type == 'BNS_twixie':
+            #m1 = np.arange(1, 2.4, .1)
+            #m2 = np.arange(1, 2.4, .1)
+            #m1 = np.arange(1, 3.1, .2)
+            #m2 = np.arange(1, 3.1, .2)
+            m1=[0]
+            m2=[0]
+            Type = 'BNS'
+            twixie_tf =True
+
+        if Type == 'BNS_equal':
+            m2 = np.arange(1, 3.1, .1)
+            #m2 = np.arange(1, 3.1, .5)
+            m1 = [0]
+        if Type == 'BNS_chirp_q':
+            chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
+            chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5) 
+            #print(chirp_min, chirp_max)
+            #m2 becomes q
+            #m1 becomes mchirp
+            m2 = np.arange(1, 2, .1)
+            m1 = np.arange(chirp_min, chirp_max, .1)
+            chirp_q_tf = True 
+        all_data = []
+        medians, stds = [], []
+        m1_plot, m2_plot=[], []
+        lambdatildes=[]
+        term1_plot, term2_plot, term3_plot, term4_plot=[],[],[],[]
+        print(Type2)
+        print('--------------------------------------------------------------------------')
+        for m1m in m1:
+            for m2m in m2:
+                m1m_check = m1m
+                m2m_check = m2m
+                if Type == 'BNS_equal':
+                    m1m = m2m
+                    m1m_check = m2m
+                    Type = 'BNS'
+                if Type == 'BNS_chirp_q':
+                    eta1 = lightcurve_utils.q2eta(m2m)
+                    m1m_check, m2m_check = lightcurve_utils.mc2ms(m1m, eta1)
+                    #print(m1m_check, m2m_check)
+                    m2m_check = m1m_check
+                if (m1m_check >= m2m_check) and (m1m_check <= 3):
+                    print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
+                    samples = Test(EOS, m1m, m2m, chi, type_set=Type, twixie = twixie_tf, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)
+                    mej_samples = samples['mej']
+                    mean=np.mean(mej_samples)
+                    if math.isnan(mean):
+                        mean = 0
+                    data.append(mean)
+                    all_data.append(mej_samples)
+                    samples_gp=samples
+                    #bounds = [-3.0,-1.0]
+                    #xlims = [-2.8,-1.0]
+                    xlims = [-3, -1.5]
+                    #ylims = [1e-1,2]
+                    plotName = "/home/andrew.toivonen/gwemlightcurves/KDE_plots/mej_"+str(Type)+"_m1_"+str(np.round(m1m, decimals=1))+"_m2_"+str(np.round(m2m, decimals=1))+'_chi_'+str(chi)+".pdf"
+                    plt.figure(figsize=(15,10))
+                    ax = plt.gca()
+                    bins, hist1 = lightcurve_utils.hist_results(np.log10(samples_gp["mej"]),Nbins=20)
+                    plt.step(bins,hist1,'-',color='b',linewidth=3,where='mid')
+                    lim = np.percentile(np.log10(samples_gp["mej"]), 90)
+                    plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
+                    plt.ylabel('Probability Density Function',fontsize=24)
+                    plt.xticks(fontsize=24)
+                    plt.yticks(fontsize=24)
+                    plt.xlim(xlims)
+                    plt.savefig(plotName)
+                    plt.close()
+                  
+                    medians.append(np.median(samples_gp['mej']))
+                    stds.append(np.std(samples_gp['mej']))
+                    m1_plot.append(m1m)
+                    m2_plot.append(m2m)
+                   
+                    lambdatilde = (16.0/13.0)*(samples_gp['lambda2'] + samples_gp['lambda1']*(samples_gp['q']**5) + 12*samples_gp['lambda1']*(samples_gp['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
+                   
+        std_med=[]
+        m1_0=[]
+        m2_0=[]
+          
+        for num in range(len(stds)):
+            check = 0
+            if stds[num] < 1e-6:
+                stds[num] = np.nan 
+                check = 1
+            if medians[num] <= 1e-6:
+                medians[num] = np.nan
+                check = 1
+            std_med.append(stds[num]/medians[num])
+            if True:    
+                if std_med[num] > 10:
+                    std_med[num] = 10
+                if std_med[num] < .01:
+                    std_med[num] = .01
+            if Type == 'NSBH':
+                if check == 1:
+                    m1_0.append(m1_plot[num])
+                    m2_0.append(m2_plot[num])               
+        plotName = "/home/andrew.toivonen/gwemlightcurves/KDE_plots/mej_mass_grid_"+str(Type)+'_chi_'+str(chi)+"_zoomout.pdf"
+        fig2 = plt.figure(figsize=(15,10))
+        ax2 = plt.gca()
+        if Type == 'BNS' or 'BNS_equal' or 'BNS_chirp_q':
+            weight = 800
+        if Type == 'NSBH':
+            weight = 50
+        plot=plt.scatter(m1_plot, m2_plot, c=np.log10(np.array(medians)), s=np.array(std_med)*weight, cmap='coolwarm')
+        plt.scatter(m1_0, m2_0, c='black')
+        cbar = fig2.colorbar(mappable=plot)
+        cbar.ax.set_ylabel('Log10 Median Ejecta Mass')
+        plt.xlabel('m1', fontsize=24)
+        plt.ylabel('m2', fontsize=24)
+        if Type == 'BNS' or 'BNS_equal':
+            plt.xlim([.9,3.2])
+            plt.ylim([.9,3.2])
+        if Type == 'NSBH':
+            #plt.xlim([2.9,5.7])
+            #plt.ylim([.95,2])
+            plt.xlim([2.9,8])
+            plt.ylim([.95, 3]) 
+        plt.savefig(plotName)
+    
+    
+    
+    data=np.array(data)
+    #if not twixie_tf:
+    return data, all_data
+    #if twixie_tf:
+        #return data, all_data, 
+
+
+
+def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = False, Type = None):
+    l = len(mass) 
+    prob_events=[]
+    prob_norm_events=[] 
+    samples=[]
+    #combined_kde=True
+    event_name_list = event_names
+    if theor:
+        event_name_list = 'i'
+        #print(event_name_list) 
+        if Type == None:
+            print('Specify BNS or NSBH')
+    
+    chi_list = [chi]
+    for chi in chi_list:
+        cov = np.ones(13)
+        if coverage_factors == True:
+            cov = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608]) 
+        for e, event in enumerate(event_name_list):
+            filename = '/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/'+event+'/'+str(lan)+'/0.10/2-post_equal_weights.dat'
+            prob_list = []
+            prob_norm_list = []
+            if not os.path.exists(filename):
+                if not theor:
+                    print(filename+' Not Found')
+                    for x in range(l):
+                        prob_list.append(1)
+                        prob_norm_list.append(1)
+                    prob_events.append(np.array(prob_list))
+                    prob_norm_events.append(np.array(prob_norm_list))
+                    continue
+            if not theor:
+                data = np.loadtxt(filename, usecols = 1)
+                all_data=data
+            if theor:
+                EOS_type = 'Sly'
+                data, all_data = (run_theoretical(Type, lan, chi, EOS_type))
+                data = np.array(data)
+                shape = np.shape(all_data)
+                if not EOS_type == 'gp':
+                    all_data_list = []
+                    for index in range(len(all_data)):
+                        data_list=[]
+                        for w in all_data[index]:
+                            data_list.append(np.float(w))
+                        all_data_list.append(data_list)   
+                    all_data = np.array(all_data_list)
+                shape = np.shape(all_data)
+                num = 1 
+                for n in range(len(shape)):
+                    num = num * shape[n]
+                print('-----------------'+str(num))
+                
+                all_data = np.reshape(np.array(all_data), (np.int(num)))
+                #data[data > 1e0] = 1e0
+                #data[data < 1e-6] =1e-6
+                 
+                all_data[all_data > 1e0] = 1e0
+                all_data[all_data < 1e-6] = 1e-6
+                datafilename = '/home/andrew.toivonen/public_html/'+str(Type)+'_data.txt'
+                np.savetxt(datafilename, np.array(all_data))
+                
+                all_data = np.log10(all_data)
+                #data = np.log10(data)
+            print('Initializing '+str(event)+' '+str(lan))
+            KDE = greedy_kde_areas_1d(all_data)
+        
+            if not combined_kde:
+                samples = []
+            Nsamples = 1e4
+            if Nsamples < 1e3: 
+                print('Nsamples may be too small')
+            limit = 1
+            limit_norm = 1
+                
+            for i,m in enumerate(mass):
+                p_samples = []
+                p_norm_samples =[]
+                for c in range(int(Nsamples)):
+                    if not theor:
+                        prob = kde_eval_single(KDE, 10**m)[0]
+                        prob_norm = kde_eval_single(KDE, .001)[0]
+                        prob_norm =1
+                    if theor: 
+                        prob = kde_eval_single(KDE, m)[0]
+                        prob_norm = kde_eval_single(KDE, -3)[0]
+                        prob_norm =1
+                    thresh = np.random.uniform(0,1)
+                    if prob > thresh:
+                        p_samples.append(cov[e]*prob)
+                        p_norm_samples.append(cov[e]*prob_norm)
+
+                prob_list.append(np.mean(p_samples))
+                prob_norm_list.append((np.mean(p_norm_samples)))
+            prob_events.append(np.array(prob_list))
+            prob_norm_events.append(np.array(prob_norm_list))
+
+            if True:
+
+                data_out = (all_data)
+                mej_test = mass
+                prob_kde=[]
+                for m in mej_test:
+                    kde_test = kde_eval_single(KDE, m)
+                    prob_kde.append(kde_test)
+                mej_norm = kde_eval_single(KDE, 1e-3)
+                mej_norm=1
+                prob_kde = np.array(prob_kde)
+                prob_kde = prob_kde / np.sum(prob_kde)
+                mej_probs = prob_kde
+
+                plotName = "/home/andrew.toivonen/gwemlightcurves/KDE_plots/test_"+str(Type)+'_'+str(event)+"_"+str(lan)+".pdf"
+                bins = np.linspace(np.min(data_out),np.max(data_out),30)
+                hist1, bins1 = np.histogram(data_out,bins=bins)
+                hist1 = hist1 / float(np.sum(hist1))
+                hist1 = hist1 * np.max(mej_probs)/np.max(hist1)
+                bins = (bins[1:]+bins[:-1])/2.0
+                plt.figure()
+                plt.step(bins, hist1, 'k')
+                plt.plot(mej_test, mej_probs, 'b')
+                plt.savefig(plotName)
+                plt.close()
+    if theor:
+        return mej_probs, mej_norm, mej_test, chi, EOS_type
+    if not theor:
+        return np.array(prob_events), np.array(prob_norm_events) 
+
+
+def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, theoretical = False):
+    overall = np.ones((len(mass)))
+    BNS = np.ones((len(mass))) 
+    NSBH = np.ones((len(mass))) 
+    highsig_bns = np.ones((len(mass))) 
+    highsig_nsbh = np.ones((len(mass))) 
+    l = len(mass)
+
+    EOS_type = 'O3events'
+
+    event_prob = np.ones(l)
+    #if coverage_factors == True:    
+        #event_prob = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608])
+
+    
+    if theoretical:
+        prob_events_bns, prob_norm_events_bns, mej_test, chi, EOS_type = run_prob(mass, combined_kde, lan, chi, theor = True, Type = 'BNS')
+        prob_events_bns_equal, prob_norm_events_bns_equal, mej_test, chi, EOS_type = run_prob(mass, combined_kde, lan, chi, theor = True, Type = 'BNS_equal')
+        prob_events_bns_chirp_q, prob_norm_events_bns_chirp_q, mej_test, chi, EOS_type = run_prob(mass, combined_kde, lan, chi, theor = True, Type = 'BNS_chirp_q')
+        prob_events_bns_twixie, prob_norm_events_bns_twixie, mej_test, chi, EOS_type = run_prob(mass, combined_kde, lan, chi, theor = True, Type = 'BNS_twixie')
+        prob_events_nsbh, prob_norm_events_nsbh, mej_test, chi, EOS_type = run_prob(mass, combined_kde, lan, chi, theor = True, Type = 'NSBH')
+        prob_events_bns = np.reshape(prob_events_bns,len(prob_events_bns))
+        prob_events_nsbh = np.reshape(prob_events_nsbh,len(prob_events_nsbh)) 
+        prob_events_bns_equal = np.reshape(prob_events_bns_equal,len(prob_events_bns_equal))
+        prob_events_bns_chirp_q = np.reshape(prob_events_bns_chirp_q,len(prob_events_bns_chirp_q))
+        prob_events_bns_twixie = np.reshape(prob_events_bns_twixie,len(prob_events_bns_twixie))
+
+    mass=10**mass
+    
+    event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
+    colors = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
+ 
+
+    theory_bns = prob_events_bns
+    theory_bns_equal = prob_events_bns_equal
+    theory_bns_chirp_q = prob_events_bns_chirp_q
+    theory_bns_twixie = prob_events_bns_twixie
+    theory_nsbh = prob_events_nsbh       
+
+    #overall_hist = overall
+ 
+    #BNS = np.cumsum(BNS)
+    #NBSH = np.cumsum(NSBH)
+    #highsig_bns = np.cumsum(highsig_bns)
+    #highsig_nsbh = np.cumsum(highsig_nsbh)
+    #overall = np.cumsum(overall)
+
+    ones = np.ones(len(theory_bns))
+    
+    theory_bns = np.cumsum(theory_bns)
+    theory_nsbh = np.cumsum(theory_nsbh)
+    theory_bns_equal = np.cumsum(theory_bns_equal)
+    theory_bns_chirp_q = np.cumsum(theory_bns_chirp_q)
+    theory_bns_twixie = np.cumsum(theory_bns_twixie)
+
+    norm_bns = np.max(theory_bns)
+    norm_nsbh = np.max(theory_nsbh)
+    norm_bns_equal = np.max(theory_bns_equal)
+    norm_bns_chirp_q = np.max(theory_bns_chirp_q)
+    norm_bns_twixie = np.max(theory_bns_twixie)
+
+    theory_bns = theory_bns/norm_bns
+    theory_nsbh = theory_nsbh/norm_nsbh
+    theory_bns_equal = theory_bns_equal/norm_bns_equal
+    theory_bns_chirp_q = theory_bns_chirp_q/norm_bns_chirp_q
+    theory_bns_twixie = theory_bns_twixie/norm_bns_twixie
+
+    #norm_BNS = np.max(BNS)
+    #norm_NSBH = np.max(NSBH)
+    #norm_highsig_bns = np.max(highsig_bns)
+    #norm_highsig_nsbh = np.max(highsig_nsbh)
+    #norm_overall = np.max(overall)
+
+
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    #ax.plot(mass, overall_hist/overall_hist[0], color='goldenrod', marker='o',label='overall')
+    #ax.plot(mass, NSBH/norm_NSBH,color='r', marker='o',label='NSBH')
+    #ax.plot(mass, BNS/norm_BNS,color='b', marker='o', label='BNS')
+    #ax.plot(mass, highsig_nsbh/norm_highsig_nsbh,color='m', marker='o', label='high significance NSBH')
+    #ax.plot(mass, highsig_bns/norm_highsig_bns,color='c', marker='o', label='high significance BNS')
+    if theoretical:
+            
+        max_bns = np.max(prob_events_bns)
+        max_nsbh = np.max(prob_events_nsbh)
+        max_bns_equal = np.max(prob_events_bns_equal)
+        max_bns_chirp_q = np.max(prob_events_bns_chirp_q)
+        max_bns_twixie = np.max(prob_events_bns_twixie)
+        ax.plot(mass, prob_events_nsbh/max_nsbh, color='r', marker='o', label='NSBH Theory PDF')
+        ax.plot(mass, prob_events_bns/max_bns, color='b', marker='o', label='BNS Theory PDF')
+        ax.plot(mass, prob_events_bns_equal/max_bns_equal, color='k', marker='o', label='BNS_equal Theory PDF')
+        ax.plot(mass, prob_events_bns_chirp_q/max_bns_chirp_q, color='c', marker='o', label='BNS_chirp_q Theory PDF')
+        ax.plot(mass, prob_events_bns_twixie/max_bns_twixie, color='orange', marker='o', label='BNS_twixie Theory PDF')
+        ax.plot(mass, ones-theory_nsbh, color='y', marker='o', label='NSBH Theory CDF')
+        ax.plot(mass, ones-theory_bns, color='g', marker='o', label='BNS Theory CDF')
+        ax.plot(mass, ones-theory_bns_equal, color='grey', marker='o', label='BNS_equal Theory CDF')
+        ax.plot(mass, ones-theory_bns_chirp_q, color='m', marker='o', label='BNS_chirp_q Theory CDF')
+        ax.plot(mass, ones-theory_bns_twixie, color='blueviolet', marker='o', label='BNS_twixie Theory CDF')
+
+        #ax.plot(np.logspace(-3, 0, 10), np.ones(10)*.1)
+        y = np.ones(l)*.1
+        bns_x = (prob_events_bns/max_bns)
+        bns_mass = mass[BNS<y]
+        BNS_x = BNS[BNS<y]
+        bns_fill = bns_x[BNS<y]
+        nsbh_x = (prob_events_nsbh/max_nsbh)
+        nsbh_mass = mass[NSBH<y]
+        NSBH_x = NSBH[NSBH<y] 
+        nsbh_fill = nsbh_x[NSBH<y]
+        #plt.fill_between(mass, bns_x, where=2*y>BNS, interpolate = True)
+        #plt.fill_between(mass, nsbh_x, where=y>NSBH, interpolate = True)
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    #ax.set_xlim(-9.8, -20.2)
+    plt.ylim(1e-3,1.1)
+    plt.xlabel('mej')
+    plt.ylabel('Probability')
+    plt.legend()
+    plt.grid()
+
+    plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'.pdf'
+    if coverage_factors == True:
+        plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_coverage_factors.pdf'
+
+    if theoretical:
+        plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_theory.pdf'
+    plt.savefig(plotname)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    #ax.plot(mass, overall/norm_overall, color='goldenrod', marker='o',label='overall')
+    #ax.plot(mass, NSBH/norm_NSBH,color='r', marker='o',label='NSBH')
+    #ax.plot(mass, BNS/norm_BNS,color='b', marker='o', label='BNS')
+    #ax.plot(mass, highsig_nsbh/norm_highsig_nsbh,color='m', marker='o', label='high significance NSBH')
+    #ax.plot(mass, highsig_bns/norm_highsig_bns,color='c', marker='o', label='high significance BNS')
+    if theoretical:
+        #ax.plot(mass, prob_events_nsbh/max_nsbh, color='r', marker='o', label='NSBH Theory PDF')
+        #ax.plot(mass, prob_events_bns/max_bns, color='b', marker='o', label='BNS Theory PDF')
+        ax.plot(mass, ones-theory_nsbh, color='y', marker='o', label='NSBH Theory')
+        ax.plot(mass, ones-theory_bns, color='g', marker='o', label='BNS Theory')
+
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    #ax.set_xlim(-9.8, -20.2)
+    plt.ylim(1e-3,1.1)
+    plt.xlabel('mej')
+    plt.ylabel('Cumulative Probability')
+    plt.legend()
+    plt.grid()
+
+    plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
+    if coverage_factors == True:
+        plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
+
+    if theoretical:
+        plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
+    plt.savefig(plotname)
+    plt.close(fig)
+
+
+
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    #ax.plot(mass, overall/norm_overall, color='goldenrod', marker='o',label='overall')
+    #ax.plot(mass, NSBH/norm_NSBH,color='r', marker='o',label='NSBH')
+    #ax.plot(mass, BNS/norm_BNS,color='b', marker='o', label='BNS')
+    #ax.plot(mass, highsig_nsbh/norm_highsig_nsbh,color='m', marker='o', label='high significance NSBH')
+    #ax.plot(mass, highsig_bns/norm_highsig_bns,color='c', marker='o', label='high significance BNS')
+    if theoretical:
+        ax.plot(mass, ones-theory_nsbh, color='b', marker='o', label='NSBH Theory')
+        ax.plot(mass, ones-theory_bns, color='k', marker='o', label='BNS Theory')
+        ax.plot(mass, ones-theory_bns_equal, color='grey', marker='o', label='BNS Theory (m1 = m2)')
+        #ax.plot(mass, ones-theory_nsbh, color='r', marker='o', label='NSBH Theory1')
+        #ax.plot(mass, ones-theory_bns, color='b', marker='o', label='BNS Theory1')
+        #ax.plot(mass, theory_nsbh, color='c', marker='o', label='NSBH Theory2')
+        #ax.plot(mass, theory_bns, color='m', marker='o', label='BNS Theory2')
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    #ax.set_xlim(-9.8, -20.2)
+    plt.ylim(1e-3,1.1)
+    plt.xlabel('mej')
+    plt.ylabel('Cumulative Probability')
+    plt.legend()
+    plt.grid()
+
+    plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
+    if coverage_factors == True:
+        plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
+
+    if theoretical:
+        plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
+    plt.savefig(plotname)
+    plt.close(fig)
+    data_bns = ones-theory_bns
+    data_nsbh = ones-theory_nsbh
+    data_bns_equal = ones-theory_bns_equal 
+    #data_bns_equal = 1 
+    return data_bns, data_nsbh, data_bns_equal, mass, EOS_type
+
+lan_list = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
+lan_list = ['-9.00']
+
+chi_list = [-.75, -.5, -.25, 0, .25, .5, .75]
+chi_list=[0]
+
+add_theory_line = True
+plot_list=[]
+for lan in lan_list:
+    for chi in chi_list:
+        cov_tf = False 
+        #prob_events, prob_norm_events=run_prob(mass, combined_kde, lan, chi, coverage_factors = cov_tf)
+        prob_events, prob_norm_events = np.ones(100), np.ones(100)
+        plot_bns, plot_nsbh, data_bns_equal, mass_plot, EOS_type = plot(mass, prob_events, prob_norm_events, np.float(lan), chi, coverage_factors = cov_tf, theoretical=add_theory_line)
+        plot_list.append(plot_nsbh)
+
+
+colors = cm.rainbow(np.linspace(0,1,len(plot_list)))
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(mass_plot, plot_bns, color='k', marker='o', label='BNS Theory')
+ax.plot(mass_plot, data_bns_equal, color='grey', marker='o', label='BNS Theory (m1 = m2)')
+for n, y in enumerate(plot_list):
+    ax.plot(mass_plot, y, color=colors[n], marker='o', label='NSBH Theory, chi = '+str(chi_list[n]))
+    
+
+ax.set_yscale('log')
+ax.set_xscale('log')
+plt.ylim(1e-3,1.1)
+plt.xlabel('mej')
+plt.ylabel('Cumulative Probability')
+plt.legend()
+plt.grid()
+
+plotname = '../mej_plots/KDE_zerodetection_comparison_theory_'+EOS_type+'.pdf'
+plt.savefig(plotname)
+plt.close(fig)
+
+colors = cm.rainbow(np.linspace(0,1,len(plot_list)))
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(mass_plot, plot_bns, color='k', marker='o', label='BNS Theory')
+ax.plot(mass_plot, data_bns_equal, color='grey', marker='o', label='BNS Theory (m1 = m2)')
+for n, y in enumerate(plot_list):
+    ax.plot(mass_plot, y, color=colors[n], marker='o', label='NSBH Theory, chi = '+str(chi_list[n]))
+    
+
+#ax.set_yscale('log')
+ax.set_xscale('log')
+plt.ylim(1e-3,1.1)
+plt.xlabel('mej')
+plt.ylabel('Cumulative Probability')
+plt.legend()
+plt.grid()
+
+plotname = '../mej_plots/KDE_zerodetection_semilog_comparison_theory_'+EOS_type+'.pdf'
+plt.savefig(plotname)
+plt.close(fig) 

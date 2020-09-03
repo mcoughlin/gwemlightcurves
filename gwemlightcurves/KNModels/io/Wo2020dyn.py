@@ -12,7 +12,7 @@ from .. import KNTable
 from gwemlightcurves import lightcurve_utils, Global, svd_utils
 from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
-def get_Bu2019inc_model(table, **kwargs):
+def get_Wo2020dyn_model(table, **kwargs):
 
     if 'LoadModel' in kwargs: 
         LoadModel = kwargs['LoadModel']
@@ -45,7 +45,7 @@ def get_Bu2019inc_model(table, **kwargs):
             table['n_coeff'] = 21
 
     if not 'gptype' in table.colnames:
-        table['gptype'] = 'sklearn'
+        table['gptype'] = "sklearn"
 
     if doAB:
         if not Global.svd_mag_model == 0:
@@ -53,18 +53,18 @@ def get_Bu2019inc_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                if np.all(table['gptype'] == "sklearn"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
-                elif np.all(table['gptype'] == "gpytorch"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag_gpy.pkl')
+                if table['gptype'] == "sklearn":
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_mag.pkl')
+                elif table['gptype'] == "gpytorch":
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_mag_gpy.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
             else:
-                svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019inc", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
+                svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Wo2020dyn", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
                 if table['gptype'] == "sklearn":
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_mag.pkl')
                 elif table['gptype'] == "gpytorch":
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag_gpy.pkl')
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_mag_gpy.pkl')
 
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_mag_model, handle,
@@ -77,20 +77,20 @@ def get_Bu2019inc_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                if np.all(table['gptype'] == "sklearn"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
-                elif np.all(table['gptype'] == "gpytorch"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol_gpy.pkl')
+                if table['gptype'] == "sklearn":
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_lbol.pkl')
+                elif table['gptype'] == "gpytorch":
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_lbol_gpy.pkl')
 
                 with open(modelfile, 'rb') as handle:
-                    svd_lbol_model = pickle.load(handle)            
+                    svd_lbol_model = pickle.load(handle)
             else:
-                svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019inc", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
+                svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Wo2020dyn", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
 
                 if table['gptype'] == "sklearn":
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_lbol.pkl')
                 elif table['gptype'] == "gpytorch":
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol_gpy.pkl')
+                    modelfile = os.path.join(ModelPath,'Wo2020dyn_lbol_gpy.pkl')
 
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_lbol_model, handle,
@@ -103,30 +103,20 @@ def get_Bu2019inc_model(table, **kwargs):
         else:
             if LoadModel:
             #if True:
-                modelfile = os.path.join(ModelPath,'Bu2019inc_spec.pkl')
+                modelfile = os.path.join(ModelPath,'Wo2020dyn_spec.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_spec_model = pickle.load(handle)
             else:
-                svd_spec_model = svd_utils.calc_svd_spectra(table['tini'][0], table['tmax'][0], table['dt'][0], table['lambdaini'][0], table['lambdamax'][0], table['dlambda'][0], model = "Bu2019inc", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Bu2019inc_spec.pkl')
+                svd_spec_model = svd_utils.calc_svd_spectra(table['tini'][0], table['tmax'][0], table['dt'][0], table['lambdaini'][0], table['lambdamax'][0], table['dlambda'][0], model = "Wo2020dyn", n_coeff = table['n_coeff'][0])
+                modelfile = os.path.join(ModelPath,'Wo2020dyn_spec.pkl')
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_spec_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
             Global.svd_spec_model = svd_spec_model
-
-    if not 'mej' in table.colnames:
-        # calc the mass of ejecta
-        table['mej'] = calc_meje(table['m1'], table['mb1'], table['c1'], table['m2'], table['mb2'], table['c2'])
-        # calc the velocity of ejecta
-        table['vej'] = calc_vej(table['m1'], table['c1'], table['m2'], table['c2'])
 
     # Throw out smaples where the mass ejecta is less than zero.
     mask = (table['mej'] > 0)
     table = table[mask]
     if len(table) == 0: return table
-
-    # Log mass ejecta
-    table['mej10'] = np.log10(table['mej'])
-    # Initialize lightcurve values in table
 
     timeseries = np.arange(table['tini'][0], table['tmax'][0]+table['dt'][0], table['dt'][0])
     table['t'] = [np.zeros(timeseries.size)]
@@ -142,11 +132,11 @@ def get_Bu2019inc_model(table, **kwargs):
     for isample in range(len(table)):
         print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
-            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'][0], n_coeff_lim=table['n_coeff'][0])
+            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),np.log10(table['a'][isample]),table['sd'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Wo2020dyn", gptype=table['gptype'])
         elif doSpec:
-            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Bu2019inc", n_coeff_lim=table['n_coeff'][0])
+            table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Wo2020dyn", gptype=table['gptype'])
 
     return table
 
-register_model('Bu2019inc', KNTable, get_Bu2019inc_model,
+register_model('Wo2020dyn', KNTable, get_Wo2020dyn_model,
                  usage="table")

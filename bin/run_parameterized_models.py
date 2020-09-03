@@ -60,10 +60,12 @@ def parse_commandline():
     parser.add_option("--vej2",default=0.2,type=float)
     parser.add_option("--Xlan2",default=1e-3,type=float)
 
+    parser.add_option("--sd",default=0.034,type=float)
+    parser.add_option("--rwind",default=0.2,type=float)
     parser.add_option("--a",default=2.0,type=float)
 
     parser.add_option("--T",default=6000.0,type=float)
-    parser.add_option("--phi",default=0.0,type=float)
+    parser.add_option("--phi",default=45.0,type=float)
     parser.add_option("--iota",default=0.0,type=float)
     parser.add_option("--colormodel",default="a2.0")
 
@@ -112,6 +114,9 @@ iota = opts.iota
 phi = opts.phi
 T = opts.T
 a = opts.a
+sd = opts.sd
+rwind = opts.rwind
+
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -223,6 +228,10 @@ samples['kappaLF'] = opts.kappaLF
 samples['gammaLF'] = opts.gammaLF
 samples['kappaLR'] = opts.kappaLR
 samples['gammaLR'] = opts.gammaLR
+
+#Wo2020 keys
+samples['sd'] = sd 
+samples['rwind'] = rwind
 
 if len(colormodel) == 1:
     samples['colormodel'] = colormodel[0]
@@ -355,10 +364,18 @@ elif opts.model in "Bu2019op":
 elif opts.model in "Bu2019ops":
     if opts.doEjecta:
         name = "Bu2019bc_kappaLF%03dkappaLR%03d"%(opts.kappaLF,opts.kappaLR)
-elif opts.model in ["Bu2019rp", "Bu2019rps"]:
+elif opts.model in ["Bu2019rp", "Bu2019rps","Bu2019rpd"]:
     if opts.doEjecta:
         name = "Bu2019lm_M1%03dM2%03dP%d"%(opts.mej1*1000,opts.mej2*1000,opts.phi)
-
+elif opts.model in "Wo2020dyn":
+    if opts.doEjecta:
+        name = "Wo2020dyn_M%03dV%02dP%d"%(opts.mej*1000,opts.vej*100,opts.phi)
+elif opts.model in "Wo2020dw":
+    if opts.doEjecta:
+        name = "Wo2020dw_M%03dV%02dP%d"%(opts.mej*1000,opts.vej*100,opts.phi)
+elif opts.model in "Bu2019nsbh":
+    if opts.doEjecta:
+        name = "Bu2019nsbh_M%03dV%02dP%d"%(opts.mej*1000,opts.vej*100,opts.phi)
 elif opts.model == "SN":
     t0 = (tini+tmax)/2.0
     #t0 = 0.0
