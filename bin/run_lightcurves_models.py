@@ -64,6 +64,7 @@ def parse_commandline():
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
     parser.add_option("--n_live_points",default=100,type=int)
+    parser.add_option("--n_coeff",default=10,type=int)
     parser.add_option("--evidence_tolerance",default=0.5,type=float)
     parser.add_option("--max_iter",default=0,type=int)
 
@@ -404,6 +405,7 @@ Global.T0Range = T0Range
 Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
+Global.n_coeff = opts.n_coeff
 
 if opts.doFixXlan:
     Global.Xlan = np.log10(opts.Xlan)

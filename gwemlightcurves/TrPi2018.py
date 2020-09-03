@@ -31,8 +31,12 @@ def lightcurve(tini,tmax,dt,theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsi
     specType = 0
     ksiN = 1.0
     dL = 3.09e19
+    b = 6
+    L0 = 0.0
+    q = 0.0
+    ts = 0.0
 
-    Y = np.array([theta_v, E0, theta_c, theta_w, n, p, epsilon_E, epsilon_B, ksiN, dL])
+    Y = np.array([theta_v, E0, theta_c, theta_w, b, L0, q, ts, n, p, epsilon_E, epsilon_B, ksiN, dL])
 
     filts = ["u","g","r","i","z","y","J","H","K"]
     lambdas = np.array([3561.8,4866.46,6214.6,6389.4,7127.0,7544.6,8679.5,9633.3,12350.0,16620.0,21590.0])*1e-10

@@ -939,7 +939,7 @@ def calc_color(tini,tmax,dt,param_list,svd_mag_color_model=None, model = "a2.0")
 
 
 def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
-            model = "BaKa2016", gptype="sklearn"):
+            model = "BaKa2016", gptype="sklearn", n_coeff_lim=None):
 
     tt = np.arange(tini,tmax+dt,dt)
 
@@ -951,9 +951,13 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
     filters = ["u","g","r","i","z","y","J","H","K"]
     mAB = np.zeros((9,len(tt)))
     for jj,filt in enumerate(filters):
-        n_coeff = svd_mag_model[filt]["n_coeff"]
+        if n_coeff_lim is None:
+            n_coeff = svd_mag_model[filt]["n_coeff"]
+        else:
+            n_coeff = n_coeff_lim
         param_array = svd_mag_model[filt]["param_array"]
-        param_array_postprocess = svd_mag_model[filt]["param_array_postprocess"]
+        if gptype == "gpytorch":
+            param_array_postprocess = svd_mag_model[filt]["param_array_postprocess"]
         cAmat = svd_mag_model[filt]["cAmat"]
         VA = svd_mag_model[filt]["VA"]
         param_mins = svd_mag_model[filt]["param_mins"]
@@ -1010,7 +1014,11 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
             maginterp = f(tt)
         mAB[jj,:] = maginterp
 
-    n_coeff = svd_lbol_model["n_coeff"]
+    if n_coeff_lim is None:
+        n_coeff = svd_lbol_model["n_coeff"]
+    else:
+        n_coeff = n_coeff_lim
+
     param_array = svd_lbol_model["param_array"]
     cAmat = svd_lbol_model["cAmat"]
     VA = svd_lbol_model["VA"]

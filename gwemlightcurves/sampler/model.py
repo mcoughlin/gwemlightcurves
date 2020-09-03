@@ -11,6 +11,9 @@ def generate_lightcurve(model,samples):
         val = samples[key]
         t.add_column(Column(data=[val],name=key))
     samples = t
+
+    if Global.n_coeff > 0:
+        samples["n_coeff"] = Global.n_coeff
     model_table = KNTable.model(model, samples)
 
     if len(model_table) == 0:
