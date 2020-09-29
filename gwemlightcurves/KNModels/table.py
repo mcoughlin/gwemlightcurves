@@ -137,7 +137,7 @@ def construct_eos_from_polytrope(eos_name):
     for i in range(0, len(polytrope_table['logP1'])):
         polytrope_table['logP1'][i]=np.log10(10**(polytrope_table['logP1'][i])*0.1)
 
-    eos_indx=np.where(polytrope_table['eos']==eos)[0][0]
+    eos_indx=np.where(polytrope_table['eos']==eos_name.encode('utf-8'))[0][0]
 
     eos=lalsim.SimNeutronStarEOS4ParameterPiecewisePolytrope(polytrope_table['logP1'][eos_indx], polytrope_table['gamma1'][eos_indx], polytrope_table['gamma2'][eos_indx], polytrope_table['gamma3'][eos_indx])
     fam=lalsim.CreateSimNeutronStarFamily(eos)
@@ -692,10 +692,12 @@ class KNTable(Table):
                     G = C.G.value; c = C.c.value; msun = u.M_sun.to(u.kg)
 
                 ns_eos, eos_fam=construct_eos_from_polytrope(EOS)
-                self['r1']=lalsim.SimNeutronStarRadius(self['m1']*msun, eos_fam)
-                self['r2']=lalsim.SimNeutronStarRadius(self['m2']*msun, eos_fam)
+                self['r1'] = np.vectorize(lalsim.SimNeutronStarRadius)(self["m1"] * msun, eos_fam)
+                self['r2'] = np.vectorize(lalsim.SimNeutronStarRadius)(self["m2"] * msun, eos_fam)
 
             else:
+                import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+                import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
                 MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
                 radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
                 # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values
