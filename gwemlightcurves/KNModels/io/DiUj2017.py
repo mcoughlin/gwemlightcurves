@@ -50,7 +50,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     t_d = np.arange(tini,tmax+dt,dt)
 
     mag_d = {}
-    for ii in xrange(8):
+    for ii in range(8):
         mag_d[ii] = np.array([])
 
     epsBarnes = 0
@@ -79,7 +79,7 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
       tt=t/((mej*100.0)**(1.0/3.2))
       bc_tmp=getBC(td,bc,bct,tt,flgbct)
 
-      for ii in xrange(8):
+      for ii in range(8):
         if t > 2.*(mej*100)**(1.0/3.2):
           mag_d[ii] = np.append(mag_d[ii],mbol-bc_tmp[ii])
         else:
@@ -91,8 +91,8 @@ def calc_lc(tini,tmax,dt,mej,vej,vmin,th,ph,kappa,eps,alp,eth,flgbct):
     wavelength_interp = 9603.1
 
     mag_y = np.zeros(t_d.shape)
-    for ii in xrange(len(t_d)):
-        mags = [mag_d[jj][ii] for jj in xrange(8)]
+    for ii in range(len(t_d)):
+        mags = [mag_d[jj][ii] for jj in range(8)]
         mag_y[ii] = np.interp(wavelength_interp,wavelengths,mags)
     mag_new = {}
     mag_new[0] = mag_d[0]
@@ -120,12 +120,12 @@ def getBC(td,bc,bct,tt,flgbct):
     if (tt<td[0]) or (tt>td[130]):
         return np.array([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
     else:
-      for ii in xrange(130):
+      for ii in range(130):
           if (td[ii]<=tt) and (tt<=td[ii+1]):
               break
       bc_tmp=np.zeros((8,))
       fac=(tt-td[ii])/(td[ii+1]-td[ii])
-      for jj in xrange(8):
+      for jj in range(8):
           bc_tmp[jj]=(1-fac)*bct[jj][ii]+fac*bct[jj][ii+1]
           if not np.isfinite(bc_tmp[jj]):
               bc_tmp[jj] = np.nan
@@ -134,7 +134,7 @@ def getBC(td,bc,bct,tt,flgbct):
         return np.array([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
     else:
       bc_tmp=np.zeros((8,))
-      for jj in xrange(8):
+      for jj in range(8):
           if (jj == 0) and (tt>5):
             bc_tmp[jj]=np.nan
           elif (jj == 1) and (tt>8.5):

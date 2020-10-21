@@ -241,7 +241,7 @@ g.ax_marg_y.text(1100,150,'$\\tilde{\\Lambda} > 197$',color=color2,fontsize=14,r
 bounds = [1.0,1.7]
 bins, hist1 = lightcurve_utils.hist_results(q_gw,Nbins=15,bounds=bounds)
 hist1 = 4800.0*hist1/np.max(hist1)
-for ii in xrange(len(bins)-1):
+for ii in range(len(bins)-1):
     bin_start, bin_end = bins[ii], bins[ii+1]
     val = hist1[ii]
     #g.ax_marg_x.fill_between([bin_start, bin_end],[0,0],[val,val],facecolor=color1,alpha=1.0)
@@ -250,7 +250,7 @@ for ii in xrange(len(bins)-1):
 bounds = [0,600]
 bins, hist1 = lightcurve_utils.hist_results(lambdatilde_gw,Nbins=25,bounds=bounds)
 hist1 = 1500.0*hist1/np.max(hist1)
-for ii in xrange(len(bins)-1):
+for ii in range(len(bins)-1):
     bin_start, bin_end = bins[ii], bins[ii+1]
     val = hist1[ii]
     #g.ax_marg_y.plot([val,val],[bin_start, bin_end],color=color1,alpha=1.0)

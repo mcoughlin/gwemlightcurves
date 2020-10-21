@@ -184,7 +184,7 @@ else:
     label_fontsize = 30
 
 truths = []
-for ii in xrange(n_params):
+for ii in range(n_params):
     #truths.append(False)
     truths.append(np.nan)
 

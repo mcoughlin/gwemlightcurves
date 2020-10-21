@@ -293,7 +293,7 @@ def read_posterior_samples_old(filename_samples):
     params = line.split("\t")
     params = filter(None, params)
 
-    for ii in xrange(len(params)):
+    for ii in range(len(params)):
         param = params[ii]
   
         data_out[param] = data[:,ii]
@@ -423,12 +423,12 @@ def xcorr_mags(mags1,mags2):
                 chisquares = scipy.stats.chisquare(mag1, f_exp=mag1)[0]
             elif nslides > 0:
                 chisquares = []
-                for kk in xrange(np.abs(nslides)):
+                for kk in range(np.abs(nslides)):
                     chisquare = scipy.stats.chisquare(mag1, f_exp=mag2[kk:len(mag1)])[0] 
                     chisquares.append(chisquare)
             elif nslides < 0:
                 chisquares = []
-                for kk in xrange(np.abs(nslides)):
+                for kk in range(np.abs(nslides)):
                     chisquare = scipy.stats.chisquare(mag2, f_exp=mag1[kk:len(mag2)])[0] 
                     chisquares.append(chisquare)
 
@@ -498,7 +498,7 @@ def EOSfit(mns,c):
 
 def get_truths(name,model,n_params,doEjecta):
     truths = []
-    for ii in xrange(n_params):
+    for ii in range(n_params):
         #truths.append(False)
         truths.append(np.nan)
 

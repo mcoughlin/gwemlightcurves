@@ -106,19 +106,19 @@ filts = np.genfromtxt('../input/filters.dat')
 filtnames = ["u","g","r","i","z","y","J","H","K"]
 
 mag1, mag2 = {}, {}
-for ii in xrange(9):
+for ii in range(9):
     mag1[ii], mag2[ii] = [], []
 
 tmag = []
 for key in data_out:
     tmag.append(float(key))
-    for ii in xrange(9):
+    for ii in range(9):
         band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
         mag1[ii].append(spec2mag(spec_best_dic1[key]["lambda"],spec_best_dic1[key]["data"],band))
         mag2[ii].append(spec2mag(spec_best_dic2[key]["lambda"],spec_best_dic2[key]["data"],band))
 
 tmag = np.array(tmag)
-for ii in xrange(9):
+for ii in range(9):
     mag1[ii], mag2[ii] = np.array(mag1[ii]), np.array(mag2[ii])
 
 title_fontsize = 30

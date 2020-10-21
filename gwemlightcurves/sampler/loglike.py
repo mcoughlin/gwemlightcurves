@@ -510,6 +510,66 @@ def myloglike_Bu2019rps_ejecta(cube, ndim, nparams):
 
     return prob
 
+def myloglike_Bu2019nsbh_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_dyn = 10**cube[1]
+    mej_wind = 10**cube[2]
+    theta = cube[3]
+    zp = cube[4]
+
+    tmag, lbol, mag = Bu2019nsbh_model_ejecta(mej_dyn,mej_wind,theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+    
+    print(prob)
+
+    return prob
+
+def myloglike_Wo2020_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej_1 = 10**cube[1]
+    mej_2 = 10**cube[2]
+    sd = cube[3]
+    a = cube[4]
+    rwind = cube[5]
+    theta = cube[6]
+    zp = cube[7]
+
+    tmag, lbol, mag = Wo2020_model_ejecta(mej_1, mej_2, sd, a, rwind, theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)
+
+    print(prob)
+
+    return prob
+
+def myloglike_Wo2020dyn_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    sd = cube[2]
+    a = cube[3]
+    theta = cube[4]
+    zp = cube[5]
+
+    tmag, lbol, mag = Wo2020dyn_model_ejecta(mej, sd, a, theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)                                         
+
+    print(prob)
+
+    return prob
+
+def myloglike_Wo2020dw_ejecta(cube, ndim, nparams):
+    t0 = cube[0]
+    mej = 10**cube[1]
+    rwind = cube[2]
+    theta = cube[3]
+    zp = cube[4]
+
+    tmag, lbol, mag = Wo2020dw_model_ejecta(mej, rwind, theta)
+    prob = calc_prob(tmag, lbol, mag, t0, zp, errorbudget = Global.errorbudget)                                         
+
+    print(prob)
+
+    return prob
+
 def myloglike_Bu2019bc_ejecta(cube, ndim, nparams):
     t0 = cube[0]
     mej = 10**cube[1]

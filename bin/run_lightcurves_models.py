@@ -87,8 +87,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh","Bu2019rpd"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019inc_TrPi2018, Bu2019rp, Bu2019rps, Wo2020, Wo2020dw, Wo2020dyn, Bu2019nsbh, Bu2019rpd")
     exit(0)
 
 if opts.doFixZPT0:
@@ -138,7 +138,7 @@ if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
     plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -416,7 +416,7 @@ if opts.doFixT:
 if opts.doFixXlan:
     Global.phi = opts.phi
 
-if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr","Bu2019rp","Bu2019rps"]:
+if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh","Bu2019rpd"]:
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
@@ -476,6 +476,56 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         Global.svd_mag_model = svd_mag_model
 
         modelfile = os.path.join(ModelPath,'Bu2019rps_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019rpd":
+        modelfile = os.path.join(ModelPath,'Bu2019rpd_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath,'Bu2019rpd_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+    elif opts.model == "Wo2020dyn":
+        modelfile = os.path.join(ModelPath,'Wo2020dyn_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath, 'Wo2020dyn_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Wo2020dw":
+        modelfile = os.path.join(ModelPath,'Wo2020dw_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath, 'Wo2020dw_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Wo2020":
+        modelfile = os.path.join(ModelPath,'Wo2020_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath, 'Wo2020_lbol.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019nsbh":
+        modelfile = os.path.join(ModelPath,'Bu2019nsbh_mag.pkl')
+        with open(modelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        Global.svd_mag_model = svd_mag_model
+
+        modelfile = os.path.join(ModelPath, 'Bu2019nsbh_lbol.pkl')
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model
