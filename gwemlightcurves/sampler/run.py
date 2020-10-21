@@ -190,7 +190,7 @@ def multinest(opts,plotDir):
                 pymultinest.run(myloglike_Bu2019lr_ejecta, myprior_Bu2019lr_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019lm":
                 parameters = ["t0","mej_dyn","mej_wind","phi","theta","zp"]
-                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn})$",r"${\rm log}_{10} (M_{\rm ej,wind})$",r"$\Phi$",r"$\Theta$","ZP"]
+                labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn} / M_\odot)$",r"${\rm log}_{10} (M_{\rm ej,wind} / M_\odot)$",r"$\Phi {\rm [deg]}$",r"$\Theta {\rm [deg]}$","ZP"]
                 n_params = len(parameters)
                 pymultinest.run(myloglike_Bu2019lm_ejecta, myprior_Bu2019lm_ejecta, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False, max_iter = max_iter)
             elif opts.model == "Bu2019lw":
