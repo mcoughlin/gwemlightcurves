@@ -260,6 +260,10 @@ max_iter = 0
 title_fontsize = 26
 label_fontsize = 30
 
+color1 = 'cornflowerblue'
+color2 = 'coral'
+color3 = 'palegreen'
+
 if opts.analysis_type == "inferred_bulla":
     filename = os.path.join(opts.dataDir, 'standard_candles', 'magcolor_bulla.dat')
     data = np.loadtxt(filename)
@@ -317,6 +321,25 @@ if opts.fit_type == "gpr":
     sigma_best = np.median(sigma2_pred)
     sigma = sigma_best*np.ones(M.shape)
     sigma = sigma2_pred
+
+    if opts.analysis_type == "inferred_bulla":
+        idy = np.where( (param_array[:,0] >= -3) & (param_array[:,0] <= -1) & (param_array[:,1] >= 15) & (param_array[:,1] <= 30) & (param_array[:,2] >= 0) & (param_array[:,2] <= 30))[0]
+        param_array_slice = param_array[idy,:]
+
+        param_array_slice_postprocess = np.array(param_array_slice)
+        param_slice_mins, param_slice_maxs = np.min(param_array_slice_postprocess,axis=0),np.max(param_array_slice_postprocess,axis=0)
+        for i in range(len(param_slice_mins)):
+            param_array_slice_postprocess[:,i] = (param_array_slice_postprocess[:,i]-param_slice_mins[i])/(param_slice_maxs[i]-param_slice_mins[i])
+    
+        nsvds, nparams = param_array_slice_postprocess.shape
+        kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+        gp_slice = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0,alpha=1.0)
+        gp_slice.fit(param_array_slice_postprocess, Mag[idy])
+    
+        M_slice, sigma2_slice_pred = gp_slice.predict(np.atleast_2d(param_array_slice_postprocess), return_std=True)
+        sigma_slice_best = np.median(sigma2_slice_pred)
+        sigma_slice = sigma_slice_best*np.ones(M.shape)
+        sigma_slice = sigma2_pred
 
 elif opts.fit_type == "linear":
 
@@ -403,7 +426,7 @@ if opts.analysis_type == "inferred_bulla":
             else:
                 plt.ylabel('$\Phi = %.0f^\circ$' % phi_unique[ii], fontsize=24)
 
-            plt.xlim([0.001,0.1])
+            plt.xlim([0.000005,1.5])
             #plt.ylim([-17,-9])
             #plt.ylim([-10,0])
             plt.gca().invert_yaxis()
@@ -415,6 +438,34 @@ if opts.analysis_type == "inferred_bulla":
     plotName = os.path.join(plotDir,'fitall.pdf')
     plt.savefig(plotName, bbox_inches='tight')
     plt.close()
+
+    M_trials = np.linspace(np.min(Mag[idy]), np.max(Mag[idy]), 100)
+
+    fig = plt.figure(figsize=(8, 6))
+    gs = gridspec.GridSpec(4, 1)
+    ax1 = fig.add_subplot(gs[0:3, 0])
+    ax2 = fig.add_subplot(gs[3, 0], sharex = ax1)
+    plt.axes(ax1)
+    plt.errorbar(Mag[idy], M[idy], sigma2_pred[idy], fmt='.', color=color1, zorder=5, label='Broad Priors')
+    plt.errorbar(Mag[idy], M_slice, sigma2_slice_pred, fmt='o', color=color2, label='Realistic Priors')
+    plt.plot(M_trials, M_trials, '--', color=color3, zorder=10, linewidth=3, alpha=0.5)
+    plt.ylabel('Magnitude [Fit]')
+    plt.legend(loc=2)
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.gca().invert_yaxis()
+    plt.axes(ax2)
+    plt.errorbar(Mag[idy], M[idy]-Mag[idy], sigma2_pred[idy], fmt='.', color=color1, zorder=5)
+    plt.errorbar(Mag[idy], M_slice-Mag[idy], sigma2_slice_pred, fmt='o', color=color2)
+    plt.plot(M_trials,0.0*np.ones(M_trials.shape), '--', color=color3, zorder=10, linewidth=3, alpha=0.5)
+    plt.gca().invert_xaxis()
+    plt.ylabel('Data - Fit')
+    plt.xlabel('Magnitude [Data]')
+    plt.show()
+    plotName = os.path.join(plotDir,'fit.pdf')
+    plt.savefig(plotName, bbox_inches='tight')
+    plt.close()
+
+    print(stop)
 
 elif opts.analysis_type == "inferred_bulla_lanthanide":
 
@@ -725,10 +776,6 @@ bins_2 = (bin_edges_2[:-1] + bin_edges_2[1:])/2.0
 
 xticks_1 = np.array([10,20,30,40,50,60])
 xticks_2 = (c/xticks_1)*z
-
-color1 = 'cornflowerblue'
-color2 = 'coral'
-color3 = 'palegreen'
 
 fig = plt.figure(figsize=(10,7))
 

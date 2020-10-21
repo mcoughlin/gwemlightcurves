@@ -1,22 +1,28 @@
+#!/usr/bin/python
 
-import os, sys, glob
+import os, sys, glob, pickle
 import optparse
 import numpy as np
 from scipy.interpolate import interpolate as interp
 import scipy.stats
+
+from astropy.table import Table, Column
 
 import matplotlib
 #matplotlib.rc('text', usetex=True)
 matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 20})
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm 
+plt.rcParams['xtick.labelsize']=30
+plt.rcParams['ytick.labelsize']=30
+#plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams['text.usetex'] = True
 
+from chainconsumer import ChainConsumer
 import corner
 
-from gwemlightcurves.KNModels import KNTable
-from gwemlightcurves.sampler import run
-from gwemlightcurves import __version__
-from gwemlightcurves import lightcurve_utils, Global
+from gwemlightcurves import lightcurve_utils, ztf_utils, Global
 
 def parse_commandline():
     """
@@ -26,36 +32,51 @@ def parse_commandline():
 
     parser.add_option("-o","--outputDir",default="../output")
     parser.add_option("-p","--plotDir",default="../plots")
-    parser.add_option("-d","--dataDir",default="../lightcurves")
-    #parser.add_option("-n","--name",default="KaKy2016_H4M005V20")
-    #parser.add_option("--outputName",default="KaKy2016_error")
-    parser.add_option("-n","--name",default="rpft_m05_v2,SED_ns12ns12_kappa10")
-    parser.add_option("--outputName",default="Barnes_Rosswog")
-    #parser.add_option("-n","--name",default="DiUj2017_H4M005V20")
-    #parser.add_option("--outputName",default="DiUj2017_error")
-    #parser.add_option("-n","--name",default="APR4-1314_k1,H4-1314_k1,Sly-135_k1")
-    #parser.add_option("--outputName",default="DiUj2017_Tanaka")
-    #parser.add_option("-n","--name",default="APR4Q3a75_k1,H4Q3a75_k1,MS1Q3a75_k1")
-    #parser.add_option("--outputName",default="KaKy2016_Tanaka")
-
+    parser.add_option("-d","--dataDir",default="../data")
+    parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
+    parser.add_option("-n","--name",default="GW170817")
     parser.add_option("--doGWs",  action="store_true", default=False)
+    parser.add_option("--doEvent",  action="store_true", default=False)
+    parser.add_option("--doFixedLimit",  action="store_true", default=False)
+    parser.add_option("--limits",default="20.4,20.4")
+    parser.add_option("--doZTF",  action="store_true", default=False)
+    parser.add_option("--distance",default=40.0,type=float)
+    parser.add_option("--distance_uncertainty",default=-1.0,type=float)
+    parser.add_option("--T0",default=57982.5285236896,type=float)
+    parser.add_option("--doCoverage",  action="store_true", default=False)
     parser.add_option("--doModels",  action="store_true", default=False)
+    parser.add_option("--doGoingTheDistance",  action="store_true", default=False)
+    parser.add_option("--doMassGap",  action="store_true", default=False)
     parser.add_option("--doReduced",  action="store_true", default=False)
     parser.add_option("--doFixZPT0",  action="store_true", default=False) 
-    parser.add_option("-m","--model",default="DiUj2017")
+    parser.add_option("--doFitSigma",  action="store_true", default=False)
+    parser.add_option("--doWaveformExtrapolate",  action="store_true", default=False)
+    parser.add_option("--doEOSFit",  action="store_true", default=False)
+    parser.add_option("--doBNSFit",  action="store_true", default=False)
+    parser.add_option("-m","--model",default="KaKy2016")
     parser.add_option("--doMasses",  action="store_true", default=False)
     parser.add_option("--doEjecta",  action="store_true", default=False)
-    #parser.add_option("-e","--errorbudget",default="1.0,0.2,0.04")
-    parser.add_option("-e","--errorbudget",default="1.0,0.2")
-    #parser.add_option("-e","--errorbudget",default="1.0")    
+    parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("-f","--filters",default="g,r,i,z")
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
     parser.add_option("--dt",default=0.05,type=float)
+    parser.add_option("--n_live_points",default=100,type=int)
+    parser.add_option("--n_coeff",default=10,type=int)
+    parser.add_option("--evidence_tolerance",default=0.5,type=float)
+    parser.add_option("--max_iter",default=0,type=int)
 
-    #parser.add_option("-l","--labelType",default="errorbar")
-    #parser.add_option("-l","--labelType",default="name")
-    parser.add_option("-l","--labelType",default="model")
+    parser.add_option("--doFixXlan",  action="store_true", default=False) 
+    parser.add_option("--Xlan",default=1e-9,type=float) 
+    parser.add_option("--doFixT",  action="store_true", default=False)
+    parser.add_option("--T",default=1e4,type=float)
+    parser.add_option("--doFixPhi",  action="store_true", default=False)
+    parser.add_option("--phi",default=0.0,type=float)
+
+    parser.add_option("--colormodel",default="a2.0")
+
+    parser.add_option("--username",default="username")
+    parser.add_option("--password",default="password")
 
     opts, args = parser.parse_args()
 
@@ -64,190 +85,131 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-filters = opts.filters.split(",")
-
-if not opts.model in ["KaKy2016", "DiUj2017", "SN"]:
-   print "Model must be either: KaKy2016, DiUj2017, SN"
-   exit(0)
-
-if not (opts.doEjecta or opts.doMasses):
-    print "Enable --doEjecta or --doMasses"
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019lm, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps")
     exit(0)
 
-baseplotDir = opts.plotDir
-plotDir = os.path.join(baseplotDir,'models')
 if opts.doFixZPT0:
-    plotDir = os.path.join(baseplotDir,'models/%s_FixZPT0'%opts.model)
+    ZPRange = 0.1
+    T0Range = 0.1
 else:
-    plotDir = os.path.join(baseplotDir,'models/%s'%opts.model)
+    ZPRange = 5.0
+    T0Range = 0.1
+
+if opts.distance_uncertainty > 0:
+    ZPRange = np.abs(5*(opts.distance_uncertainty/opts.distance)/np.log(10))
+
+filters = opts.filters.split(",")
+limits = [float(x) for x in opts.limits.split(",")]
+colormodel = opts.colormodel.split(",")
+if len(colormodel) == 1:
+    colormodel = colormodel[0]
+
+baseplotDir = opts.plotDir
+if opts.doModels:
+    basename = 'models'
+elif opts.doGoingTheDistance:
+    basename = 'going-the-distance'
+elif opts.doMassGap:
+    basename = 'massgap'
+elif opts.doFixedLimit:
+    basename = 'limits'
+else:
+    basename = 'gws'
+plotDir = os.path.join(baseplotDir,basename)
+if opts.doEOSFit:
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_EOSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_EOSFit'%opts.model)
+elif opts.doBNSFit:
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_BNSFit_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s_BNSFit'%opts.model)
+else:
+    if opts.doFixZPT0:
+        plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
+    else:
+        plotDir = os.path.join(plotDir,'%s'%opts.model)
+if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
+    plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
         plotDir = os.path.join(plotDir,'ejecta')
+if opts.doReduced:
+    plotDir = os.path.join(plotDir,"%s_reduced"%opts.name)
+else:
+    if "knova2D" in opts.name:
+        nameSplit = opts.name.split("_")
+        nameCombine = "_".join(nameSplit[-2:])
+        plotDir = os.path.join(plotDir,nameCombine)
+    elif opts.name == "knova_d1_n10_m0.040_vk0.10_fd1.0_Xlan1e-2.0":
+        plotDir = os.path.join(plotDir,'sphere')
+    else:
+        plotDir = os.path.join(plotDir,opts.name)
+if opts.doFixXlan:
+    plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.Xlan)))
+if opts.doFixT:
+    plotDir = os.path.join(plotDir,"%.2f"% (np.log10(opts.T)))
+if opts.doFixPhi:
+    plotDir = os.path.join(plotDir,"%.2f"% (opts.phi))
+if opts.doFitSigma:
+    plotDir = os.path.join(plotDir,"fit")
+else:
+    plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
+
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
-names = opts.name.split(",")
-errorbudgets = opts.errorbudget.split(",")
-baseplotDir = plotDir
+dataDir = opts.dataDir
+lightcurvesDir = opts.lightcurvesDir
 
-post = {}
-for name in names:
-    post[name] = {}
-    for errorbudget in errorbudgets:
-        if opts.doReduced:
-            plotDir = os.path.join(baseplotDir,"%s_reduced"%name)
-        else:
-            plotDir = os.path.join(baseplotDir,name)
-        plotDir = os.path.join(plotDir,"%.2f"%float(errorbudget))
+multifile = lightcurve_utils.get_post_file(plotDir)
+data = np.loadtxt(multifile)
 
-        multifile = lightcurve_utils.get_post_file(plotDir)
- 
-        if not multifile: continue
-        data = np.loadtxt(multifile)
+plotName = "%s/corner.pdf"%(plotDir)
 
-        post[name][errorbudget] = {}
-        if opts.model == "KaKy2016":
-            if opts.doMasses:
-                t0 = data[:,0]
-                q = data[:,1]
-                chi_eff = data[:,2]
-                mns = data[:,3]
-                mb = data[:,4]
-                c = data[:,5]
-                th = data[:,6]
-                ph = data[:,7]
-                zp = data[:,8]
-                loglikelihood = data[:,9]
-            elif opts.doEjecta:
-                t0 = data[:,0]
-                mej = 10**data[:,1]
-                vej = data[:,2]
-                th = data[:,3]
-                ph = data[:,4]
-                zp = data[:,5]
-                loglikelihood = data[:,6]
+labels = [r"$T_0$",r"${\rm log}_{10} (M_{\rm ej,dyn} / M_\odot)$",r"${\rm log}_{10} (M_{\rm ej,wind} / M_\odot)$",r"$\Phi {\rm [deg]}$",r"$\Theta_{\rm obs} {\rm [deg]}$","ZP"]
+n_params = len(labels)
 
-                post[name][errorbudget]["mej"] = mej
-                post[name][errorbudget]["vej"] = vej
+if n_params >= 6:
+    title_fontsize = 36
+    label_fontsize = 36
+else:
+    title_fontsize = 30
+    label_fontsize = 30
 
-        elif opts.model == "DiUj2017":
-            if opts.doMasses:
-                t0 = data[:,0]
-                m1 = data[:,1]
-                mb1 = data[:,2]
-                c1 = data[:,3]
-                m2 = data[:,4]
-                mb2 = data[:,5]
-                c2 = data[:,6]
-                th = data[:,7]
-                ph = data[:,8]
-                zp = data[:,9]
-            elif opts.doEjecta:
-                t0 = data[:,0]
-                mej = 10**data[:,1]
-                vej = data[:,2]
-                th = data[:,3]
-                ph = data[:,4]
-                zp = data[:,5]
-                loglikelihood = data[:,6]
+# If you pass in parameter labels and only one chain, you can also get parameter bounds
+#c = ChainConsumer().add_chain( data[:,1:-2], parameters=labels[1:-1])
+#c.configure(diagonal_tick_labels=False, tick_font_size=label_fontsize, label_font_size=label_fontsize, max_ticks=4, colors="#FF7F50", smooth=0, kde=[0.3,0.3,0.3,0.3,0.3,0.3], linewidths=2, summary=True, bar_shade=True, statistics="max_symmetric")
+#fig = c.plotter.plot(figsize="column")
 
-                post[name][errorbudget]["mej"] = mej
-                post[name][errorbudget]["vej"] = vej
+ranges = [0.99, 0.99, 0.99, 0.99]
+kwargs = dict(bins=20, smooth=3, label_kwargs=dict(fontsize=label_fontsize),
+              show_titles=True,
+              title_kwargs=dict(fontsize=title_fontsize, pad=20),
+              range=ranges,
+              color='#0072C1',
+              truth_color='tab:orange', quantiles=[0.05, 0.5, 0.95],
+              labelpad = 0.01,
+              #levels=(0.68, 0.95),
+              levels=[0.10, 0.32, 0.68, 0.90],
+              plot_density=False, plot_datapoints=False, fill_contours=True,
+              max_n_ticks=4, min_n_ticks=3)
 
-        elif opts.model == "SN":
-            t0 = data[:,0]
-            z = data[:,1]
-            x0 = data[:,2]
-            x1 = data[:,3]
-            c = data[:,4]
-            zp = data[:,5]
-            loglikelihood = data[:,6]
+fig = corner.corner(data[:,1:-2], labels=labels[1:-1], **kwargs)
 
-        nsamples, n_params = data.shape
-        truths = lightcurve_utils.get_truths(name,opts.model,n_params,opts.doEjecta)
-        post[name][errorbudget]["truths"] = truths
-
-plotDir = os.path.join(baseplotDir,opts.outputName)
-if not os.path.isdir(plotDir):
-    os.mkdir(plotDir)
-
-colors = ['b','g','r','m','c']
-linestyles = ['-', '-.', ':','--']
-
-plotName = "%s/mej.pdf"%(plotDir)
-plt.figure(figsize=(10,8))
-maxhist = -1
-for ii,name in enumerate(sorted(post.keys())):
-    for jj,errorbudget in enumerate(sorted(post[name].keys())):
-        if opts.labelType == "errorbar":
-            label = r"$\Delta$m: %.2f"%float(errorbudget)
-        elif opts.labelType == "name":
-            label = r"%s"%(name.replace("_k1",""))
-        elif opts.labelType == "model":
-            label = lightcurve_utils.getLegend(opts.outputDir,[name])[0]
-        else:
-            label = []
-        if opts.labelType == "errorbar":
-            color = colors[jj]
-            colortrue = 'k'
-            linestyle = '-'
-        elif opts.labelType == "name":
-            color = colors[ii]
-            colortrue = colors[ii]
-            linestyle = linestyles[jj]
-        elif opts.labelType == "model":
-            color = colors[ii]
-            colortrue = colors[ii]
-            linestyle = linestyles[jj]
-        else:
-            color = 'b'
-            colortrue = 'k'
-            linestyle = '-'
-
-        samples = np.log10(post[name][errorbudget]["mej"])
-        if (opts.labelType == "errorbar") and (float(errorbudget) < 1.0):
-            bounds=[-2.8,-1.8]
-        else:
-            bounds=[-3.5,0.0]
-        bins, hist1 = lightcurve_utils.hist_results(samples,Nbins=25,bounds=bounds) 
-        if (opts.labelType == "name" or opts.labelType == "model") and jj > 0:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),linewidth=3)
-        else:
-            plt.semilogy(bins,hist1,'%s%s'%(color,linestyle),label=label,linewidth=3)
-
-        plt.semilogy([post[name][errorbudget]["truths"][1],post[name][errorbudget]["truths"][1]],[1e-3,100.0],'%s--'%colortrue,linewidth=3)
-        maxhist = np.max([maxhist,np.max(hist1)])
-
-plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
-plt.ylabel('Probability Density Function',fontsize=24)
-plt.legend(loc="best",prop={'size':24})
-plt.xticks(fontsize=24)
-plt.yticks(fontsize=24)
-if opts.model == "KaKy2016" and opts.labelType == "errorbar":
-    plt.xlim([-3.0,-1.0])
-elif opts.model == "KaKy2016" and opts.labelType == "name":
-    plt.xlim([-3.0,0.5])
-elif opts.model == "DiUj2017" and opts.labelType == "name":
-    plt.xlim([-3.5,0.0])
-elif opts.model == "DiUj2017" and opts.labelType == "errorbar":
-    plt.xlim([-3.0,-1.4])
-elif opts.model == "DiUj2017" and opts.labelType == "model":
-    plt.xlim([-2.5,0.0])
-
-if opts.model == "KaKy2016" and opts.labelType == "errorbar":
-    plt.ylim([1e-1,20])
-elif opts.model == "KaKy2016" and opts.labelType == "name":
-    plt.ylim([1e-1,10])
-elif opts.model == "DiUj2017" and opts.labelType == "name":
-    plt.ylim([1e-1,10])
-elif opts.model == "DiUj2017" and opts.labelType == "errorbar":
-    plt.ylim([1e-1,20])
-elif opts.model == "DiUj2017" and opts.labelType == "model":
-    plt.ylim([1e-1,10])
-
+if n_params >= 10:
+    fig.set_size_inches(40.0,40.0)
+elif n_params > 6:
+    fig.set_size_inches(24.0,24.0)
+else:
+    fig.set_size_inches(20.0,20.0)
 plt.savefig(plotName)
 plt.close()
+
