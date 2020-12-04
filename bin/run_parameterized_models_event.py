@@ -439,7 +439,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
 
-        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+        from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
         mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         # calc the velocity of ejecta
