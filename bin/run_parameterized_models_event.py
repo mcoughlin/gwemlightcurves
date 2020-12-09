@@ -250,7 +250,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         
         for ii, row in enumerate(samples):
             m1, m2 = row["m1"], row["m2"]
-            nsamples = 1
+            nsamples = 100
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
@@ -330,7 +330,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
      
         for ii, row in enumerate(samples): 
             m1, m2, dist_mbta, chi_eff = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"]
-            nsamples = 30
+            nsamples = 100
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
