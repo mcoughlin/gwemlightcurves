@@ -20,6 +20,7 @@
 
 import os
 import numpy as np
+import math
 import scipy
 import h5py
 import pandas as pd
@@ -328,36 +329,39 @@ class KNTable(Table):
                
 
                 data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
-                kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-                gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
-                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
-                #params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'])).T
-                data = np.array(data_out['weight'])
-                gp.fit(params, data)
+                data_out = data_out[data_out['weight'] > 0]
+                #kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+                #gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+                #params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
+                #data = np.array(data_out['weight'])
+                #gp.fit(params, data)
 
-                mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
-                q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
-                chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
-                dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
+                #mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
+                #q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
+                #chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
+                #dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
 
-                cnt = 0
-                samples = []
-                while cnt < Nsamples:
-                    mchirp = np.random.uniform(mchirp_min, mchirp_max)
-                    q = np.random.uniform(q_min, q_max)
-                    chi_eff = np.random.uniform(chi_min, chi_max)
-                    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
-                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
-                    #samp = np.atleast_2d(np.array([mchirp,q,chi_eff]))
-                    weight = gp.predict(samp)[0]
-                    thresh = np.random.uniform(0,1)
-                    if weight > thresh:
-                        samples.append([mchirp,q,chi_eff,dist_mbta])
-                        #samples.append([mchirp,q,chi_eff])
-                        cnt = cnt + 1
+                #cnt = 0
+                #samples = []
+                #while cnt < Nsamples:
+                #    mchirp = np.random.uniform(mchirp_min, mchirp_max)
+                #    q = np.random.uniform(q_min, q_max)
+                #    chi_eff = np.random.uniform(chi_min, chi_max)
+                #    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
+                #    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
+                #    weight = gp.predict(samp)[0]
+                #    thresh = np.random.uniform(0,1)
+                #    if weight > thresh:
+                #        samples.append([mchirp,q,chi_eff,dist_mbta])
+                #        cnt = cnt + 1
+
+
+                samples = [] 
+                for i in range(len(data_out)):
+                        samples = samples + [[data_out[i]['mchirp'], data_out[i]['q'], data_out[i]['chi_eff'], data_out[i]['dist_mbta']]] * math.ceil(Nsamples * data_out[i]['weight'] / np.sum(data_out['weight'])) 
+
                 samples = np.array(samples)
                 data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
-                #data_out = Table(data=samples, names=['mchirp','q','chi_eff'])
                 data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
                 data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
                 data_out["q"] = 1.0 / data_out["q"]
