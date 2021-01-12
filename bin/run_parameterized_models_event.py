@@ -103,30 +103,30 @@ if (opts.skymap_distance):
         map_struct["distsigma"] = skymap[2]
 
         
-        ipix_best = np.argmax(skymap[0])
-        theta_best, phi_best = hp.pix2ang(nside, ipix_best)
-        ra_best = np.rad2deg(phi_best)
-        dec_best = np.rad2deg(0.5 * np.pi - theta_best)
+        #ipix_best = np.argmax(skymap[0])
+        #theta_best, phi_best = hp.pix2ang(nside, ipix_best)
+        #ra_best = np.rad2deg(phi_best)
+        #dec_best = np.rad2deg(0.5 * np.pi - theta_best)
       
         
 
-        ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
-        dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
+        #ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
+        #dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
 
-        theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
-        phi_vector = np.deg2rad(ra_vector)
-        theta_phi_array = list(itertools.product(theta_vector, phi_vector))
-        ipix_vector = [0] * (len(theta_phi_array))
+        #theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
+        #phi_vector = np.deg2rad(ra_vector)
+        #theta_phi_array = list(itertools.product(theta_vector, phi_vector))
+        #ipix_vector = [0] * (len(theta_phi_array))
 
-        for i in range(len(theta_phi_array)):
-                ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
-        ipix_vector = list(set(ipix_vector))
+        #for i in range(len(theta_phi_array)):
+        #        ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
+        #ipix_vector = list(set(ipix_vector))
 
-        all_index = [index for index, value in enumerate(map_struct["prob"])]
-        bad_index = list( set(all_index) - set(ipix_vector))
+        #all_index = [index for index, value in enumerate(map_struct["prob"])]
+        #bad_index = list( set(all_index) - set(ipix_vector))
 
-        map_struct["prob"][bad_index] = 0
-        map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
+        #map_struct["prob"][bad_index] = 0
+        #map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
 
         distmean, diststd = parameters_to_marginal_moments(map_struct["prob"], map_struct["distmu"], map_struct["distsigma"])
 
