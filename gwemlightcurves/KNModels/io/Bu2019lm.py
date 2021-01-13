@@ -39,10 +39,12 @@ def get_Bu2019lm_model(table, **kwargs):
 
     if not 'n_coeff' in table.colnames:
         if doAB:
-            table['n_coeff'] = 43
-            #table['n_coeff'] = 2
+            #table['n_coeff'] = 43
+            table['n_coeff'] = 10
         elif doSpec:
             table['n_coeff'] = 21
+
+    print(table['n_coeff'])
 
     if doAB:
         if not Global.svd_mag_model == 0:
