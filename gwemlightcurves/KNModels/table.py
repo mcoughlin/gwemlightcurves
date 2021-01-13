@@ -273,10 +273,21 @@ class KNTable(Table):
 
             data_out['mchirp'], data_out['eta'], data_out['q'] = lightcurve_utils.ms2mc(data_out['m1'], data_out['m2'])
             data_out['q'] = 1.0/data_out['q']
-            data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
-                                       data_out['m2'] * data_out['spin2']) /
-                                      (data_out['m1'] + data_out['m2']))
-            data_out["dist"] = data_out["luminosity_distance_Mpc"] 
+            if ('spin1' in data_out) and ('spin2' in data_out):
+                data_out['chi_eff'] = ((data_out['m1'] * data_out['spin1'] +
+                                           data_out['m2'] * data_out['spin2']) /
+                                          (data_out['m1'] + data_out['m2']))
+            elif ('chi1' in data_out) and ('chi2' in data_out):
+                data_out['chi_eff'] = ((data_out['m1'] * data_out['chi1'] +
+                                           data_out['m2'] * data_out['chi2']) /
+                                          (data_out['m1'] + data_out['m2']))
+            else:
+                data_out['chi_eff'] = 0.0
+
+            if "luminosity_distance_Mpc" in data_out:
+                data_out["dist"] = data_out["luminosity_distance_Mpc"] 
+            elif "luminosity_distance" in data_out:
+                data_out["dist"] = data_out["luminosity_distance"]
 
         return KNTable(data_out)
 
