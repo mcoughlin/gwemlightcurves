@@ -208,7 +208,7 @@ class KNTable(Table):
     """
     # -- i/o ------------------------------------
     @classmethod
-    def read_samples(cls, filename_samples):
+    def read_samples(cls, filename_samples, Nsamples=100):
         """
         Read LALinference posterior_samples
         """
@@ -289,7 +289,9 @@ class KNTable(Table):
             elif "luminosity_distance" in data_out:
                 data_out["dist"] = data_out["luminosity_distance"]
 
-        return KNTable(data_out)
+        data_out = KNTable(data_out)
+        data_out = data_out.downsample(Nsamples)
+        return data_out
 
     @classmethod
     def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):

@@ -233,7 +233,7 @@ if not os.path.isdir(datDir):
 if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
-        samples = KNTable.read_samples(opts.posterior_samples)
+        samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
         #samples["dist"] = opts.distance
         samples["phi"] = opts.phi_fixed
         samples["Xlan"] = 10**opts.Xlan_fixed
