@@ -65,6 +65,7 @@ def parse_commandline():
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
     parser.add_argument("--nsamples",default=-1,type=int)
+    parser.add_argument("--ndownsamples",default=-1,type=int)
 
     parser.add_argument("--doFixedLimit",  action="store_true", default=False)
     parser.add_argument("--limits",default="20.4,20.4")
@@ -582,7 +583,7 @@ elif opts.analysisType == "cbclist":
 
 
 if opts.nsamples > 0:
-    samples = samples.downsample(Nsamples=opts.nsamples)
+    samples = samples.downsample(Nsamples=opts.ndownsamples)
 
 
 
