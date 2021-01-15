@@ -604,7 +604,24 @@ class KNTable(Table):
             print('you are therefore must have selected a EOS')
             self['c1'] = self['m1'] / self['r1'] * G / c**2 * msun
             self['c2'] = self['m2'] / self['r2'] * G / c**2 * msun
-        return self
+            
+            if (self['c1'] > 4./9.).any():
+                print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+                self['c1'][self['c1'] > 4./9.] = 4./9.
+            if (self['c1'] < 0.).any():
+                print("Warning: Returned compactnesses < 0 ... setting = 0.")
+                self['c1'][self['c1'] < 0.0] = 0.0
+                
+
+            
+            if (self['c2'] > 4./9.).any():
+                print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+                self['c2'][self['c2'] > 4./9.] = 4./9.
+            if (self['c2'] < 0.).any():
+                print("Warning: Returned compactnesses < 0 ... setting = 0.")
+                self['c2'][self['c2'] < 0.0] = 0.0
+            return self
+
 
 
     def calc_baryonic_mass(self, EOS, TOV, fit=False):
