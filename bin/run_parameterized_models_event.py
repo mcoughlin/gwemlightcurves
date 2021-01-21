@@ -241,6 +241,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples['mbns'] = 0.
         samples['r1'] = 0.
         samples['r2'] = 0.
+        samples['lambda1'] = 0.
+        samples['lambda2'] = 0.
 
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
@@ -266,7 +268,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     mbns = -1
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
                         eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                         marray, larray, rarray =  data_out["M"], data_out["Lambda"], data_out["R"]
@@ -286,7 +288,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                             mbns = -1
                     	
                 elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
                         phasetr = 0
                         eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                         while os.path.isfile(eospath):
