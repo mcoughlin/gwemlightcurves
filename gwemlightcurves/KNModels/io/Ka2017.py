@@ -26,6 +26,9 @@ def get_Ka2017_model(table, **kwargs):
 
     if 'ModelPath' in kwargs:
         ModelPath = kwargs['ModelPath']
+    else:
+        if SaveModel or LoadModel:
+            raise ValueError('Cannot load or save model without specifying ModelPath')
 
     if 'doAB' in kwargs:
         doAB = kwargs['doAB']
@@ -48,45 +51,45 @@ def get_Ka2017_model(table, **kwargs):
             svd_mag_model = Global.svd_mag_model
         else:
             if LoadModel:
-            #if True:
                 modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
             else:
                 svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Ka2017", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
-                with open(modelfile, 'wb') as handle:
-                    pickle.dump(svd_mag_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                if SaveModel:
+                    modelfile = os.path.join(ModelPath,'Ka2017_mag.pkl')
+                    with open(modelfile, 'wb') as handle:
+                        pickle.dump(svd_mag_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
             Global.svd_mag_model = svd_mag_model
 
         if not Global.svd_lbol_model == 0:
             svd_lbol_model = Global.svd_lbol_model
         else:
             if LoadModel:
-            #if True:
                 modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_lbol_model = pickle.load(handle)            
             else:
                 svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Ka2017", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
-                with open(modelfile, 'wb') as handle:
-                    pickle.dump(svd_lbol_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                if SaveModel:
+                    modelfile = os.path.join(ModelPath,'Ka2017_lbol.pkl')
+                    with open(modelfile, 'wb') as handle:
+                        pickle.dump(svd_lbol_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
             Global.svd_lbol_model = svd_lbol_model
     elif doSpec:
         if not Global.svd_spec_model == 0:
             svd_spec_model = Global.svd_spec_model
         else:
             if LoadModel:
-            #if True:
                 modelfile = os.path.join(ModelPath,'Ka2017_spec.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_spec_model = pickle.load(handle)
             else:
                 svd_spec_model = svd_utils.calc_svd_spectra(table['tini'][0], table['tmax'][0], table['dt'][0], table['lambdaini'][0], table['lambdamax'][0], table['dlambda'][0], model = "Ka2017", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Ka2017_spec.pkl')
-                with open(modelfile, 'wb') as handle:
-                    pickle.dump(svd_spec_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                if SaveModel:
+                    modelfile = os.path.join(ModelPath,'Ka2017_spec.pkl')
+                    with open(modelfile, 'wb') as handle:
+                        pickle.dump(svd_spec_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
             Global.svd_spec_model = svd_spec_model
 
     if not 'mej' in table.colnames:
@@ -116,7 +119,7 @@ def get_Ka2017_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
-        print('Generating model %d/%d' % (isample+1, len(table)))
+        print(('Generating model %d/%d' % (isample+1, len(table))))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),np.log10(table['vej'][isample]),np.log10(table['Xlan'][isample])],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Ka2017")
         elif doSpec:
