@@ -50,20 +50,24 @@ from mass_grid import Test
 #-------------------------------------------------
 
 #-------------------------------------------------
+#data = np.loadtxt('/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/GW190425/-9.00/0.10/2-post_equal_weights.dat', usecols = 1)
+#print(data_test)
+
+ 
+#events = ['GW190425', 'GW190901', 'S191205ah', 'S191213g', 'S191216ap', 'S200105ae', 'S200115j', 'S200213t']
+#events = ['GW190425', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
 lans = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
 event_prob = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608])
 
 #event_prob = np.array([0.2413, 0.5233, 0.8857, 0.5694, 0.3299, 0.3326, 0.3899, 0.5063, 0.0568, 0.2750, 0.5239, 0.2221, 0.7217])
 event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
+#event_names = ['GW190425']
 
 isbns = np.array([True, False, False, True, False, True, False, False, False, True, False, False, True])
 lowFAR = np.array([True, True, True, False, False, False, False, False, False, True, True, True, True])
 test = np.array([True, True, True, True, True, True, True, True, True, True, True, True, True])
 color = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
 apparent_mags = np.array([21.5, 21.5, 21.0, 21.0, 20.3, 20.4, 20.1, 21.1, 17.9, 20.4, 20.2, 20.8, 21.2])
-#event_prob = np.array([0.2413, 0.5233, 0.8857, 0.5694, 0.3299, 0.3326, 0.3899, 0.5063, 0.0568, 0.2750, 0.5239, 0.2221, 0.7217])
-#event_prob2 = np.array([0.203, 0.094, 0.783, 0.465, 0.257, 0.236, 0.082, 0.0485, 0.368, 0.118, 0.377, 0.125, 0.472])
-#extinction = [0.06, 0.54, 0.00, 0.05, 0.10, 0.09, 0.08, 0.01, 0.06, 0.23, 0.05, 0.24, 0.11]
 extinction = [0.03, 0.34, 0.02, 0.03, 0.04, 0.08, 0.09, 0.05, 0.04, 0.30, 0.05, 0.13, 0.19]
 event_distances = [156,377,267,241,632,230,438,108,385,201,283,340,201]*u.Mpc
 
@@ -74,9 +78,14 @@ absmax = np.zeros(len(event_names))
 magerr = np.zeros(len(event_names))
 absmag = np.linspace(-20,-10, 50)
 
-mass_points = 30
-mass = np.linspace(-3, .5, mass_points) 
-mass_theory = np.linspace(-3, 0 ,100) 
+#------------------------------------------------------------------
+'''
+Here you can change the number of points in your arrays and plots, 50 is a reasonable amount and usually enough
+This has a large impact on how fast the code runs
+'''
+#------------------------------------------------------------------ 
+mass_points = 50
+mass = np.linspace(-5, .5, mass_points) 
 prob_lan_list=[]
 combined_kde = True
 samples = []
@@ -124,27 +133,33 @@ def kde_eval_single(kdedir,truth):
 
 
 def run_theoretical(Type, lan, chi, EOS):
+    '''function to generate mass grid using EOS, should probably be left as is
+    '''
     chi_list = [chi]
     data = []
     Type2=Type
     chirp_q_tf = False
     twixie_tf = False
-    #if Type == 'BNS_equal':
-        #Type = 'BNS'
     for chi in chi_list:
+        #-----------------------------------------------------------
+        '''
+        Determines grid of masses to use for mass grid
+        '''
+        #----------------------------------------------------------
+
         if Type == 'NSBH':
             #m1 = np.arange(3, 5.8, .1)
             #m2 = np.arange(1, 1.5, .05)
-            m1 = np.arange(3, 8.1, .4)
-            m2 = np.arange(1, 2.4, .2)
+            #m1 = np.arange(3, 8.1, .4)
+            #m2 = np.arange(1, 2.4, .2)
             m1 = np.arange(3, 8.1, 1)
             m2 = np.arange(1, 2.4, .6)
         #sample 3-10 for NSBH
         if Type == 'BNS':
             #m1 = np.arange(1, 2.4, .1)
             #m2 = np.arange(1, 2.4, .1)
-            m1 = np.arange(1, 3.1, .2)
-            m2 = np.arange(1, 3.1, .2)
+            #m1 = np.arange(1, 3.1, .2)
+            #m2 = np.arange(1, 3.1, .2)
             m1 = np.arange(1, 3.1, .5)
             m2 = np.arange(1, 3.1, .5)
 
@@ -165,7 +180,6 @@ def run_theoretical(Type, lan, chi, EOS):
         if Type == 'BNS_chirp_q':
             chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
             chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5) 
-            #print(chirp_min, chirp_max)
             #m2 becomes q
             #m1 becomes mchirp
             m2 = np.arange(1, 2, .1)
@@ -189,12 +203,13 @@ def run_theoretical(Type, lan, chi, EOS):
                 if Type == 'BNS_chirp_q':
                     eta1 = lightcurve_utils.q2eta(m2m)
                     m1m_check, m2m_check = lightcurve_utils.mc2ms(m1m, eta1)
-                    #print(m1m_check, m2m_check)
                     m2m_check = m1m_check
                 if (m1m_check >= m2m_check) and (m1m_check <= 3):
                     print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
                     samples = Test(EOS, m1m, m2m, chi, type_set=Type, twixie = twixie_tf, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)
                     mej_samples = samples['mej']
+                    #m1_samples = samples['m1']
+                    #m2_samples = samples['m2']
                     mean=np.mean(mej_samples)
                     if math.isnan(mean):
                         mean = 0
@@ -274,23 +289,21 @@ def run_theoretical(Type, lan, chi, EOS):
     
     
     data=np.array(data)
-    #if not twixie_tf:
     return data, all_data
-    #if twixie_tf:
-        #return data, all_data, 
 
 
 
 def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = False, Type = None):
+    ''' function that uses EOS and generates KDE, the only thing that could be changed here is the EOS type,
+        which is now set to gp
+    '''
     l = len(mass) 
     prob_events=[]
     prob_norm_events=[] 
     samples=[]
-    #combined_kde=True
     event_name_list = event_names
     if theor:
         event_name_list = 'i'
-        #print(event_name_list) 
         if Type == None:
             print('Specify BNS or NSBH')
     
@@ -301,6 +314,7 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
             cov = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608]) 
         for e, event in enumerate(event_name_list):
             filename = '/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/'+event+'/'+str(lan)+'/0.10/2-post_equal_weights.dat'
+            #dir = '/home/michael.coughlin/gwemlightcurves/plots/limits/Ka2017_FixZPT0/g_r/0_3/ejecta/'+event+'/'+lan+'/0.10/'
             prob_list = []
             prob_norm_list = []
             if not os.path.exists(filename):
@@ -316,7 +330,12 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                 data = np.loadtxt(filename, usecols = 1)
                 all_data=data
             if theor:
-                EOS_type = 'Sly'
+                #----------------------------------------------------------------------
+                '''
+                EOS determined here, usually we use gp, unlikely this needs to be changed
+                '''
+                #---------------------------------------------------------------------
+                EOS_type = 'gp'
                 data, all_data = (run_theoretical(Type, lan, chi, EOS_type))
                 data = np.array(data)
                 shape = np.shape(all_data)
@@ -335,21 +354,20 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                 print('-----------------'+str(num))
                 
                 all_data = np.reshape(np.array(all_data), (np.int(num)))
-                #data[data > 1e0] = 1e0
-                #data[data < 1e-6] =1e-6
                  
                 all_data[all_data > 1e0] = 1e0
-                all_data[all_data < 1e-6] = 1e-6
+                all_data[all_data <= 1e-6] = 1e-12
                 datafilename = '/home/andrew.toivonen/public_html/'+str(Type)+'_data.txt'
                 np.savetxt(datafilename, np.array(all_data))
                 
                 all_data = np.log10(all_data)
-                #data = np.log10(data)
             print('Initializing '+str(event)+' '+str(lan))
             KDE = greedy_kde_areas_1d(all_data)
         
+        
             if not combined_kde:
                 samples = []
+            #1e4 
             Nsamples = 1e4
             if Nsamples < 1e3: 
                 print('Nsamples may be too small')
@@ -373,6 +391,7 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                         p_samples.append(cov[e]*prob)
                         p_norm_samples.append(cov[e]*prob_norm)
 
+
                 prob_list.append(np.mean(p_samples))
                 prob_norm_list.append((np.mean(p_norm_samples)))
             prob_events.append(np.array(prob_list))
@@ -382,6 +401,10 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
 
                 data_out = (all_data)
                 mej_test = mass
+        
+                print(Type)
+                #print(data_out)
+
                 prob_kde=[]
                 for m in mej_test:
                     kde_test = kde_eval_single(KDE, m)
@@ -390,17 +413,24 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
                 mej_norm=1
                 prob_kde = np.array(prob_kde)
                 prob_kde = prob_kde / np.sum(prob_kde)
+                #plt.figure(figsize=(15,10))
+                #ax = plt.gca()
                 mej_probs = prob_kde
 
                 plotName = "/home/andrew.toivonen/gwemlightcurves/KDE_plots/test_"+str(Type)+'_'+str(event)+"_"+str(lan)+".pdf"
-                bins = np.linspace(np.min(data_out),np.max(data_out),30)
+                #bins = np.linspace(np.min(data_out),np.max(data_out),30)
+                bins = np.linspace(np.min(mass),np.max(mass),50)
                 hist1, bins1 = np.histogram(data_out,bins=bins)
                 hist1 = hist1 / float(np.sum(hist1))
                 hist1 = hist1 * np.max(mej_probs)/np.max(hist1)
                 bins = (bins[1:]+bins[:-1])/2.0
-                plt.figure()
+                plt.figure(figsize=(15,10))
                 plt.step(bins, hist1, 'k')
                 plt.plot(mej_test, mej_probs, 'b')
+                #plt.xlabel('')
+                plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$", fontsize=24)
+                plt.ylabel('Probability', fontsize=24)                
+                plt.xlim([-5,.5])
                 plt.savefig(plotName)
                 plt.close()
     if theor:
@@ -410,11 +440,14 @@ def run_prob(mass, combined_kde, lan, chi, coverage_factors = False, theor = Fal
 
 
 def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, theoretical = False):
+    '''function to plot PDFs and save PDF data to file
+    '''
     overall = np.ones((len(mass)))
     BNS = np.ones((len(mass))) 
     NSBH = np.ones((len(mass))) 
     highsig_bns = np.ones((len(mass))) 
     highsig_nsbh = np.ones((len(mass))) 
+    #print(overall)
     l = len(mass)
 
     EOS_type = 'O3events'
@@ -448,14 +481,6 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     theory_bns_twixie = prob_events_bns_twixie
     theory_nsbh = prob_events_nsbh       
 
-    #overall_hist = overall
- 
-    #BNS = np.cumsum(BNS)
-    #NBSH = np.cumsum(NSBH)
-    #highsig_bns = np.cumsum(highsig_bns)
-    #highsig_nsbh = np.cumsum(highsig_nsbh)
-    #overall = np.cumsum(overall)
-
     ones = np.ones(len(theory_bns))
     
     theory_bns = np.cumsum(theory_bns)
@@ -475,12 +500,6 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     theory_bns_equal = theory_bns_equal/norm_bns_equal
     theory_bns_chirp_q = theory_bns_chirp_q/norm_bns_chirp_q
     theory_bns_twixie = theory_bns_twixie/norm_bns_twixie
-
-    #norm_BNS = np.max(BNS)
-    #norm_NSBH = np.max(NSBH)
-    #norm_highsig_bns = np.max(highsig_bns)
-    #norm_highsig_nsbh = np.max(highsig_nsbh)
-    #norm_overall = np.max(overall)
 
 
 
@@ -508,6 +527,26 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
         ax.plot(mass, ones-theory_bns_chirp_q, color='m', marker='o', label='BNS_chirp_q Theory CDF')
         ax.plot(mass, ones-theory_bns_twixie, color='blueviolet', marker='o', label='BNS_twixie Theory CDF')
 
+        #----------------------------------------------------------------------------------------------
+        '''
+        Here is where the PDFs are saved to file
+        '''
+        #----------------------------------------------------------------------------------------------
+
+        #save PDFs to file        
+        BNS_write=np.dstack((mass, prob_events_bns/max_bns))[0]
+        write_filename_BNS = 'BNS_PDF.txt'
+        print(write_filename_BNS)
+        np.savetxt(write_filename_BNS, BNS_write)
+
+        NSBH_write=np.dstack((mass, prob_events_nsbh/max_nsbh))[0]
+        write_filename_NSBH = 'NSBH_'+str(chi)+'_PDF.txt'
+        print(write_filename_NSBH)
+        np.savetxt(write_filename_NSBH, NSBH_write)
+
+
+
+
         #ax.plot(np.logspace(-3, 0, 10), np.ones(10)*.1)
         y = np.ones(l)*.1
         bns_x = (prob_events_bns/max_bns)
@@ -529,12 +568,12 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     plt.legend()
     plt.grid()
 
-    plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'.pdf'
+    plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'.pdf'
     if coverage_factors == True:
-        plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_coverage_factors.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_coverage_factors.pdf'
 
     if theoretical:
-        plotname = '../mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_theory.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_'+EOS_type+'_theory.pdf'
     plt.savefig(plotname)
     plt.close(fig)
 
@@ -559,12 +598,12 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     plt.legend()
     plt.grid()
 
-    plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
+    plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
     if coverage_factors == True:
-        plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
 
     if theoretical:
-        plotname = '../mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_O3events_comp_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
     plt.savefig(plotname)
     plt.close(fig)
 
@@ -594,12 +633,12 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     plt.legend()
     plt.grid()
 
-    plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
+    plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'.pdf'
     if coverage_factors == True:
-        plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_coverage_factors.pdf'
 
     if theoretical:
-        plotname = '../mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
+        plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_lan_'+str(lan)+'_chi_'+str(chi)+'_theory.pdf'
     plt.savefig(plotname)
     plt.close(fig)
     data_bns = ones-theory_bns
@@ -608,12 +647,27 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False, 
     #data_bns_equal = 1 
     return data_bns, data_nsbh, data_bns_equal, mass, EOS_type
 
+#---------------------------------------------------------------------------------
+'''
+CODE TO RUN SCRIPT AND GENERATE PLOTS
+
+The plot code for CDFs is below, PDF's are generated above
+'''
+#---------------------------------------------------------------------------------
+
+
+
+#use this to loops over all lan frac (which only affects lightcurves) so you shouldn't have to change this
 lan_list = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
+#use this if concerned with CDF/PDFs
 lan_list = ['-9.00']
 
+#use this to loop over range of spin values for NSBH
 chi_list = [-.75, -.5, -.25, 0, .25, .5, .75]
+#only run spin 0 (which is what your original PDF was of)
 chi_list=[0]
 
+#leave True
 add_theory_line = True
 plot_list=[]
 for lan in lan_list:
@@ -624,7 +678,7 @@ for lan in lan_list:
         plot_bns, plot_nsbh, data_bns_equal, mass_plot, EOS_type = plot(mass, prob_events, prob_norm_events, np.float(lan), chi, coverage_factors = cov_tf, theoretical=add_theory_line)
         plot_list.append(plot_nsbh)
 
-
+#plot CDF loglog
 colors = cm.rainbow(np.linspace(0,1,len(plot_list)))
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.plot(mass_plot, plot_bns, color='k', marker='o', label='BNS Theory')
@@ -641,19 +695,29 @@ plt.ylabel('Cumulative Probability')
 plt.legend()
 plt.grid()
 
-plotname = '../mej_plots/KDE_zerodetection_comparison_theory_'+EOS_type+'.pdf'
+plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_comparison_theory_'+EOS_type+'.pdf'
 plt.savefig(plotname)
 plt.close(fig)
 
+
+#plot CDF semilog
 colors = cm.rainbow(np.linspace(0,1,len(plot_list)))
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.plot(mass_plot, plot_bns, color='k', marker='o', label='BNS Theory')
 ax.plot(mass_plot, data_bns_equal, color='grey', marker='o', label='BNS Theory (m1 = m2)')
+
+#save data to file
+filename_BNS = 'BNS_CDF.txt'
+np.savetxt(filename_BNS, (mass_plot, plot_bns))
+
 for n, y in enumerate(plot_list):
     ax.plot(mass_plot, y, color=colors[n], marker='o', label='NSBH Theory, chi = '+str(chi_list[n]))
-    
+ 
+    filename_NSBH = 'NSBH_CDF_chi'+str(chi_list[n])+'.txt'
+    np.savetxt(filename_NSBH, (mass_plot, y))
 
-#ax.set_yscale('log')
+
+        
 ax.set_xscale('log')
 plt.ylim(1e-3,1.1)
 plt.xlabel('mej')
@@ -661,6 +725,6 @@ plt.ylabel('Cumulative Probability')
 plt.legend()
 plt.grid()
 
-plotname = '../mej_plots/KDE_zerodetection_semilog_comparison_theory_'+EOS_type+'.pdf'
+plotname = '/home/andrew.toivonen/gwemlightcurves/mej_plots/KDE_zerodetection_semilog_comparison_theory_'+EOS_type+'.pdf'
 plt.savefig(plotname)
 plt.close(fig) 

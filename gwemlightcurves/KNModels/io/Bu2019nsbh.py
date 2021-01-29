@@ -40,7 +40,7 @@ def get_Bu2019nsbh_model(table, **kwargs):
     if not 'n_coeff' in table.colnames:
         if doAB:
             table['n_coeff'] = 43
-            #table['n_coeff'] = 2
+            table['n_coeff'] = 10
         elif doSpec:
             table['n_coeff'] = 21
 

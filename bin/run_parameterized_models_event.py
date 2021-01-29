@@ -65,6 +65,7 @@ def parse_commandline():
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
     parser.add_argument("--nsamples",default=-1,type=int)
+    parser.add_argument("--ndownsamples",default=-1,type=int)
 
     parser.add_argument("--doFixedLimit",  action="store_true", default=False)
     parser.add_argument("--limits",default="20.4,20.4")
@@ -103,30 +104,30 @@ if (opts.skymap_distance):
         map_struct["distsigma"] = skymap[2]
 
         
-        ipix_best = np.argmax(skymap[0])
-        theta_best, phi_best = hp.pix2ang(nside, ipix_best)
-        ra_best = np.rad2deg(phi_best)
-        dec_best = np.rad2deg(0.5 * np.pi - theta_best)
+        #ipix_best = np.argmax(skymap[0])
+        #theta_best, phi_best = hp.pix2ang(nside, ipix_best)
+        #ra_best = np.rad2deg(phi_best)
+        #dec_best = np.rad2deg(0.5 * np.pi - theta_best)
       
         
 
-        ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
-        dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
+        #ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
+        #dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
 
-        theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
-        phi_vector = np.deg2rad(ra_vector)
-        theta_phi_array = list(itertools.product(theta_vector, phi_vector))
-        ipix_vector = [0] * (len(theta_phi_array))
+        #theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
+        #phi_vector = np.deg2rad(ra_vector)
+        #theta_phi_array = list(itertools.product(theta_vector, phi_vector))
+        #ipix_vector = [0] * (len(theta_phi_array))
 
-        for i in range(len(theta_phi_array)):
-                ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
-        ipix_vector = list(set(ipix_vector))
+        #for i in range(len(theta_phi_array)):
+        #        ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
+        #ipix_vector = list(set(ipix_vector))
 
-        all_index = [index for index, value in enumerate(map_struct["prob"])]
-        bad_index = list( set(all_index) - set(ipix_vector))
+        #all_index = [index for index, value in enumerate(map_struct["prob"])]
+        #bad_index = list( set(all_index) - set(ipix_vector))
 
-        map_struct["prob"][bad_index] = 0
-        map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
+        #map_struct["prob"][bad_index] = 0
+        #map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
 
         distmean, diststd = parameters_to_marginal_moments(map_struct["prob"], map_struct["distmu"], map_struct["distsigma"])
 
@@ -233,11 +234,15 @@ if not os.path.isdir(datDir):
 if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
-        samples = KNTable.read_samples(opts.posterior_samples)
+        samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
         #samples["dist"] = opts.distance
         samples["phi"] = opts.phi_fixed
         samples["Xlan"] = 10**opts.Xlan_fixed
-        samples['mbns'] = 0. 
+        samples['mbns'] = 0.
+        samples['r1'] = 0.
+        samples['r2'] = 0.
+        samples['lambda1'] = 0.
+        samples['lambda2'] = 0.
 
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
@@ -250,7 +255,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         
         for ii, row in enumerate(samples):
             m1, m2 = row["m1"], row["m2"]
-            nsamples = 1
+            nsamples = 100
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
@@ -259,25 +264,31 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
                     lambda1, lambda2 = -1, -1
+                    radius1, radius2 = -1, -1
                     mbns = -1
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
                         eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray = data_out["M"], data_out["Lambda"]
-                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        if float(f(m1)) > lambda1: lambda1 = f(m1)
-                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                        marray, larray, rarray =  data_out["M"], data_out["Lambda"], data_out["R"]
+                        f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meters
                         if np.max(marray) > mbns: mbns = np.max(marray)
 
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
                             index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
                             lambda1, lambda2 = -1, -1
+                            radius1, radius2 = -1, -1
                             mbns = -1
                     	
                 elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
                         phasetr = 0
                         eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                         while os.path.isfile(eospath):
@@ -301,6 +312,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
               
                 samples['lambda1'][ii] = lambda1
                 samples['lambda2'][ii] = lambda2
+                samples['r1'][ii] = radius1
+                samples['r2'][ii] = radius2
                 samples['mbns'][ii] = mbns 
                 np.random.uniform(0)
 
@@ -315,6 +328,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
  
         m1s, m2s, dists_mbta = [], [], []
         lambda1s, lambda2s, chi_effs = [], [], []
+        radius1s, radius2s = [], []
         Xlans = []
         mbnss = []
         if opts.eostype == "gp":
@@ -330,7 +344,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
      
         for ii, row in enumerate(samples): 
             m1, m2, dist_mbta, chi_eff = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"]
-            nsamples = 30
+            nsamples = 100
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
@@ -339,21 +353,27 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     index = indices[jj] 
                     lambda1, lambda2 = -1, -1
+                    radius1, radius2 = -1, -1
                     mbns = -1
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
                     while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                         eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray = data_out["M"], data_out["Lambda"]
-                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        if float(f(m1)) > lambda1: lambda1 = f(m1)
-                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                        marray, larray, rarray = data_out["M"], data_out["Lambda"], data_out["R"]
+                        f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
                         if np.max(marray) > mbns: mbns = np.max(marray)
 
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
                             index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
                             lambda1, lambda2 = -1, -1
+                            radius1, radius2 = -1, -1
                             mbns = -1
 
                 elif opts.eostype == "gp":
@@ -384,6 +404,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 dists_mbta.append(dist_mbta)
                 lambda1s.append(lambda1)
                 lambda2s.append(lambda2)
+                radius1s.append(radius1)
+                radius2s.append(radius2)
                 chi_effs.append(chi_eff)
                 #Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
                 mbnss.append(mbns)
@@ -399,8 +421,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
        
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,chi_effs,thetas, phis, mbnss,Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2','chi_eff','theta', 'phi', 'mbns', "Xlan"))       
+        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss,Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "Xlan"))       
  
 
     # limit masses
@@ -416,7 +438,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 
     # Calc compactness
-    samples = samples.calc_compactness(fit=True)
+    #samples = samples.calc_compactness(fit=True)
+    samples = samples.calc_compactness(fit=False)
     
     # Calc baryonic mass 
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
@@ -439,7 +462,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
 
-        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+        from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
         mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         # calc the velocity of ejecta
@@ -499,6 +522,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         
         print("Probability of having ejecta")
         print(100 * (len(samples) - len(idx)) /len(samples))
+        np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (len(samples) - len(idx)) /len(samples)])
      
        
 elif opts.analysisType == "multinest":
@@ -582,7 +606,7 @@ elif opts.analysisType == "cbclist":
 
 
 if opts.nsamples > 0:
-    samples = samples.downsample(Nsamples=opts.nsamples)
+    samples = samples.downsample(Nsamples=opts.ndownsamples)
 
 
 
@@ -790,6 +814,56 @@ for ii,model in enumerate(models):
     lim = np.percentile(samples["m2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$m_2$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+#plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+ax.set_yscale('log')
+plt.savefig(plotName)
+plt.close()
+
+
+bounds = [0, 30.]
+xlims = [0, 30.]
+ylims = [1e-1,5]
+
+plotName = "%s/radius1.pdf"%(plotDir)
+plt.figure(figsize=(15,10))
+ax = plt.gca()
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(samples["r1"] / 1000,Nbins=80,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
+    lim = np.percentile(samples["m1"], 90)
+    plt.plot([lim,lim],ylims,'k--')
+plt.xlabel(r"$R_{1}(km)$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+#plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+ax.set_yscale('log')
+plt.savefig(plotName)
+plt.close()
+
+
+bounds = [0, 30.]
+xlims = [0, 30.]
+ylims = [1e-1,5]
+
+plotName = "%s/radius2.pdf"%(plotDir)
+plt.figure(figsize=(15,10))
+ax = plt.gca()
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    bins, hist1 = lightcurve_utils.hist_results(samples["r2"]/1000,Nbins=80,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
+    lim = np.percentile(samples["m1"], 90)
+    plt.plot([lim,lim],ylims,'k--')
+plt.xlabel(r"$R_{2}(km)$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
 #plt.legend(loc="best",prop={'size':24})
 plt.xticks(fontsize=24)

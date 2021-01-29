@@ -11,8 +11,9 @@ import matplotlib
 matplotlib.use('Agg')
 #matplotlib.rcParams.update({'font.size': 36})
 import matplotlib.pyplot as plt
-plt.rcParams["font.family"] = "Times New Roman"
-plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams['xtick.labelsize']=30
+plt.rcParams['ytick.labelsize']=30
+plt.rcParams['text.usetex'] = True
 
 import corner
 
@@ -32,6 +33,7 @@ from gwemlightcurves.EjectaFits import KaKy2016
 from gwemlightcurves.EjectaFits import DiUj2017 
 from gwemlightcurves.EjectaFits import Di2018b
 from gwemlightcurves.EjectaFits import CoDi2019
+from gwemlightcurves.EjectaFits import KrFo2019
 
 def parse_commandline():
     """
@@ -45,7 +47,7 @@ def parse_commandline():
     parser.add_option("-l","--lightcurvesDir",default="../lightcurves")
     parser.add_option("-n","--name",default="1087")
     parser.add_option("-m","--model",default="KaKy2016")
-    parser.add_option("--mej",default=0.005,type=float)
+    parser.add_option("--mej",default=0.05,type=float)
     parser.add_option("--vej",default=0.25,type=float)
     parser.add_option("-e","--errorbudget",default=1.0,type=float)
     parser.add_option("--doReduced",  action="store_true", default=False)
@@ -65,6 +67,7 @@ def parse_commandline():
     parser.add_option("--doJointDisk",  action="store_true", default=False)
     parser.add_option("--doJointDiskBulla",  action="store_true", default=False)
     parser.add_option("--doJointGRB",  action="store_true", default=False)
+    parser.add_option("--doJointDiskFoucart",  action="store_true", default=False)
     parser.add_option("--doJointBNS",  action="store_true", default=False)
     parser.add_option("--doJointNSBH",  action="store_true", default=False)
     parser.add_option("--doJointSpin",  action="store_true", default=False)
@@ -72,6 +75,7 @@ def parse_commandline():
     parser.add_option("--doLoveC",  action="store_true", default=False)
     parser.add_option("--doLightcurves",  action="store_true", default=False)
     parser.add_option("--doLuminosity",  action="store_true", default=False)
+    parser.add_option("--doFixedLimit",  action="store_true", default=False)
     parser.add_option("-f","--filters",default="g,r,i,z")
     parser.add_option("--tmax",default=7.0,type=float)
     parser.add_option("--tmin",default=0.05,type=float)
@@ -219,12 +223,28 @@ def myprior_bns_JointFitLambda(cube, ndim, nparams):
         cube[3] = cube[3]*5.0
 
 def myprior_bns_JointFitDisk(cube, ndim, nparams):
-        cube[0] = cube[0]*0.001 + 1.197
+        cube[0] = cube[0]*(mchirpmax-mchirpmin) + mchirpmin
         cube[1] = cube[1]*1.0 + 1.0
         #cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
-        cube[2] = cube[2]*699
+        cube[2] = cube[2]*5000
         cube[3] = cube[3]*2.0 - 2.0
         cube[4] = cube[4]*0.5
+
+def myprior_nsbh_JointFitDisk_sim(cube, ndim, nparams):
+        cube[0] = cube[0]*0.002 + 2.0 - 0.001
+        cube[1] = cube[1]*1.0 + 2.0
+        #cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
+        cube[2] = cube[2]*5000
+        cube[3] = cube[3]*1.0
+        cube[4] = cube[4]*0.001 + 0.15
+
+def myprior_bns_JointFitDisk_sim(cube, ndim, nparams):
+        cube[0] = cube[0]*0.002 + 1.186 - 0.001
+        cube[1] = cube[1]*1.0 + 1.0
+        #cube[1] = cube[1]*(lambdamax-lambdamin) + lambdamin
+        cube[2] = cube[2]*5000
+        cube[3] = cube[3]*0.001 - 1.0
+        cube[4] = cube[4]*0.001 + 0.15
 
 def myprior_nsbh_JointFitDisk(cube, ndim, nparams):
         cube[0] = cube[0]*6.0 + 1.0
@@ -266,7 +286,7 @@ def myprior_SGRB(cube, ndim, nparams):
         #cube[4] = cube[4]*4.0
         #cube[5] = cube[5]*0.5
         cube[5] = cube[5]*0.6
-        cube[6] = cube[6]*0.3 + 1.0
+        cube[6] = cube[6]*(mchirpmax-mchirpmin) + mchirpmin
 
 def myprior_Wang(cube, ndim, nparams):
         #cube[0] = cube[0]*1.0 + 1.0
@@ -634,7 +654,29 @@ def myloglike_bns_Lambda2(cube, ndim, nparams):
 
         return prob
 
-def myloglike_bns_JointFitDiskBulla(cube, ndim, nparams):
+def myloglike_bhns_JointFitDiskFoucart_sim(cube, ndim, nparams):
+        mc = cube[0]
+        q = cube[1]
+        eos = int(np.floor(cube[2])+1)
+        chi_eff = cube[3]
+        zeta = cube[4]
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        f = eosdata[str(eos)]["f"]
+        lambda2 = f(m2)
+        c2 = 0.371 - 0.0391*np.log(lambda2) + 0.001056*(np.log(lambda2)**2)
+
+        mej = KrFo2019.calc_meje(q,chi_eff,c2,m2,f=zeta)
+
+        prob = kde_eval_single(kdedir_mej,[mej])[0]
+
+        #print(mej, prob)
+
+        return prob
+
+def myloglike_bns_JointFitDiskBulla_sim(cube, ndim, nparams):
         mc = cube[0]
         q = cube[1]
         eos = int(np.floor(cube[2])+1)
@@ -689,6 +731,102 @@ def myloglike_bns_JointFitDiskBulla(cube, ndim, nparams):
         mdisk = 10**np.max([-3,a*(1+b*np.tanh((c-mtot/mth)/d))])
         mej2 = zeta*mdisk
 
+        #print(mdisk, mej2)
+
+        a0 = -1.581
+        da = -2.439
+        b0 = -0.538
+        db = -0.406
+        c = 0.953
+        d = 0.0417
+        beta = 3.910
+        qtrans = 0.900
+
+        eta = 0.5 * np.tanh(beta*(q-qtrans))
+        a = a0 + da * eta
+        b = b0 + db * eta
+
+        mdisk = a*(1+b*np.tanh((c-mtot/mth)/d))
+
+        mdisk[mdisk<-3] = -3.0
+        mdisk[rat>0.32] = -3.0
+        mdisk = 10**mdisk
+ 
+        if (mej1+mej2)>(m1+m2):
+            prob = -np.inf
+            return prob
+
+        prob = kde_eval_single(kdedir_mej,[mej1+mej2])[0]
+
+        if prob < 1e-100:
+            prob = -np.inf
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej1 == 0.0:
+            prob = -np.inf
+        if mej2 == 0.0:
+            prob = -np.inf
+
+        return prob
+
+def myloglike_bns_JointFitDiskBulla(cube, ndim, nparams):
+        mc = cube[0]
+        q = cube[1]
+        eos = int(np.floor(cube[2])+1)
+        alpha = cube[3]
+        zeta = cube[4]
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        f = eosdata[str(eos)]["f"]
+        lambda1, lambda2 = f(m1), f(m2)
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+        mTOV = eosdata[str(eos)]["mTOV"]
+
+        if (mTOV < 1.96) or (mTOV > 2.32):
+            prob = -np.inf
+            return prob
+
+        c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+        c2 = c1/q
+
+        vej1 = CoDi2019.calc_vej(m1,c1,m2,c2)
+
+        a= -0.0719
+        b= 0.2116
+        d= -2.42
+        n= -2.905
+
+        log10_mej = a*(m1*(1-2*c1)/c1 + m2*(1-2*c2)/c2) + b*(m1*(m2/m1)**n + m2*(m1/m2)**n)+d
+        mej1 = 10**log10_mej
+        mej1 = mej1/(10**alpha)
+
+        #print(mej1)
+
+        if (m1)>(mTOV):
+            prob = -np.inf
+            return prob
+
+        if (lambdatilde<0):
+            prob = -np.inf
+            return prob
+
+        R16 = mc * (lambdatilde/0.0042)**(1.0/6.0)
+        rat = mTOV/R16
+        if (rat>0.32):
+            prob = -np.inf
+            return prob
+        mth = (2.38 - 3.606*mTOV/R16)*mTOV
+
+        a, b, c, d = -31.335, -0.9760, 1.0474, 0.05957
+
+        x = lambdatilde*1.0
+        mtot = m1+m2
+        mdisk = 10**np.max([-3,a*(1+b*np.tanh((c-mtot/mth)/d))])
+        mej2 = zeta*mdisk
+
         if (mej1+mej2)>(m1+m2):
             prob = -np.inf
             return prob
@@ -707,6 +845,106 @@ def myloglike_bns_JointFitDiskBulla(cube, ndim, nparams):
 
         return prob
 
+def myloglike_bns_JointFitDiskLimit(cube, ndim, nparams):
+        mc = cube[0]
+        q = cube[1]
+        eos = int(np.floor(cube[2])+1)
+        alpha = cube[3]
+        zeta = cube[4]
+
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        f = eosdata[str(eos)]["f"]
+        lambda1, lambda2 = f(m1), f(m2)
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+        mTOV = eosdata[str(eos)]["mTOV"]
+
+        #if (mTOV < 1.96) or (mTOV > 2.32):
+        #    prob = -np.inf
+        #    return prob
+
+        c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
+        c2 = c1/q
+
+        vej1 = CoDi2019.calc_vej(m1,c1,m2,c2)
+
+        a= -0.0719
+        b= 0.2116
+        d= -2.42
+        n= -2.905
+
+        log10_mej = a*(m1*(1-2*c1)/c1 + m2*(1-2*c2)/c2) + b*(m1*(m2/m1)**n + m2*(m1/m2)**n)+d
+        mej1 = 10**log10_mej
+        mej1 = mej1/(10**alpha)
+
+        if (m1)>(mTOV):
+            prob = -np.inf
+            return prob
+
+        if (lambdatilde<0):
+            prob = -np.inf
+            return prob
+
+        R16 = mc * (lambdatilde/0.0042)**(1.0/6.0)
+        rat = mTOV/R16
+        if (rat>0.32):
+            prob = -np.inf
+            return prob
+        mth = (2.38 - 3.606*mTOV/R16)*mTOV
+
+        a, b, c, d = -31.335, -0.9760, 1.0474, 0.05957
+
+        x = lambdatilde*1.0
+        mtot = m1+m2
+
+        a0 = -1.581
+        da = -2.439
+        b0 = -0.538
+        db = -0.406
+        c = 0.953
+        d = 0.0417
+        beta = 3.910
+        qtrans = 0.900
+
+        eta = 0.5 * np.tanh(beta*((1/q)-qtrans))
+        a = a0 + da * eta
+        b = b0 + db * eta
+
+        mdisk = a*(1+b*np.tanh((c-mtot/mth)/d))
+        if mdisk<-3:
+            mdisk = -3.0
+        if rat>0.32:
+            mdisk = -3.0
+        mdisk = 10**mdisk
+        mej2 = zeta*mdisk
+
+        if (mej1+mej2)>(m1+m2):
+            prob = -np.inf
+            return prob
+
+        if mej1*(10**alpha)+mej2+(10**alpha) <= mejsum_95:
+            prob = 1.0
+        else:
+            prob = -np.inf
+        #prob = kde_eval_single(kdedir_mej,[mej1+mej2])[0]
+        #prob = calc_prob_disk(mej1,vej1,mej2)
+        prior = prior_gw(mc, q, lambdatilde, eos)
+
+        prob = prob + np.log(prior)
+
+        if prior == 0.0:
+            prob = -np.inf
+        if mej1 == 0.0:
+            prob = -np.inf
+        if mej2 == 0.0:
+            prob = -np.inf
+
+        #if np.isfinite(prob):
+            print(mc, q, eos, prob)
+
+        return prob
+
 def myloglike_bns_JointFitDisk(cube, ndim, nparams):
         mc = cube[0]
         q = cube[1]
@@ -722,9 +960,9 @@ def myloglike_bns_JointFitDisk(cube, ndim, nparams):
         lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)  
         mTOV = eosdata[str(eos)]["mTOV"]
 
-        if (mTOV < 1.96) or (mTOV > 2.32):
-            prob = -np.inf
-            return prob
+        #if (mTOV < 1.96) or (mTOV > 2.32):
+        #    prob = -np.inf
+        #    return prob
  
         c1 = 0.371 - 0.0391*np.log(lambda1) + 0.001056*(np.log(lambda1)**2)
         c2 = c1/q
@@ -759,8 +997,31 @@ def myloglike_bns_JointFitDisk(cube, ndim, nparams):
 
         x = lambdatilde*1.0
         mtot = m1+m2
-        mdisk = 10**np.max([-3,a*(1+b*np.tanh((c-mtot/mth)/d))])
+
+        a0 = -1.581
+        da = -2.439
+        b0 = -0.538
+        db = -0.406
+        c = 0.953
+        d = 0.0417
+        beta = 3.910
+        qtrans = 0.900
+
+        eta = 0.5 * np.tanh(beta*((1/q)-qtrans))
+        a = a0 + da * eta
+        b = b0 + db * eta
+
+        mdisk = a*(1+b*np.tanh((c-mtot/mth)/d))
+        if mdisk<-3:
+            mdisk = -3.0
+        if rat>0.32:
+            mdisk = -3.0
+        mdisk = 10**mdisk
         mej2 = zeta*mdisk
+
+        #print(mc, q, eos, alpha, zeta)
+        #print(mej1, mej2)
+        #exit(0)
 
         if (mej1+mej2)>(m1+m2):
             prob = -np.inf
@@ -1336,8 +1597,8 @@ opts = parse_commandline()
 lambdamin = opts.lambdamin
 lambdamax = opts.lambdamax
 
-if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017","Ka2017","Ka2017x2","Ka2017_TrPi2018","Bu2019inc","Ka2017x2inc","Bu2019lr","Bu2019lf"]:
-   print("Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017, Ka2017, Ka2017x2, Ka2017_TrPi2018, Bu2019inc, Ka2017x2inc, Bu2019lr, Bu2019lf")
+if not opts.model in ["KaKy2016", "DiUj2017", "Me2017", "SmCh2017","Ka2017","Ka2017x2","Ka2017_TrPi2018","Bu2019inc","Ka2017x2inc","Bu2019lr","Bu2019lf","Bu2019lm","Bu2019lw"]:
+   print("Model must be either: KaKy2016, DiUj2017, Me2017, SmCh2017, Ka2017, Ka2017x2, Ka2017_TrPi2018, Bu2019inc, Ka2017x2inc, Bu2019lr, Bu2019lf, Bu2019lm, Bu2019lw")
    exit(0)
 
 filters = opts.filters.split(",")
@@ -1353,6 +1614,8 @@ if opts.doLightcurves:
         basename = 'fitting_going-the-distance'
     elif opts.doMassGap:
         basename = 'fitting_massgap'
+    elif opts.doFixedLimit:
+        basename = 'fitting_limits'
     elif opts.doEvent:
         basename = 'fitting_gws'
     elif opts.doSimulation:
@@ -1383,6 +1646,11 @@ elif opts.doBNSFit:
         plotDir = os.path.join(plotDir,'%s_BNSFit_FixZPT0'%opts.model)
     else:
         plotDir = os.path.join(plotDir,'%s_BNSFit'%opts.model)
+elif opts.doSimulation:
+    if opts.doJointDiskFoucart:
+        plotDir = os.path.join(plotDir,'nsbh')
+    elif opts.doJointDiskBulla:
+        plotDir = os.path.join(plotDir,'bns')
 else:
     if opts.doFixZPT0:
         plotDir = os.path.join(plotDir,'%s_FixZPT0'%opts.model)
@@ -1403,7 +1671,7 @@ if opts.doModels:
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
     dataDir = plotDir.replace("fitting_models","models").replace("_EOSFit","").replace("_BNSFit","")
 elif opts.doSimulation:
-    plotDir = os.path.join(plotDir,'M%03dV%02d'%(opts.mej*1000,opts.vej*100))
+    plotDir = os.path.join(plotDir,'M%03d'%(opts.mej*1000))
     plotDir = os.path.join(plotDir,"%.3f"%(opts.errorbudget*100.0))
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     if opts.doLightcurves:
@@ -1419,7 +1687,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         plotDir = os.path.join(plotDir,'joinl')
     elif opts.doJointDisk:
         plotDir = os.path.join(plotDir,'joind')
-    elif opts.doJointDiskBulla:
+    elif opts.doJointDiskBulla or opts.doJointDiskFoucart:
         plotDir = os.path.join(plotDir,'joinu')
     elif opts.doJointNSBH:
         plotDir = os.path.join(plotDir,'joinn')
@@ -1450,8 +1718,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         if opts.model == "Ka2017_TrPi2018":
             dataDir = dataDir.replace("joind/","").replace("_EOSFit","").replace("_BNSFit","")
         else:
-            dataDir = dataDir.replace("joind","ejecta").replace("_EOSFit","").replace("_BNSFit","")
-    elif opts.doJointDiskBulla:
+            if opts.doFixedLimit:
+                dataDir = dataDir.replace("joind","").replace("_EOSFit","").replace("_BNSFit","")
+            else:
+                dataDir = dataDir.replace("joind","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+    elif opts.doJointDiskBulla or opts.doJointDiskFoucart:
         if opts.model == "Ka2017_TrPi2018":
             dataDir = dataDir.replace("joinu/","").replace("_EOSFit","").replace("_BNSFit","")
         else:
@@ -1481,9 +1752,13 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             dataDir = dataDir.replace("joinw/","").replace("_EOSFit","").replace("_BNSFit","")
         else:
             dataDir = dataDir.replace("joinw","ejecta").replace("_EOSFit","").replace("_BNSFit","")
+
+    #if opts.doFixedLimit:
+    #    dataDir = os.path.join(dataDir,"%.2f"%30.0)
+
     dataDir = os.path.join(dataDir,"%.2f"%opts.errorbudget)
     plotDir = os.path.join(plotDir,"%.2f"%opts.errorbudget)
-    if opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointDiskBulla or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH or opts.doJointBNS:
+    if opts.doJoint or opts.doJointLambda or opts.doJointDisk or opts.doJointDiskBulla or opts.doJointDiskFoucart or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH or opts.doJointBNS:
         plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.lambdamin,opts.lambdamax))    
 
 if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
@@ -1493,7 +1768,20 @@ if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
 #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/nsat")
-eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/nsat_res")
+#eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new_res")
+#eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new_sorted")
+if opts.name == "GW190425":
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_AT2017gfo_sorted")
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_AT2017gfo_sorted_SEOB")
+    eosdir = "/home/michael.coughlin/nmma/q_rerun/Pv2NRTv2/sorted_EOS"
+else:
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new_sorted")
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new_sorted_noNICER")
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_sorted_GW190814")
+    #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new")
+    eosdir = "/home/michael.coughlin/NMMA-public/EOS/chiralEFT_MTOV_NICER"
+    #eosdir = "/home/michael.coughlin/NMMA-public/EOS/chiralEFT_MTOV"
+
 filenames = glob.glob(os.path.join(eosdir, '*.dat'))
 eosdata = {}
 for filename in filenames:
@@ -1510,8 +1798,10 @@ for filename in filenames:
     eosdata[ii]["mTOV"] = np.max(marray)
 
 errorbudget = opts.errorbudget
-n_live_points = 500
+#n_live_points = 500
 #n_live_points = 2000
+#n_live_points = 4096
+n_live_points = 8192
 evidence_tolerance = 0.5
 #evidence_tolerance = 0.1
 
@@ -1520,13 +1810,13 @@ np.random.seed(seed=seed)
 lambdatilde_true = None
 
 if opts.doSimulation:
-    mejvar = (opts.mej*opts.errorbudget)**2
-    vejvar = (opts.vej*opts.errorbudget)**2
-
     nsamples = 1000
-    mean = [opts.mej,opts.vej]
-    cov = [[mejvar,0],[0,vejvar]]
-    pts = np.random.multivariate_normal(mean, cov, nsamples)
+    pts = opts.mej + np.random.randn(nsamples)*opts.mej*opts.errorbudget
+
+    print(np.mean(pts), np.std(pts))
+
+    kdedir_mej = greedy_kde_areas_1d(pts)
+    mchirpmin, mchirpmax = 1.3, 2.0
 elif opts.doModels:
     multifile = lightcurve_utils.get_post_file(dataDir)
     data = np.loadtxt(multifile) 
@@ -1548,11 +1838,20 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         data_out, truths = lightcurve_utils.massgap(opts.dataDir,opts.name)
         m1, m2 = data_out["m1"], data_out["m2"]
     elif opts.doEvent:
-        if opts.doJointDisk or opts.doJointDiskBulla or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH or opts.doJointBNS:
+        if opts.doJointDisk or opts.doJointDiskBulla or opts.doJointDiskFoucart or opts.doJointGRB or opts.doJointSpin or opts.doJointWang or opts.doJointNSBH or opts.doJointBNS:
             #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_EOS")
             #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_SourceProperties")
             #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples")
-            data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_comoving_rnsat_196_240")
+            #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_comoving_rnsat_196_240")
+            if opts.name == "GW190425":
+                data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv2")
+                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_SEOBNRv4T")
+            else:
+                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv1")
+                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv2")
+                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv2_NoNICER")
+                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_GW190814")
+                data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_SEOBNRv4T")
             if data_out:
                 costheta_jn = data_out["cos_theta_jn"]
                 theta_jn = np.rad2deg(np.arccos(costheta_jn)) 
@@ -1564,9 +1863,11 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 idx = np.where((theta_jn>=theta_min) & (theta_jn<=theta_max))[0]
                 #data_out = data_out[idx]
 
-                mchirp_gw = data_out["chirp_mass"]
+                mchirp_gw = data_out["mchirp"]
                 q_gw = data_out["mass_ratio"]
                 eos_gw = np.floor(data_out["EOS"]).astype(int)
+
+                mchirpmin, mchirpmax = np.min(mchirp_gw), np.max(mchirp_gw)
 
                 eta_gw = lightcurve_utils.q2eta(q_gw)
                 (m1_gw,m2_gw) = lightcurve_utils.mc2ms(mchirp_gw,eta_gw)
@@ -1615,7 +1916,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 kdedir_gwq = greedy_kde_areas_1d(q_gw)
                 kdedir_gwlambdatilde = greedy_kde_areas_1d(lambdatilde_gw)
 
-                bin_edges = np.arange(-1,2002)              
+                bin_edges = np.arange(-1,5002)              
                 kdedir_gweos, _ = np.histogram(eos_gw, bins=bin_edges)
                 kdedir_gweos = kdedir_gweos / float(np.sum(kdedir_gweos))
 
@@ -1646,9 +1947,15 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             if data_out:
                 m1, m2 = data_out["m1"], data_out["m2"]
                 mchirp, q = data_out["mc"], data_out["q"]
-
+    print(dataDir)
     multifile = lightcurve_utils.get_post_file(dataDir)
     data = np.loadtxt(multifile)
+
+    post_equal_weights = os.path.join(dataDir, 'post_equal_weights.dat')
+    if os.path.isfile(post_equal_weights):
+        data = np.loadtxt(post_equal_weights)
+        idx = [0, 2, 3, 4, 5, 1, 6]
+        data = data[:, idx] 
 
     if opts.doJoint or opts.doJointLambda:
         if opts.model == "Ka2017x2":
@@ -1669,19 +1976,27 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             vej1 = data[:,2]
             mej2 = 10**data[:,4]
             vej2 = data[:,5]
-        elif opts.model in ["Bu2019lr","Bu2019lf"]:
+        elif opts.model in ["Bu2019lr","Bu2019lf","Bu2019lm"]:
             mej1 = 10**data[:,1]
             vej1 = np.random.uniform(low=0.0, high=0.3, size=mej1.shape)
             mej2 = 10**data[:,2]
             vej2 = np.random.uniform(low=0.0, high=0.3, size=mej2.shape)
+        elif opts.model in ["Bu2019lw"]:
+            mej1 = 0.005*np.ones(len(data[:,1]))
+            vej1 = np.random.uniform(low=0.0, high=0.3, size=mej1.shape)
+            mej2 = 10**data[:,1]
+            vej2 = np.random.uniform(low=0.0, high=0.3, size=mej2.shape)
         else:
-            print("--doJointDisk only works with Ka2017x2,Ka2017x2inc,Bu2019lr,Bu2019lf")
+            print("--doJointDisk only works with Ka2017x2,Ka2017x2inc,Bu2019lr,Bu2019lf,Bu2019lm,Bu2019lw")
             exit(0)
         pts = np.vstack((mej1,vej1,mej2)).T
         #pts = np.vstack((mej1,vej1)).T
         kdedir = greedy_kde_areas_1d(mej2)
         kdedir_pts_mej2 = copy.deepcopy(kdedir)
         kdedir_mej = greedy_kde_areas_1d(mej1+mej2)
+        mejsum = np.sort(mej1+mej2)
+        mejsum_95_idx = int(float(len(mejsum))*0.95)
+        mejsum_95 = mejsum[mejsum_95_idx]
 
     elif opts.doJointDiskBulla:
         if opts.model in ["Ka2017","Bu2019inc"]:
@@ -1694,11 +2009,14 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         pts = np.vstack((m1,m2)).T
 
     filename = os.path.join(dataDir,"truth_mej_vej.dat")
-    truths_mej_vej = np.loadtxt(filename)
-    truths_mej_vej[0] = np.log10(truths_mej_vej[0])
+    if os.path.isfile(filename):
+        truths_mej_vej = np.loadtxt(filename)
+        truths_mej_vej[0] = np.log10(truths_mej_vej[0])
+    else:
+        truths_mej_vej = [0, 0]
 
-    filename = os.path.join(dataDir,"truth.dat")
-    truths = np.loadtxt(filename)
+    #filename = os.path.join(dataDir,"truth.dat")
+    #truths = np.loadtxt(filename)
 
     if opts.doEjecta or opts.doJoint or opts.doJointLambda:
         if opts.model == "Ka2017x2":
@@ -1753,7 +2071,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             else:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,4])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
-        elif opts.model in ["Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+        elif opts.model in ["Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr","Bu2019lm","Bu2019lw"]:
             if opts.doEOSFit or opts.doBNSFit:
                 mchirp_em,eta_em,q_em = lightcurve_utils.ms2mc(data[:,1],data[:,3])
                 mchirp_true,eta_true,q_true = lightcurve_utils.ms2mc(truths[0],truths[2])
@@ -1764,11 +2082,22 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
         q_em = 1/q_em  
         q_true = 1/q_true
 
-kdedir = greedy_kde_areas_2d(pts)
-kdedir_pts = copy.deepcopy(kdedir)
+if not opts.doSimulation:
+    kdedir = greedy_kde_areas_2d(pts)
+    kdedir_pts = copy.deepcopy(kdedir)
 
 if opts.doModels or opts.doSimulation:
-    if opts.model == "KaKy2016":
+    if opts.doJointDiskBulla:
+        parameters = ["mchirp","q","EOS","alpha","zeta"]
+        labels = ["$\mathcal{M}_c$",r"$q$",r"EOS",r"$\log_{10} \alpha$",r"$\zeta$"]
+        n_params = len(parameters)
+        pymultinest.run(myloglike_bns_JointFitDiskBulla_sim, myprior_bns_JointFitDisk_sim, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+    elif opts.doJointDiskFoucart:
+        parameters = ["mchirp","q","EOS","chi_eff","zeta"]
+        labels = ["$\mathcal{M}_c$",r"$q$",r"EOS",r"$\chi$",r"$\zeta$"]
+        n_params = len(parameters)
+        pymultinest.run(myloglike_bhns_JointFitDiskFoucart_sim, myprior_nsbh_JointFitDisk_sim, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+    elif opts.model == "KaKy2016":
         if opts.doEOSFit or opts.doBNSFit:
             parameters = ["q","chi_eff","mns","c"]
             labels = [r"$q$",r"$\chi_{\rm eff}$",r"$M_{\rm NS}$",r"$C$"]
@@ -1790,6 +2119,7 @@ if opts.doModels or opts.doSimulation:
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     if opts.model == "KaKy2016":
         if opts.doEOSFit or opts.doBNSFit:
@@ -1813,7 +2143,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             labels = [r"$m_1$",r"$m_{\rm b1}$",r"$C_1$",r"$m_2$",r"$m_{\rm b2}$",r"$C_2$"]
             n_params = len(parameters)
             pymultinest.run(myloglike_bns_gw, myprior_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
-    elif opts.model in ["Ka2017", "Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lr", "Bu2019lf"]:
+    elif opts.model in ["Ka2017", "Ka2017x2", "Bu2019inc", "Ka2017x2inc", "Bu2019lr", "Bu2019lf","Bu2019lm","Bu2019lw"]:
         if opts.doEOSFit:
             parameters = ["m1","c1","m2","c2"]
             labels = [r"$m_1$",r"$C_1$",r"$m_2$",r"$C_2$"]
@@ -1838,7 +2168,10 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             parameters = ["mchirp","q","EOS","alpha","zeta"]
             labels = ["$M_c$",r"q",r"EOS",r"$\log_{10} \alpha$",r"$\zeta$"]
             n_params = len(parameters)
-            pymultinest.run(myloglike_bns_JointFitDisk, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            if opts.doFixedLimit:
+                pymultinest.run(myloglike_bns_JointFitDiskLimit, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
+            else:
+                pymultinest.run(myloglike_bns_JointFitDisk, myprior_bns_JointFitDisk, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%plotDir, evidence_tolerance = evidence_tolerance, multimodal = False)
         elif opts.doJointDiskBulla:
             parameters = ["mchirp","q","EOS","alpha","zeta"]
             labels = ["$\mathcal{M}_c$",r"$q$",r"EOS",r"$\log_{10} \alpha$",r"$\zeta$"]
@@ -1898,6 +2231,41 @@ elif (opts.doModels or opts.doSimulation) and opts.model == "DiUj2017" and opts.
     if opts.doFixMChirp:
         mchirp_mu, mchirp_sigma = np.mean(mchirp), 0.001*np.mean(mchirp)
 
+elif opts.doSimulation and (opts.doJointDiskBulla or opts.doJointDiskFoucart):
+
+    if opts.doJointDiskBulla:
+        labels = ["$\mathcal{M}_c$",r"$q$",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{\rm TOV}$"]
+    elif opts.doJointDiskFoucart:
+        labels = ["$\mathcal{M}_c$",r"$q$",r"$\Lambda_2$",r"$\chi$",r"$\zeta$",r"$M_{\rm TOV}$"]        
+    
+    mchirp_em = data[:,0]
+    q_em = data[:,1]
+    eos_em = data[:,2]
+    alpha_em = data[:,3]
+    zeta_em = data[:,4]
+
+    lambdatilde_em = np.zeros(eos_em.shape)
+    mtov_em = np.zeros(eos_em.shape)
+
+    for ii, (mc, q, eos) in enumerate(zip(mchirp_em, q_em, eos_em)):
+        eos = int(np.floor(eos)+1)
+        eta = lightcurve_utils.q2eta(q)
+        (m1,m2) = lightcurve_utils.mc2ms(mc,eta)
+
+        f = eosdata[str(eos)]["f"]
+
+        lambda1, lambda2 = f(m1), f(m2)
+        lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
+
+        if opts.doJointDiskBulla:
+            lambdatilde_em[ii] = lambdatilde
+        elif opts.doJointDiskFoucart:
+            lambdatilde_em[ii] = lambda2
+        mtov_em[ii] = eosdata[str(eos)]["mTOV"]
+    data[:,2] = lambdatilde_em
+    data = np.vstack((data.T,mtov_em.T)).T
+    data[:, 5], data[:, 6] = data[:, 6], data[:, 5].copy()
+
 elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
     if opts.model == "DiUj2017" or opts.model == "Me2017" or opts.model == "SmCh2017":
         m1 = data[:,0]
@@ -1930,7 +2298,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 ii = ii + 1
         q_em = 1/q_em 
         mej_em = np.log10(mej_em)
-    elif opts.model in ["Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+    elif opts.model in ["Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Bu2019inc", "Ka2017x2inc", "Bu2019lf", "Bu2019lr","Bu2019lm","Bu2019lw"]:
 
         if opts.doEOSFit:
             m1 = data[:,0]
@@ -2091,7 +2459,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                     fid.write('%.10f %.10f\n'%(q,lambdatilde))
 
             elif opts.doJointDisk or opts.doJointDiskBulla or opts.doJointGRB or opts.doJointSpin or opts.doJointWang:
-                labels = ["$\mathcal{M}_c$",r"$q$",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{TOV}$"]
+                labels = ["$\mathcal{M}_c$",r"$q$",r"$\tilde{\Lambda}$",r"$\log_{10} \alpha$",r"$\zeta$",r"$M_{\rm TOV}$"]
                 #for q,lambda1,A,zeta_em in data[:,:-1]:
                 for mc,q,lambdatilde,alpha,zeta,mTOV in data[:,:-1]:
 
@@ -2650,7 +3018,7 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
 
         parameters = ["q","mchirp"]
         n_params = len(parameters)
-        if opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+        if opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm","Bu2019lw"]:
             if opts.doFixMChirp:
                 pymultinest.run(myloglike_combined_MChirp, myprior_combined_masses_bns, n_params, importance_nested_sampling = False, resume = True, verbose = True, sampling_efficiency = 'parameter', n_live_points = n_live_points, outputfiles_basename='%s/2-'%combinedDir, evidence_tolerance = evidence_tolerance, multimodal = False)
             else:
@@ -2694,7 +3062,8 @@ plotName = "%s/corner.pdf"%(plotDir)
 if opts.doGoingTheDistance:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       show_titles=True,
+                       title_kwargs={"fontsize": title_fontsize, "pad": 15},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        truths=truths,
                        color="coral",
@@ -2702,7 +3071,8 @@ if opts.doGoingTheDistance:
 else:
     figure = corner.corner(data[:,:-1], labels=labels,
                        quantiles=[0.16, 0.5, 0.84],
-                       show_titles=True, title_kwargs={"fontsize": title_fontsize},
+                       show_titles=True,
+                       title_kwargs={"fontsize": title_fontsize, "pad": 15},
                        label_kwargs={"fontsize": label_fontsize}, title_fmt=".2f",
                        color="coral",
                        smooth = 3)
@@ -2711,7 +3081,7 @@ if n_params >= 10:
 elif n_params >= 6:
     figure.set_size_inches(28.0,28.0)
 else:
-    figure.set_size_inches(18.0,18.0)
+    figure.set_size_inches(24.0,24.0)
 plt.savefig(plotName)
 plt.close()
 
@@ -2725,7 +3095,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,0.0]
                 xlims = [-3.0,0.0]
                 ylims = [1e-1,10]
-            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm","Bu2019lw"]:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.0]
                 ylims = [1e-1,10]
@@ -2738,7 +3108,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
-            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+            elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm","Bu2019lw"]:
                 bounds = [-3.0,-1.0]
                 xlims = [-3.0,-1.3]
                 ylims = [1e-1,10]
@@ -2770,7 +3140,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,0.3]
             xlims = [0.0,0.3]
             ylims = [1e-1,10]
-        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm","Bu2019lw"]:
             bounds = [0.0,0.3]
             xlims = [0.0,0.3]
             ylims = [1e-1,40] 
@@ -2827,7 +3197,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,10]
-        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm", "Bu2019lw"]:
             bounds = [0.8,2.0]
             xlims = [0.8,2.0]
             ylims = [1e-1,40]
@@ -2859,7 +3229,7 @@ if opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]
-        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr"]:
+        elif opts.model in ["DiUj2017", "Me2017", "SmCh2017", "Ka2017", "Ka2017x2", "Ka2017_TrPi2018", "Ka2017x2inc", "Bu2019lf", "Bu2019lr", "Bu2019lm", "Bu2019lw"]:
             bounds = [0.0,2.0]
             xlims = [0.9,2.0]
             ylims = [1e-1,10]

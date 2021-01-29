@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm 
 plt.rcParams['xtick.labelsize']=30
 plt.rcParams['ytick.labelsize']=30
+plt.rcParams['text.usetex'] = True
 
 import corner
 
@@ -759,10 +760,10 @@ for filt, color in zip(filters,colors):
     if len(t) == 0: continue
 
     idx = np.where(np.isfinite(sigma_y))[0]
-    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color, markersize=16, label='%s-band'%filt)
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='o',c=color, markersize=16, label='%s-band'%filt, markeredgecolor='k')
 
     idx = np.where(~np.isfinite(sigma_y))[0]
-    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=16)
+    plt.errorbar(t[idx],y[idx],sigma_y[idx],fmt='v',c=color, markersize=16, markeredgecolor='k')
 
     magave = lightcurve_utils.get_mag(mag,filt)
     ii = np.where(~np.isnan(magave))[0]
@@ -774,7 +775,7 @@ for filt, color in zip(filters,colors):
     plt.plot(tt,maginterp+zp_best,'--',c=color2,linewidth=3)
     plt.fill_between(tt,maginterp+zp_best-errorbudget,maginterp+zp_best+errorbudget,facecolor=color2,alpha=0.2)
 
-    plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+    plt.ylabel(r'$%s$'%filt,fontsize=52,rotation=0,labelpad=40)
 
     if opts.name == "GW170817":
         if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc"]:
@@ -808,7 +809,9 @@ for filt, color in zip(filters,colors):
     plt.yticks(fontsize=36)
 
 ax1.set_zorder(1)
-plt.xlabel('Time [days]',fontsize=48)
-plt.tight_layout()
+plt.xlabel(r'$\textrm{Time [days]}$',fontsize=52)
+fig.text(0.001, 0.5, r'$\textrm{Photometric Band [mag]}$', va='center', rotation='vertical', fontsize=52)
+#plt.tight_layout()
+plt.tight_layout(rect=[0.03, 0.00, 0.96, 0.95])
 plt.savefig(plotName)
 plt.close()
