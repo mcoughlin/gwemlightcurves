@@ -323,7 +323,9 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             print('Please set nsamples >= 1')
             exit(0)
         # read samples from template analysis
-        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag) 
+        #samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag)
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, twixie_flag = opts.twixie_flag)
+ 
        
  
         m1s, m2s, dists_mbta = [], [], []
@@ -331,6 +333,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         radius1s, radius2s = [], []
         Xlans = []
         mbnss = []
+        weights_mbta = []
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
             eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
@@ -343,38 +346,40 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         Xlan_min, Xlan_max = -9, -1 
      
         for ii, row in enumerate(samples): 
-            m1, m2, dist_mbta, chi_eff = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"]
-            nsamples = 100
-            if opts.eostype == "spec":
-                indices = np.random.randint(0, 2396, size=nsamples)
-            elif opts.eostype == "gp":
+            m1, m2, dist_mbta, chi_eff, weight_mbta = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"], row["weight_mbta"]
+            if (opts.eostype == "spec"):
+                nsamples = 2396
+            else:
+                nsamples = 100
+            if opts.eostype == "gp":
                 indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
             for jj in range(nsamples):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
-                    index = indices[jj] 
                     lambda1, lambda2 = -1, -1
                     radius1, radius2 = -1, -1
                     mbns = -1
+                if (opts.eostype == "gp"):
+                    index = indices[jj]
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
-                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray, rarray = data_out["M"], data_out["Lambda"], data_out["R"]
-                        f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
-                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
-                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
-                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
-                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
-                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
-                        if np.max(marray) > mbns: mbns = np.max(marray)
+                     eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                     marray, larray, rarray = data_out["M"], data_out["Lambda"], data_out["R"]
+                     f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                     f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                     if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                     if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                     if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                     if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                     radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
+                     if np.max(marray) > mbns: mbns = np.max(marray)
 
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
-                            index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            radius1, radius2 = -1, -1
-                            mbns = -1
+                     if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
+                        #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
+                        #lambda1, lambda2 = -1, -1
+                        #radius1, radius2 = -1, -1
+                        #mbns = -1
+                        continue  
 
                 elif opts.eostype == "gp":
                     while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
@@ -409,6 +414,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 chi_effs.append(chi_eff)
                 #Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
                 mbnss.append(mbns)
+                weights_mbta.append(weight_mbta)
                 np.random.uniform(0)
 
   
@@ -421,16 +427,16 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
        
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss,Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "Xlan"))       
- 
+        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "weight_mbta", "Xlan"))       
+  
 
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
  
     print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
     print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
-   
+  
 
     # Downsample 
     #samples = samples.downsample(Nsamples=100)
@@ -521,8 +527,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
            
         
         print("Probability of having ejecta")
-        print(100 * (len(samples) - len(idx)) /len(samples))
-        np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (len(samples) - len(idx)) /len(samples)])
+        print(100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta'])))
+        np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta']))])
      
        
 elif opts.analysisType == "multinest":
@@ -694,6 +700,7 @@ mag_all = {}
 app_mag_all = {}
 if (opts.analysisType == "mchirp"):
         app_mag_all_mbta = {}
+        weights_mbta_all = {}
 lbol_all = {}
 
 for model in models:
@@ -701,6 +708,7 @@ for model in models:
     app_mag_all[model] = {}
     if (opts.analysisType == "mchirp"):
         app_mag_all_mbta[model] = {}
+        weights_mbta_all[model] = []
     lbol_all[model] = {}
 
     lbol_all[model] = np.empty((0,len(tt)), float)
@@ -717,6 +725,7 @@ for model in models:
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
         if (opts.analysisType == "mchirp"):
             dist_mbta = row['dist_mbta']
+            weight_mbta = row['weight_mbta']
 
         if np.sum(lbol) == 0.0:
             #print "No luminosity..."
@@ -744,6 +753,10 @@ for model in models:
         f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
         lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)
+        if (opts.analysisType == "mchirp"):
+            weights_mbta_all[model] = np.append(weights_mbta_all[model], [weight_mbta])
+
+
 
 if opts.doEvent:
     filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
@@ -784,9 +797,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["m1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["m1"], samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["m1"], Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$m_{1}$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -809,9 +828,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["m2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["m2"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["m2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$m_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -834,9 +859,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["r1"] / 1000,Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["r1"] / 1000, samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["r1"] / 1000,Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$R_{1}(km)$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -859,9 +890,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["r2"]/1000,Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["r2"]/1000, samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["r2"]/1000,Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$R_{2}(km)$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -885,9 +922,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["lambda1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["lambda1"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["lambda1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["lambda1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["lambda1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["lambda1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\Lambda_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -911,9 +954,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["lambda2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["lambda2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["lambda2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["lambda2"], 90) 
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["lambda2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["lambda2"], 90) 
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\Lambda_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -937,9 +986,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["c1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["c1"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["c1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["c1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["c1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["c1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$c_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -962,9 +1017,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["c2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["c2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["c2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["c2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["c2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["c2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$c_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -988,9 +1049,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["mb1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mb1"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["mb1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["mb1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["mb1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["mb1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$mb_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -1013,9 +1080,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["mb2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mb2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["mb2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["mb2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["mb2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["mb2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$mb_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -1038,9 +1111,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["chi_eff"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["chi_eff"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["chi_eff"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["chi_eff"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["chi_eff"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["chi_eff"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\chi_{eff}$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -1065,9 +1144,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(np.log10(samples['mej']),Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(np.log10(samples['mej']), samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(np.log10(samples['mej']),Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(np.log10(samples['mej']), 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(np.log10(samples['mej']), samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(np.log10(samples['mej']), 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -1092,7 +1177,10 @@ plt.figure(figsize=(10,8))
 
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["vej"],Nbins=30,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["vej"],samples["weight_mbta"],Nbins=30,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["vej"],Nbins=30,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name)
 
 plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
@@ -1112,7 +1200,10 @@ plotName = "%s/theta.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["theta"],Nbins=30,bounds=bounds) 
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["theta"],samples["weight_mbta"],Nbins=30,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["theta"],Nbins=30,bounds=bounds) 
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name)
 
 plt.xlabel(r"$\theta$",fontsize=24)
@@ -1137,7 +1228,10 @@ gs = gridspec.GridSpec(1, 2)
 ax1 = fig.add_subplot(gs[0, 0])
 ax2 = fig.add_subplot(gs[0, 1])
 plt.axes(ax1)
-bins, hist1 = lightcurve_utils.hist_results(samples["mchirp"],Nbins=25)
+if (opts.analysisType == "mchirp"):
+    bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mchirp"],samples["weight_mbta"],Nbins=25)
+else:
+    bins, hist1 = lightcurve_utils.hist_results(samples["mchirp"],Nbins=25)
 plt.step(bins,hist1,'-',color='k',linewidth=3)
 if opts.doAddPosteriors:
     bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["mchirp"],Nbins=25)
@@ -1147,7 +1241,10 @@ plt.ylabel('Probability Density Function',fontsize=24)
 plt.xticks(fontsize=24)
 plt.yticks(fontsize=24)
 plt.axes(ax2)
-bins, hist1 = lightcurve_utils.hist_results(samples["q"],Nbins=25)
+if (opts.analysisType == "mchirp"):
+    bins, hist1 = lightcurve_utils.weighted_hist_results(samples["q"],samples["weight_mbta"],Nbins=25)
+else:
+    bins, hist1 = lightcurve_utils.hist_results(samples["q"],Nbins=25)
 plt.step(bins,hist1,'-',color='k',linewidth=3, label='Template Bank')
 if opts.doAddPosteriors:
     bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["q"],Nbins=25)
@@ -1278,11 +1375,18 @@ for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
 
         fid = open(os.path.join(datDir,'%s_%s.dat'%(model,filt)),'w')
-        fid.write("t [days] min median max\n")
-       
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
-        magmax = np.percentile(mag_all[model][filt], 95, axis=0) + opts.errorbudget
-        magmin = np.percentile(mag_all[model][filt], 5, axis=0) - opts.errorbudget
+        fid.write("t [days] min(10th percentile) median max(90th percentile)\n")
+     
+        if (opts.analysisType == "mchirp"):
+            magmed, magmax, magmin = np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1])
+            for kk in range(mag_all[model][filt].shape[1]):
+                   magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                   magmax[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                   magmin[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+           magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
+           magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+           magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -1323,10 +1427,16 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
 
         
-
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0)
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
+        if (opts.analysisType == "mchirp"):
+                magmed, magmax, magmin = np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1])
+                for kk in range(mag_all[model][filt].shape[1]):
+                   magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                   magmax[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                   magmin[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+                magmed = np.percentile(mag_all[model][filt], 50, axis=0)
+                magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+                magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
         plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(tt,magmin,'-',c=colors_names[ii],linewidth=4)
@@ -1403,11 +1513,16 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         legend_name = get_legend(model)
 
       
-        
-
-        app_magmed = np.percentile(app_mag_all[model][filt], 50, axis=0)
-        app_magmax = np.percentile(app_mag_all[model][filt], 90, axis=0) + opts.errorbudget
-        app_magmin = np.percentile(app_mag_all[model][filt], 10, axis=0) - opts.errorbudget
+        if (opts.analysisType == "mchirp"):
+                app_magmed, app_magmax, app_magmin = np.zeros(app_mag_all[model][filt].shape[1]), np.zeros(app_mag_all[model][filt].shape[1]), np.zeros(app_mag_all[model][filt].shape[1])
+                for kk in range(app_mag_all[model][filt].shape[1]):
+                        app_magmed[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                        app_magmax[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                        app_magmin[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+                app_magmed = np.percentile(app_mag_all[model][filt], 50, axis=0)
+                app_magmax = np.percentile(app_mag_all[model][filt], 90, axis=0) + opts.errorbudget
+                app_magmin = np.percentile(app_mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
         plt.plot(tt,app_magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(tt,app_magmin,'-',c=colors_names[ii],linewidth=4)
@@ -1491,10 +1606,12 @@ if (opts.analysisType == "mchirp"):
 
       
         
-
-                app_magmed_mbta = np.percentile(app_mag_all_mbta[model][filt], 50, axis=0)
-                app_magmax_mbta = np.percentile(app_mag_all_mbta[model][filt], 90, axis=0) + opts.errorbudget
-                app_magmin_mbta = np.percentile(app_mag_all_mbta[model][filt], 10, axis=0) - opts.errorbudget
+                app_magmed_mbta, app_magmax_mbta, app_magmin_mbta = np.zeros(app_mag_all_mbta[model][filt].shape[1]), np.zeros(app_mag_all_mbta[model][filt].shape[1]), np.zeros(app_mag_all_mbta[model][filt].shape[1]) 
+                for kk in range(app_mag_all_mbta[model][filt].shape[1]):
+                        app_magmed_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                        app_magmax_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                        app_magmin_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+                
 
                 plt.plot(tt,app_magmed_mbta,'--',c=colors_names[ii],linewidth=4,label=legend_name)
                 plt.plot(tt,app_magmin_mbta,'-',c=colors_names[ii],linewidth=4)
@@ -1548,7 +1665,12 @@ cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    magmed = np.median(mag_all[model]["g"]-mag_all[model]["r"],axis=0)
+    if (opts.analysisType == "mchirp"):
+        magmed = np.zeros(mag_all[model]["r"].shape[1])
+        for kk in range(mag_all[model]["r"].shape[1]):
+                magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model]["g"][:,kk]-mag_all[model]["r"][:,kk],weights_mbta_all[model], 0.5)
+    else:          
+        magmed = np.median(mag_all[model]["g"]-mag_all[model]["r"],axis=0)
     magmax = np.max(mag_all[model]["g"]-mag_all[model]["r"],axis=0) + opts.errorbudget
     magmin = np.min(mag_all[model]["g"]-mag_all[model]["r"],axis=0) - opts.errorbudget
 
@@ -1570,7 +1692,12 @@ cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    lbolmed = np.median(lbol_all[model],axis=0)
+    if (opts.analysisType == "mchirp"):
+        lbolmed = np.zeros(lbol_all[model].shape[1])
+        for kk in range(lbol_all[model].shape[1]):
+                lbolmed[kk] = lightcurve_utils.weighted_percentile(lbol_all[model][:,kk], weights_mbta_all[model], 0.5)
+    else:
+        lbolmed = np.median(lbol_all[model],axis=0)
     lbolmax = np.max(lbol_all[model],axis=0) * (2.5 * opts.errorbudget)
     lbolmin = np.min(lbol_all[model],axis=0) / (2.5 * opts.errorbudget)
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)

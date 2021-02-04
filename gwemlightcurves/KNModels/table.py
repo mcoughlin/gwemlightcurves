@@ -295,6 +295,7 @@ class KNTable(Table):
 
     @classmethod
     def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
+    #def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
                 """
                 Read low latency posterior_samples
                 """
@@ -369,12 +370,17 @@ class KNTable(Table):
                 #        cnt = cnt + 1
 
 
-                samples = [] 
-                for i in range(len(data_out)):
-                        samples = samples + [[data_out[i]['mchirp'], data_out[i]['q'], data_out[i]['chi_eff'], data_out[i]['dist_mbta']]] * math.ceil(Nsamples * data_out[i]['weight'] / np.sum(data_out['weight'])) 
+                #samples = [] 
+                #for i in range(len(data_out)):
+                #        samples = samples + [[data_out[i]['mchirp'], data_out[i]['q'], data_out[i]['chi_eff'], data_out[i]['dist_mbta']]] * math.ceil(Nsamples * data_out[i]['weight'] / np.sum(data_out['weight'])) 
+                samples = np.zeros((len(data_out), 5))
+                samples[:,0], samples[:,1], samples[:,2], samples[:,3], samples[:,4] = data_out['mchirp'], data_out['q'], data_out['chi_eff'], data_out['dist_mbta'], data_out['weight']
 
-                samples = np.array(samples)
-                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
+
+
+                #samples = np.array(samples)
+                #data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
+                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta', 'weight_mbta'])
                 data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
                 data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
                 data_out["q"] = 1.0 / data_out["q"]
