@@ -78,7 +78,7 @@ def parse_commandline():
     parser.add_argument("--doAddPosteriors",  action="store_true", default=False)
     parser.add_argument("--eostype",default="spec")
     parser.add_argument("--phi_fixed", type=float, default=45)
-    parser.add_argument("--Xlan_fixed", type=float, default=-4)
+    #parser.add_argument("--Xlan_fixed", type=float, default=-4)
     parser.add_argument("--skymap_distance", type=str) 
     parser.add_argument("--sigma_ra", type=float, default=6.8)
     parser.add_argument("--sigma_dec", type=float, default=6.8)
@@ -216,8 +216,9 @@ plotDir = os.path.join(plotDir,opts.waveform)
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 plotDir = os.path.join(plotDir,opts.eostype)
 if (opts.model == "Ka2017"):
-        plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(opts.Xlan_fixed))
-elif (opts.model == "Bu2019inc"):
+#        plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(opts.Xlan_fixed))
+         plotDir = os.path.join(plotDir,"Xlan = uniform")
+if (opts.model == "Bu2019inc"):
         plotDir = os.path.join(plotDir,"phi = "+ "%.0f"%(opts.phi_fixed))
 
 if opts.analysisType == "cbclist":
@@ -237,7 +238,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
         #samples["dist"] = opts.distance
         samples["phi"] = opts.phi_fixed
-        samples["Xlan"] = 10**opts.Xlan_fixed
+        #samples["Xlan"] = 10**opts.Xlan_fixed
         samples['mbns'] = 0.
         samples['r1'] = 0.
         samples['r2'] = 0.
@@ -412,13 +413,13 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 radius1s.append(radius1)
                 radius2s.append(radius2)
                 chi_effs.append(chi_eff)
-                #Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
                 mbnss.append(mbns)
                 weights_mbta.append(weight_mbta)
                 np.random.uniform(0)
 
   
-        Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
+        #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
+        Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(samples) * nsamples 
         thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
