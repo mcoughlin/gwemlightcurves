@@ -236,14 +236,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
         samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
-        #samples["dist"] = opts.distance
-        samples["phi"] = opts.phi_fixed
-        #samples["Xlan"] = 10**opts.Xlan_fixed
-        samples['mbns'] = 0.
-        samples['r1'] = 0.
-        samples['r2'] = 0.
-        samples['lambda1'] = 0.
-        samples['lambda2'] = 0.
+        m1s, m2s, mbnss, radius1s, radius2s, chi_effs, lambda1s, lambda2s = [], [], [], [], [], [], [], []
+        Xlan_min, Xlan_max = -9, -1 
 
         if opts.eostype == "gp":
             # read Phil + Reed's EOS files
@@ -255,38 +249,43 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
             eos = EOS4ParameterPiecewisePolytrope(eosname)
         
         for ii, row in enumerate(samples):
-            m1, m2 = row["m1"], row["m2"]
-            nsamples = 100
+            print(ii)
+            m1, m2, chi_eff = row["m1"], row["m2"], row["chi_eff"]
+            if opts.eostype == "spec":
+                nsamples = 2396
+            else:
+                nsamples = 100
             if opts.eostype == "spec":
                 indices = np.random.randint(0, 2396, size=nsamples)
             elif opts.eostype == "gp":
                 indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
             for jj in range(nsamples):
-                if (opts.eostype == "spec") or (opts.eostype == "gp"):
-                    index = indices[jj] 
+                if (opts.eostype == "spec") or (opts.eostype == "gp"): 
                     lambda1, lambda2 = -1, -1
                     radius1, radius2 = -1, -1
                     mbns = -1
+                if (opts.eostype == "gp"):
+                    index = indices[jj]
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
-                        eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
-                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray, rarray =  data_out["M"], data_out["Lambda"], data_out["R"]
-                        f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
-                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
-                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
-                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
-                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
-                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meters
-                        if np.max(marray) > mbns: mbns = np.max(marray)
+                    eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                    marray, larray, rarray =  data_out["M"], data_out["Lambda"], data_out["R"]
+                    f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                    f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                    if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                    if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                    if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                    if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                    radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meters
+                    if np.max(marray) > mbns: mbns = np.max(marray)
 
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
-                            index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            radius1, radius2 = -1, -1
-                            mbns = -1
+                    if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
+                            #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
+                            #lambda1, lambda2 = -1, -1
+                            #radius1, radius2 = -1, -1
+                            #mbns = -1
+                            continue
                     	
                 elif opts.eostype == "gp":
                     while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
@@ -311,13 +310,29 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                     lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
                     mbns = eos.maxmass()
               
-                samples['lambda1'][ii] = lambda1
-                samples['lambda2'][ii] = lambda2
-                samples['r1'][ii] = radius1
-                samples['r2'][ii] = radius2
-                samples['mbns'][ii] = mbns 
+  
+                m1s.append(m1)
+                m2s.append(m2)
+                chi_effs.append(chi_eff)
+                lambda1s.append(lambda1)
+                lambda2s.append(lambda2)
+                radius1s.append(radius1)
+                radius2s.append(radius2)
+                mbnss.append(mbns)
                 np.random.uniform(0)
 
+        #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
+        Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
+        phis = [opts.phi_fixed] * len(m1s)
+        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+        idx_thetas = np.where(thetas > 90.)[0]
+        thetas[idx_thetas] = 180. - thetas[idx_thetas]
+        thetas = list(thetas)
+
+
+        # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
+        data = np.vstack((m1s,m2s,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "Xlan")) 
         
     else:
         if opts.nsamples < 1:
@@ -420,7 +435,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
   
         #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
         Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
-        phis = [opts.phi_fixed] * len(samples) * nsamples 
+        phis = [opts.phi_fixed] * len(m1s) 
         thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
         thetas[idx_thetas] = 180. - thetas[idx_thetas]
@@ -528,9 +543,12 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
            
         
         print("Probability of having ejecta")
-        print(100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta'])))
-        np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta']))])
-     
+        if opts.analysisType == "mchirp":
+                print(100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta'])))
+                np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta']))])
+        else:
+                print(100 * (len(samples) - len(idx)) / len(samples))
+                np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (len(samples) - len(idx)) / len(samples)])
        
 elif opts.analysisType == "multinest":
     multinest_samples = opts.multinest_samples.split(",")
