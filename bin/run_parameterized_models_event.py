@@ -236,7 +236,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
         samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
-        m1s, m2s, mbnss, radius1s, radius2s, chi_effs, lambda1s, lambda2s = [], [], [], [], [], [], [], []
+        m1s, m2s, mbnss, radius1s, radius2s, chi_effs, lambda1s, lambda2s, mb1s, mb2s = [], [], [], [], [], [], [], [], [], []
         Xlan_min, Xlan_max = -9, -1 
 
         if opts.eostype == "gp":
@@ -263,24 +263,30 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"): 
                     lambda1, lambda2 = -1, -1
                     radius1, radius2 = -1, -1
+                    mbaryon1, mbaryon2 = -1, -1
                     mbns = -1
                 if (opts.eostype == "gp"):
                     index = indices[jj]
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                    eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                    #eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                    eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                    marray, larray, rarray =  data_out["M"], data_out["Lambda"], data_out["R"]
+                    marray, larray, rarray, mbararray =  data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
                     f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
                     f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                    f_mbaryon = interp.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
                     if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
                     if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
                     if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
                     if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                    if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                    if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+
                     radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meters
                     if np.max(marray) > mbns: mbns = np.max(marray)
 
-                    if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
+                    if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon1 < 0.):
                             #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
                             #lambda1, lambda2 = -1, -1
                             #radius1, radius2 = -1, -1
@@ -318,6 +324,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 lambda2s.append(lambda2)
                 radius1s.append(radius1)
                 radius2s.append(radius2)
+                mb1s.append(mbaryon1)
+                mb2s.append(mbaryon2)
                 mbnss.append(mbns)
                 np.random.uniform(0)
 
@@ -331,8 +339,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
 
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss, Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "Xlan")) 
+        data = np.vstack((m1s,m2s,lambda1s,lambda2s,radius1s,radius2s,mb1s, mb2s,chi_effs,thetas, phis, mbnss, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "Xlan")) 
         
     else:
         if opts.nsamples < 1:
@@ -347,6 +355,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         m1s, m2s, dists_mbta = [], [], []
         lambda1s, lambda2s, chi_effs = [], [], []
         radius1s, radius2s = [], []
+        mb1s, mb2s = [], []
         Xlans = []
         mbnss = []
         weights_mbta = []
@@ -373,24 +382,29 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 if (opts.eostype == "spec") or (opts.eostype == "gp"):
                     lambda1, lambda2 = -1, -1
                     radius1, radius2 = -1, -1
-                    mbns = -1
+                    mbns = -1, 
+                    mbaryon1, mbaryon2 = -1, -1
                 if (opts.eostype == "gp"):
                     index = indices[jj]
                 # samples lambda's from Phil + Reed's files
                 if opts.eostype == "spec":
-                     eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                     #eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
+                     eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
                      data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                     marray, larray, rarray = data_out["M"], data_out["Lambda"], data_out["R"]
+                     marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
                      f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
                      f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                     f_mbaryon = interp.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
                      if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
                      if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
                      if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
                      if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                     if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                     if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
                      radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
                      if np.max(marray) > mbns: mbns = np.max(marray)
 
-                     if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.):
+                     if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
                         #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
                         #lambda1, lambda2 = -1, -1
                         #radius1, radius2 = -1, -1
@@ -427,6 +441,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 lambda2s.append(lambda2)
                 radius1s.append(radius1)
                 radius2s.append(radius2)
+                mb1s.append(mbaryon1)
+                mb2s.append(mbaryon2)
                 chi_effs.append(chi_eff)
                 mbnss.append(mbns)
                 weights_mbta.append(weight_mbta)
@@ -443,8 +459,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
        
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'chi_eff','theta', 'phi', 'mbns', "weight_mbta", "Xlan"))       
+        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,mb1s,mb2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "weight_mbta", "Xlan"))       
   
 
     # limit masses
@@ -464,7 +480,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     samples = samples.calc_compactness(fit=False)
     
     # Calc baryonic mass 
-    samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+    #samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
 
    
     
@@ -498,7 +514,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # calc the mass of ejecta
        
         
-        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
+        #mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
+        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'], samples['mb2'])
         # calc the velocity of ejecta
         vej2 = calc_vave(samples['q'])
        
