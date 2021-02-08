@@ -78,7 +78,7 @@ def parse_commandline():
     parser.add_argument("--doAddPosteriors",  action="store_true", default=False)
     parser.add_argument("--eostype",default="spec")
     parser.add_argument("--phi_fixed", type=float, default=45)
-    #parser.add_argument("--Xlan_fixed", type=float, default=-4)
+    parser.add_argument("--Xlan_fixed", type=str, default="uniform")
     parser.add_argument("--skymap_distance", type=str) 
     parser.add_argument("--sigma_ra", type=float, default=6.8)
     parser.add_argument("--sigma_dec", type=float, default=6.8)
@@ -216,8 +216,10 @@ plotDir = os.path.join(plotDir,opts.waveform)
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 plotDir = os.path.join(plotDir,opts.eostype)
 if (opts.model == "Ka2017"):
-#        plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(opts.Xlan_fixed))
-         plotDir = os.path.join(plotDir,"Xlan = uniform")
+         if (opts.Xlan_fixed != "uniform"):
+                plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(float(opts.Xlan_fixed)))
+         else:
+                plotDir = os.path.join(plotDir,"Xlan = uniform")
 if (opts.model == "Bu2019inc"):
         plotDir = os.path.join(plotDir,"phi = "+ "%.0f"%(opts.phi_fixed))
 
@@ -329,8 +331,10 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 mbnss.append(mbns)
                 np.random.uniform(0)
 
-        #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
-        Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
+        if (opts.Xlan_fixed != "uniform"):
+                Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
+        else:
+                Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(m1s)
         thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
@@ -448,9 +452,11 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 weights_mbta.append(weight_mbta)
                 np.random.uniform(0)
 
-  
-        #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
-        Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
+ 
+        if (opts.Xlan_fixed != "uniform"): 
+                Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
+        else:
+                Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(m1s) 
         thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
