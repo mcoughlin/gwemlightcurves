@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 import pickle
 import pandas as pd
+from astropy.table import Table
 
 import h5py
 from scipy.interpolate import interpolate as interp
@@ -555,7 +556,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 idx = np.where(samples['mej'] <= 1e-3)[0]
                 samples['mej'][idx] = 1e-11
            
-        
+        idx = np.where(samples['mej'] <= 3e-4)[0] 
         print("Probability of having ejecta")
         if opts.analysisType == "mchirp":
                 print(100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta'])))
@@ -687,7 +688,17 @@ if os.path.isfile(pcklFile):
 else:
     model_tables = {} 
     for model in models:
-        model_tables[model] = KNTable.model(model, samples, **kwargs)
+        if opts.doParallel:
+                from joblib import Parallel, delayed
+                lightcurve_array = Parallel(n_jobs=opts.Ncore)(delayed(KNTable.model)(model, KNTable(row), **kwargs) for row in samples)
+                model_tables[model] = Table([[]], names = (lightcurve_array[0].keys()[0],))
+                for keyname in lightcurve_array[0].keys():
+                        liste_temp = []
+                        for i in range(len(lightcurve_array)):
+                                liste_temp.append(lightcurve_array[i][keyname][0]) 
+                        model_tables[model][keyname] = liste_temp 
+        else:
+                model_tables[model] = KNTable.model(model, samples, **kwargs)
         if (opts.model == "Bu2019inc"):
                 idx = np.where(model_tables[model]['mej'] <= 1e-6)[0]
                 model_tables[model]['mag'][idx] = 10.
