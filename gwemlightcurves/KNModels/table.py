@@ -40,6 +40,83 @@ __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos', 'construct_eos_from_polytrope']
 
 
+def marginalize_eos_spec(row_sample, low_latency_flag=False):
+        if (low_latency_flag):
+                m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [], [], []
+                m1, m2, dist_mbta, chi_eff, weight_mbta = row_sample["m1"], row_sample["m2"], row_sample["dist_mbta"], row_sample["chi_eff"], row_sample["weight_mbta"]
+                nsamples = 2396
+                for jj in range(nsamples):
+                        lambda1, lambda2, radius1, radius2, mbaryon1, mbaryon2, mbns = -1, -1, -1, -1, -1, -1, -1
+                        eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
+                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                        marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                        if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
+                        if np.max(marray) > mbns: mbns = np.max(marray)
+                        
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
+                                continue
+                        m1s.append(m1)
+                        m2s.append(m2)
+                        dists_mbta.append(dist_mbta)
+                        chi_effs.append(chi_eff)
+                        weights_mbta.append(weight_mbta)
+                        lambda1s.append(lambda1)
+                        lambda2s.append(lambda2)
+                        r1s.append(radius1)
+                        r2s.append(radius2)
+                        mb1s.append(mbaryon1)
+                        mb2s.append(mbaryon2)
+                        mbnss.append(mbns)     
+                data = np.vstack((m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss)).T 
+                results_samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'chi_eff', 'weight_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'mbns'))
+        else:
+                m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [] 
+                m1, m2, chi_eff = row_sample["m1"], row_sample["m2"], row_sample["chi_eff"]           
+                nsamples = 2396
+                for jj in range(nsamples):
+                        lambda1, lambda2, radius1, radius2, mbaryon1, mbaryon2, mbns = -1, -1, -1, -1, -1, -1, -1
+                        eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
+                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                        marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                        if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
+                        if np.max(marray) > mbns: mbns = np.max(marray)
+
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
+                                continue
+                        m1s.append(m1)
+                        m2s.append(m2)
+                        chi_effs.append(chi_eff)
+                        lambda1s.append(lambda1)
+                        lambda2s.append(lambda2)
+                        r1s.append(radius1)
+                        r2s.append(radius2)
+                        mb1s.append(mbaryon1)
+                        mb2s.append(mbaryon2)
+                        mbnss.append(mbns)
+                data = np.vstack((m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss)).T                     
+                results_samples = KNTable(data, names=('m1', 'm2', 'chi_eff', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'mbns'))                 
+        return results_samples          
+
+
+
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
     """
     Determine physical lambda parameters from effective parameters.

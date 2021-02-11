@@ -26,6 +26,7 @@ import matplotlib.gridspec as gridspec
 
 from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.KNModels.table import marginalize_eos_spec
 from gwemlightcurves import __version__
 
 from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
@@ -83,7 +84,9 @@ def parse_commandline():
     parser.add_argument("--sigma_ra", type=float, default=6.8)
     parser.add_argument("--sigma_dec", type=float, default=6.8)
     parser.add_argument("--waveform", type=str)
-    parser.add_argument("--twixie_flag", default = False, action='store_true')  
+    parser.add_argument("--twixie_flag", default = False, action='store_true') 
+    parser.add_argument("--doParallel", default = False, action='store_true')
+    parser.add_argument("--Ncore", type = float, default = 8) 
 
     args = parser.parse_args()
  
@@ -238,102 +241,94 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
         samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
-        m1s, m2s, mbnss, radius1s, radius2s, chi_effs, lambda1s, lambda2s, mb1s, mb2s = [], [], [], [], [], [], [], [], [], []
-        Xlan_min, Xlan_max = -9, -1 
-
-        if opts.eostype == "gp":
-            # read Phil + Reed's EOS files
-            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-            idxs = np.array(eospostdat["eos"])
-            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
-        elif opts.eostype == "Sly":
-            eosname = "SLy"
-            eos = EOS4ParameterPiecewisePolytrope(eosname)
+        if (opts.eostype == "spec"):
+                if opts.doParallel:
+                        from joblib import Parallel, delayed
+                        samples_array = Parallel(n_jobs=opts.Ncore)(delayed(marginalize_eos_spec)(row, low_latency_flag=False) for row in samples)
+                else:
+                        samples_array = []
+                        for row in samples:
+                                samples_array.append(marginalize_eos_spec(row, low_latency_flag=False)) 
+                m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], []
+                for temp_samples in samples_array:
+                        m1s = m1s + list(temp_samples['m1'])
+                        m2s = m2s + list(temp_samples['m2'])
+                        chi_effs = chi_effs + list(temp_samples['chi_eff'])
+                        lambda1s = lambda1s + list(temp_samples['lambda1'])
+                        lambda2s = lambda2s + list(temp_samples['lambda2'])
+                        r1s = r1s + list(temp_samples['r1'])
+                        r2s = r2s + list(temp_samples['r2'])
+                        mb1s = mb1s + list(temp_samples['mb1'])
+                        mb2s = mb2s + list(temp_samples['mb2'])
+                        mbnss = mbnss + list(temp_samples['mbns'])
         
-        for ii, row in enumerate(samples):
-            print(ii)
-            m1, m2, chi_eff = row["m1"], row["m2"], row["chi_eff"]
-            if opts.eostype == "spec":
-                nsamples = 2396
-            else:
-                nsamples = 100
-            if opts.eostype == "spec":
-                indices = np.random.randint(0, 2396, size=nsamples)
-            elif opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
-            for jj in range(nsamples):
-                if (opts.eostype == "spec") or (opts.eostype == "gp"): 
-                    lambda1, lambda2 = -1, -1
-                    radius1, radius2 = -1, -1
-                    mbaryon1, mbaryon2 = -1, -1
-                    mbns = -1
-                if (opts.eostype == "gp"):
-                    index = indices[jj]
-                # samples lambda's from Phil + Reed's files
-                if opts.eostype == "spec":
-                    #eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
-                    eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
-                    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                    marray, larray, rarray, mbararray =  data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
-                    f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                    f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
-                    f_mbaryon = interp.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
-                    if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
-                    if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
-                    if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
-                    if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
-                    if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
-                    if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+        else:
+                m1s, m2s, mbnss, r1s, r2s, chi_effs, lambda1s, lambda2s, mb1s, mb2s = [], [], [], [], [], [], [], [], [], []
 
-                    radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meters
-                    if np.max(marray) > mbns: mbns = np.max(marray)
-
-                    if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon1 < 0.):
-                            #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                            #lambda1, lambda2 = -1, -1
-                            #radius1, radius2 = -1, -1
-                            #mbns = -1
-                            continue
-                    	
-                elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
-                        phasetr = 0
-                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        while os.path.isfile(eospath):
-                            data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                            marray, larray = data_out["M"], data_out["Lambda"]
-                            f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                            if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
-                            if float(f(m2)) > lambda2: lambda2 = f(m2)
-                            if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
-
-                            phasetr += 1 # check all stable branches
-                            eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-                    	
+                if opts.eostype == "gp":
+                        # read Phil + Reed's EOS files
+                        eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+                        idxs = np.array(eospostdat["eos"])
+                        weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
                 elif opts.eostype == "Sly":
-                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    mbns = eos.maxmass()
+                        eosname = "SLy"
+                        eos = EOS4ParameterPiecewisePolytrope(eosname)
+        
+                for ii, row in enumerate(samples):
+                        print(ii)
+                        m1, m2, chi_eff = row["m1"], row["m2"], row["chi_eff"] 
+                        nsamples = 100
+                        if opts.eostype == "gp":
+                                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
+                        for jj in range(nsamples):
+                                lambda1, lambda2 = -1, -1
+                                radius1, radius2 = -1, -1
+                                mbaryon1, mbaryon2 = -1, -1
+                                mbns = -1
+                                index = indices[jj]
+                                # samples lambda's from Phil + Reed's files
+            
+                    	
+                                if opts.eostype == "gp":
+                                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
+                                                phasetr = 0
+                                                eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                while os.path.isfile(eospath):
+                                                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                                                        marray, larray = data_out["M"], data_out["Lambda"]
+                                                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                                                        if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
+                                                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                                                        if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
+
+                                                        phasetr += 1 # check all stable branches
+                                                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                        index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
+                                                        lambda1, lambda2 = -1, -1
+                                                        mbns = -1
+                    	
+                                elif opts.eostype == "Sly":
+                                        lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                                        mbns = eos.maxmass()
               
   
-                m1s.append(m1)
-                m2s.append(m2)
-                chi_effs.append(chi_eff)
-                lambda1s.append(lambda1)
-                lambda2s.append(lambda2)
-                radius1s.append(radius1)
-                radius2s.append(radius2)
-                mb1s.append(mbaryon1)
-                mb2s.append(mbaryon2)
-                mbnss.append(mbns)
-                np.random.uniform(0)
+                                m1s.append(m1)
+                                m2s.append(m2)
+                                chi_effs.append(chi_eff)
+                                lambda1s.append(lambda1)
+                                lambda2s.append(lambda2)
+                                r1s.append(radius1)
+                                r2s.append(radius2)
+                                mb1s.append(mbaryon1)
+                                mb2s.append(mbaryon2)
+                                mbnss.append(mbns)
+                                np.random.uniform(0)
 
         if (opts.Xlan_fixed != "uniform"):
                 Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
         else:
+                Xlan_min, Xlan_max = -9, -1
                 Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(m1s)
         thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
@@ -343,7 +338,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
 
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,lambda1s,lambda2s,radius1s,radius2s,mb1s, mb2s,chi_effs,thetas, phis, mbnss, Xlans)).T
+        data = np.vstack((m1s,m2s,lambda1s,lambda2s,r1s,r2s,mb1s, mb2s,chi_effs,thetas, phis, mbnss, Xlans)).T
         samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "Xlan")) 
         
     else:
@@ -353,119 +348,115 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # read samples from template analysis
         #samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag)
         samples = KNTable.read_mchirp_samples(opts.mchirp_samples, twixie_flag = opts.twixie_flag)
+        if (opts.eostype == "spec"):
+                if opts.doParallel:
+                        from joblib import Parallel, delayed
+                        samples_array = Parallel(n_jobs=opts.Ncore)(delayed(marginalize_eos_spec)(row, low_latency_flag=True) for row in samples)
+                else:
+                        samples_array = []
+                        for row in samples:
+                                samples_array.append(marginalize_eos_spec(row, low_latency_flag=True))
+                m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [], [], []
+                for temp_samples in samples_array:
+                        m1s = m1s + list(temp_samples['m1'])
+                        m2s = m2s + list(temp_samples['m2'])
+                        dists_mbta = dists_mbta + list(temp_samples['dist_mbta'])
+                        chi_effs = chi_effs + list(temp_samples['chi_eff'])
+                        weights_mbta = weights_mbta + list(temp_samples['weight_mbta'])
+                        lambda1s = lambda1s + list(temp_samples['lambda1'])
+                        lambda2s = lambda2s + list(temp_samples['lambda2'])
+                        r1s = r1s + list(temp_samples['r1'])
+                        r2s = r2s + list(temp_samples['r2'])
+                        mb1s = mb1s + list(temp_samples['mb1'])
+                        mb2s = mb2s + list(temp_samples['mb2'])
+                        mbnss = mbnss + list(temp_samples['mbns'])
  
-       
- 
-        m1s, m2s, dists_mbta = [], [], []
-        lambda1s, lambda2s, chi_effs = [], [], []
-        radius1s, radius2s = [], []
-        mb1s, mb2s = [], []
-        Xlans = []
-        mbnss = []
-        weights_mbta = []
-        if opts.eostype == "gp":
-            # read Phil + Reed's EOS files
-            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-            idxs = np.array(eospostdat["eos"])
-            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
-        elif opts.eostype == "Sly":
-            eosname = "SLy"
-            eos = EOS4ParameterPiecewisePolytrope(eosname)
-
-        Xlan_min, Xlan_max = -9, -1 
-     
-        for ii, row in enumerate(samples): 
-            m1, m2, dist_mbta, chi_eff, weight_mbta = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"], row["weight_mbta"]
-            if (opts.eostype == "spec"):
-                nsamples = 2396
-            else:
-                nsamples = 100
-            if opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
-            for jj in range(nsamples):
-                if (opts.eostype == "spec") or (opts.eostype == "gp"):
-                    lambda1, lambda2 = -1, -1
-                    radius1, radius2 = -1, -1
-                    mbns = -1, 
-                    mbaryon1, mbaryon2 = -1, -1
-                if (opts.eostype == "gp"):
-                    index = indices[jj]
-                # samples lambda's from Phil + Reed's files
-                if opts.eostype == "spec":
-                     #eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % jj
-                     eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
-                     data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                     marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
-                     f_lambda = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                     f_radius = interp.interp1d(marray, rarray, fill_value=0, bounds_error=False)
-                     f_mbaryon = interp.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
-                     if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
-                     if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
-                     if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
-                     if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
-                     if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
-                     if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
-                     radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
-                     if np.max(marray) > mbns: mbns = np.max(marray)
-
-                     if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
-                        #index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                        #lambda1, lambda2 = -1, -1
-                        #radius1, radius2 = -1, -1
-                        #mbns = -1
-                        continue  
-
-                elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        phasetr = 0
-                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        while os.path.isfile(eospath):
-                            data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                            marray, larray = data_out["M"], data_out["Lambda"]
-                            f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                            if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
-                            if float(f(m2)) > lambda2: lambda2 = f(m2)
-                            if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
-                    	
-                            phasetr += 1 # check all stable branches
-                            eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-                    	
+        
+        else: 
+                m1s, m2s, dists_mbta = [], [], []
+                lambda1s, lambda2s, chi_effs = [], [], []
+                r1s, r2s = [], []
+                mb1s, mb2s = [], []
+                Xlans = []
+                mbnss = []
+                weights_mbta = []
+                if opts.eostype == "gp":
+                        # read Phil + Reed's EOS files
+                        eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+                        idxs = np.array(eospostdat["eos"])
+                        weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
                 elif opts.eostype == "Sly":
-                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    mbns = eos.maxmass()
+                        eosname = "SLy"
+                        eos = EOS4ParameterPiecewisePolytrope(eosname)
 
-                m1s.append(m1)
-                m2s.append(m2)
-                dists_mbta.append(dist_mbta)
-                lambda1s.append(lambda1)
-                lambda2s.append(lambda2)
-                radius1s.append(radius1)
-                radius2s.append(radius2)
-                mb1s.append(mbaryon1)
-                mb2s.append(mbaryon2)
-                chi_effs.append(chi_eff)
-                mbnss.append(mbns)
-                weights_mbta.append(weight_mbta)
-                np.random.uniform(0)
+       
+     
+                for ii, row in enumerate(samples): 
+                        m1, m2, dist_mbta, chi_eff, weight_mbta = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"], row["weight_mbta"] 
+                        nsamples = 100
+                        if opts.eostype == "gp":
+                                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
+                        for jj in range(nsamples):
+                                if (opts.eostype == "gp"):
+                                        lambda1, lambda2 = -1, -1
+                                        radius1, radius2 = -1, -1
+                                        mbns = -1, 
+                                        mbaryon1, mbaryon2 = -1, -1
+                                        index = indices[jj]
+                                # samples lambda's from Phil + Reed's files           
+
+                                if opts.eostype == "gp":
+                                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                phasetr = 0
+                                                eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                while os.path.isfile(eospath):
+                                                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                                                        marray, larray = data_out["M"], data_out["Lambda"]
+                                                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                                                        if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
+                                                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                                                        if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
+                    	
+                                                        phasetr += 1 # check all stable branches
+                                                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                        index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
+                                                        lambda1, lambda2 = -1, -1
+                                                        mbns = -1
+                    	
+                                elif opts.eostype == "Sly":
+                                        lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                                        mbns = eos.maxmass()
+
+                                m1s.append(m1)
+                                m2s.append(m2)
+                                dists_mbta.append(dist_mbta)
+                                lambda1s.append(lambda1)
+                                lambda2s.append(lambda2)
+                                r1s.append(radius1)
+                                r2s.append(radius2)
+                                mb1s.append(mbaryon1)
+                                mb2s.append(mbaryon2)
+                                chi_effs.append(chi_eff)
+                                mbnss.append(mbns)
+                                weights_mbta.append(weight_mbta)
+                                np.random.uniform(0)
 
  
         if (opts.Xlan_fixed != "uniform"): 
                 Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
         else:
+                Xlan_min, Xlan_max = -9, -1
                 Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(m1s) 
-        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(m1s))) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
         thetas[idx_thetas] = 180. - thetas[idx_thetas]
         thetas = list(thetas)
 
        
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,radius1s,radius2s,mb1s,mb2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
+        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,r1s,r2s,mb1s,mb2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
         samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "weight_mbta", "Xlan"))       
   
 
