@@ -87,7 +87,7 @@ def parse_commandline():
     parser.add_argument("--waveform", type=str)
     parser.add_argument("--twixie_flag", default = False, action='store_true') 
     parser.add_argument("--doParallel", default = False, action='store_true')
-    parser.add_argument("--Ncore", type = float, default = 8) 
+    parser.add_argument("--Ncore", type = int, default = 8) 
 
     args = parser.parse_args()
  
@@ -332,7 +332,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 Xlan_min, Xlan_max = -9, -1
                 Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
         phis = [opts.phi_fixed] * len(m1s)
-        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(m1s))) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
         thetas[idx_thetas] = 180. - thetas[idx_thetas]
         thetas = list(thetas)
