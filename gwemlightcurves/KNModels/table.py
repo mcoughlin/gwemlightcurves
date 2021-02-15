@@ -50,6 +50,8 @@ def marginalize_eos_spec(row_sample, low_latency_flag=False):
                         eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                         marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        mmax   = np.argmax(marray)
+                        marray, larray, rarray, mbararray = marray[0:mmax], larray[0:mmax], rarray[0:mmax], mbararray[0:mmax]
                         f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
                         f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
                         f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
@@ -87,6 +89,8 @@ def marginalize_eos_spec(row_sample, low_latency_flag=False):
                         eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                         marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        mmax   = np.argmax(marray)
+                        marray, larray, rarray, mbararray = marray[0:mmax], larray[0:mmax], rarray[0:mmax], mbararray[0:mmax]
                         f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
                         f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
                         f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
