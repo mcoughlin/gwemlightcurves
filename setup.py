@@ -22,31 +22,33 @@
 
 from __future__ import print_function
 
-import sys
-if sys.version < '2.6':
-    raise ImportError("Python versions older than 2.6 are not supported.")
+import os, sys, glob
+from distutils.version import LooseVersion
 
-import glob
-import os.path
+from setuptools import (setup, find_packages,
+                        __version__ as setuptools_version)
 
-from setuptools import (setup, find_packages)
+def get_scripts(scripts_dir='bin'):
+    """Get relative file paths for all files under the ``scripts_dir``
+    """
+    scripts = []
+    for (dirname, _, filenames) in os.walk(scripts_dir):
+        scripts.extend([os.path.join(dirname, fn) for fn in filenames])
+    return scripts
+
+import versioneer
+#from setup_utils import (CMDCLASS, get_setup_requires, get_scripts)
+__version__ = versioneer.get_version()
+CMDCLASS=versioneer.get_cmdclass()
 
 # set basic metadata
 PACKAGENAME = 'gwemlightcurves'
 DISTNAME = 'gwemlightcurves'
-AUTHOR = 'Scott Coughlin'
-AUTHOR_EMAIL = 'scott.coughlin@ligo.org'
+AUTHOR = 'Michael Coughlin'
+AUTHOR_EMAIL = 'michael.coughlin@ligo.org'
 LICENSE = 'GPLv3'
 
 cmdclass = {}
-
-# -- versioning ---------------------------------------------------------------
-
-import versioneer
-__version__ = versioneer.get_version()
-cmdclass.update(versioneer.get_cmdclass())
-
-# -- documentation ------------------------------------------------------------
 
 # import sphinx commands
 try:
