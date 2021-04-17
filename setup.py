@@ -1,28 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) Duncan Macleod (2013)
+# Copyright (C) Michael Coughlin (2021)
 #
-# This file is part of the hveto python package.
+# This file is part of gwemlightcurves.
 #
-# hveto is free software: you can redistribute it and/or modify
+# gwemopt is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# hveto is distributed in the hope that it will be useful,
+# gwemopt is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with hveto.  If not, see <http://www.gnu.org/licenses/>.
+# along with gwemopt.  If not, see <http://www.gnu.org/licenses/>.
 
 """Setup the gwemlightcurves package
 """
 
+# ignore all invalid names (pylint isn't good at looking at executables)
+# pylint: disable=invalid-name
+
 from __future__ import print_function
 
-import os, sys, glob
+import os, sys
 from distutils.version import LooseVersion
 
 from setuptools import (setup, find_packages,
@@ -30,7 +33,7 @@ from setuptools import (setup, find_packages,
 
 def get_scripts(scripts_dir='bin'):
     """Get relative file paths for all files under the ``scripts_dir``
-    """
+    """ 
     scripts = []
     for (dirname, _, filenames) in os.walk(scripts_dir):
         scripts.extend([os.path.join(dirname, fn) for fn in filenames])
@@ -41,29 +44,12 @@ import versioneer
 __version__ = versioneer.get_version()
 CMDCLASS=versioneer.get_cmdclass()
 
-# set basic metadata
-PACKAGENAME = 'gwemlightcurves'
-DISTNAME = 'gwemlightcurves'
-AUTHOR = 'Michael Coughlin'
-AUTHOR_EMAIL = 'michael.coughlin@ligo.org'
-LICENSE = 'GPLv3'
-
-cmdclass = {}
-
-# import sphinx commands
-try:
-    from sphinx.setup_command import BuildDoc
-except ImportError:
-    pass
-else:
-    cmdclass['build_sphinx'] = BuildDoc
-
 # -- dependencies -------------------------------------------------------------
 
-setup_requires = [
-    'setuptools',
-    'pytest-runner',
-]
+# build dependencies
+#setup_requires = get_setup_requires()
+
+# package dependencies
 install_requires = [
     'numpy',
     'scipy',
@@ -80,56 +66,60 @@ install_requires = [
     'penquins',
     'afterglowpy',
 ]
+
+# test dependencies
 tests_require = [
-    'pytest'
+    'pytest>=3.1',
+    'pytest-runner',
+    'freezegun',
+    'sqlparse',
+    'bs4',
 ]
-if sys.version_info < (2, 7):
-    tests_require.append('unittest2')
-extras_require = {
-    'doc': [
-        'sphinx',
-        'numpydoc',
-        'sphinx_rtd_theme',
-        'sphinxcontrib_programoutput',
-        'sphinxcontrib_epydoc',
-    ],
-}
+if sys.version < '3':
+    tests_require.append('mock')
 
 # -- run setup ----------------------------------------------------------------
 
-packagenames = find_packages()
-scripts = glob.glob(os.path.join('bin', '*')) + glob.glob('input/Monica/*') + glob.glob('input/Wolfgang/*') + glob.glob('input/lalsim/*')
+setup(
+    # metadata
+    name='gwemlightcurves',
+    provides=['gwemlightcurves'],
+    version=__version__,
+    description="A python package for kilonova lightcurves",
+    long_description=("gwemopt is a python package for kilonova lightcurves"),
+    author='Michael Coughlin',
+    author_email='michael.coughlin@ligo.org',
+    license='GPLv3',
+    url='https://github.com/mcoughlin/gwemlightcurves/',
 
-setup(name=DISTNAME,
-      provides=[PACKAGENAME],
-      version=__version__,
-      description=None,
-      long_description=None,
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      packages=packagenames,
-      include_package_data=True,
-      cmdclass=cmdclass,
-      scripts=scripts,
-      setup_requires=setup_requires,
-      install_requires=install_requires,
-      tests_require=tests_require,
-      extras_require=extras_require,
-      use_2to3=True,
-      classifiers=[
-          'Programming Language :: Python',
-          'Development Status :: 3 - Alpha',
-          'Intended Audience :: Science/Research',
-          'Intended Audience :: End Users/Desktop',
-          'Intended Audience :: Science/Research',
-          'Natural Language :: English',
-          'Topic :: Scientific/Engineering',
-          'Topic :: Scientific/Engineering :: Astronomy',
-          'Topic :: Scientific/Engineering :: Physics',
-          'Operating System :: POSIX',
-          'Operating System :: Unix',
-          'Operating System :: MacOS',
-          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-      ],
+    # package content
+    packages=find_packages(),
+    scripts=get_scripts(),
+    include_package_data=True,
+
+    # dependencies
+    cmdclass=CMDCLASS,
+    install_requires=install_requires,
+    tests_require=tests_require,
+
+    # classifiers
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Intended Audience :: Science/Research',
+        'Intended Audience :: End Users/Desktop',
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Astronomy',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Operating System :: POSIX',
+        'Operating System :: Unix',
+        'Operating System :: MacOS',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+    ],
 )
