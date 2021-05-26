@@ -20,6 +20,7 @@
 
 import os
 import numpy as np
+import math
 import scipy
 import h5py
 import pandas as pd
@@ -37,6 +38,87 @@ from scipy import interpolate
 
 __author__ = 'Scott Coughlin <scott.coughlin@ligo.org>'
 __all__ = ['KNTable', 'tidal_lambda_from_tilde', 'CLove', 'EOSfit', 'get_eos_list', 'get_lalsim_eos', 'construct_eos_from_polytrope']
+
+
+def marginalize_eos_spec(row_sample, low_latency_flag=False):
+        if (low_latency_flag):
+                m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [], [], []
+                m1, m2, dist_mbta, chi_eff, weight_mbta = row_sample["m1"], row_sample["m2"], row_sample["dist_mbta"], row_sample["chi_eff"], row_sample["weight_mbta"]
+                nsamples = 2396
+                for jj in range(nsamples):
+                        lambda1, lambda2, radius1, radius2, mbaryon1, mbaryon2, mbns = -1, -1, -1, -1, -1, -1, -1
+                        eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
+                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                        marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        mmax   = np.argmax(marray)
+                        marray, larray, rarray, mbararray = marray[0:mmax], larray[0:mmax], rarray[0:mmax], mbararray[0:mmax]
+                        f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                        if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
+                        if np.max(marray) > mbns: mbns = np.max(marray)
+                        
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
+                                continue
+                        m1s.append(m1)
+                        m2s.append(m2)
+                        dists_mbta.append(dist_mbta)
+                        chi_effs.append(chi_eff)
+                        weights_mbta.append(weight_mbta)
+                        lambda1s.append(lambda1)
+                        lambda2s.append(lambda2)
+                        r1s.append(radius1)
+                        r2s.append(radius2)
+                        mb1s.append(mbaryon1)
+                        mb2s.append(mbaryon2)
+                        mbnss.append(mbns)     
+                data = np.vstack((m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss)).T 
+                results_samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'chi_eff', 'weight_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'mbns'))
+        else:
+                m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [] 
+                m1, m2, chi_eff = row_sample["m1"], row_sample["m2"], row_sample["chi_eff"]           
+                nsamples = 2396
+                for jj in range(nsamples):
+                        lambda1, lambda2, radius1, radius2, mbaryon1, mbaryon2, mbns = -1, -1, -1, -1, -1, -1, -1
+                        eospath = "/home/philippe.landry/nseos/eos/spec/macro_nsstruc/macro-spec_%dcr.csv" % jj
+                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                        marray, larray, rarray, mbararray = data_out["M"], data_out["Lambda"], data_out["R"], data_out["Mb"]
+                        mmax   = np.argmax(marray)
+                        marray, larray, rarray, mbararray = marray[0:mmax], larray[0:mmax], rarray[0:mmax], mbararray[0:mmax]
+                        f_lambda = interpolate.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                        f_radius = interpolate.interp1d(marray, rarray, fill_value=0, bounds_error=False)
+                        f_mbaryon = interpolate.interp1d(marray, mbararray, fill_value=0, bounds_error=False)
+                        if float(f_lambda(m1)) > lambda1: lambda1 = f_lambda(m1)
+                        if float(f_lambda(m2)) > lambda2: lambda2 = f_lambda(m2)
+                        if float(f_radius(m1)) > radius1: radius1 = f_radius(m1)
+                        if float(f_radius(m2)) > radius2: radius2 = f_radius(m2)
+                        if float(f_mbaryon(m1)) > mbaryon1: mbaryon1 = f_mbaryon(m1)
+                        if float(f_mbaryon(m2)) > mbaryon2: mbaryon2 = f_mbaryon(m2)
+                        radius1, radius2 = radius1 * 1000, radius2 * 1000 #radius in meter
+                        if np.max(marray) > mbns: mbns = np.max(marray)
+
+                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0.) or (radius2 < 0.) or (mbaryon1 < 0.) or (mbaryon2 < 0.):
+                                continue
+                        m1s.append(m1)
+                        m2s.append(m2)
+                        chi_effs.append(chi_eff)
+                        lambda1s.append(lambda1)
+                        lambda2s.append(lambda2)
+                        r1s.append(radius1)
+                        r2s.append(radius2)
+                        mb1s.append(mbaryon1)
+                        mb2s.append(mbaryon2)
+                        mbnss.append(mbns)
+                data = np.vstack((m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss)).T                     
+                results_samples = KNTable(data, names=('m1', 'm2', 'chi_eff', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'mbns'))                 
+        return results_samples          
+
 
 
 def tidal_lambda_from_tilde(mass1, mass2, lam_til, dlam_til):
@@ -137,7 +219,7 @@ def construct_eos_from_polytrope(eos_name):
     for i in range(0, len(polytrope_table['logP1'])):
         polytrope_table['logP1'][i]=np.log10(10**(polytrope_table['logP1'][i])*0.1)
 
-    eos_indx=np.where(polytrope_table['eos']==eos)[0][0]
+    eos_indx=np.where(polytrope_table['eos']==eos_name.encode('utf-8'))[0][0]
 
     eos=lalsim.SimNeutronStarEOS4ParameterPiecewisePolytrope(polytrope_table['logP1'][eos_indx], polytrope_table['gamma1'][eos_indx], polytrope_table['gamma2'][eos_indx], polytrope_table['gamma3'][eos_indx])
     fam=lalsim.CreateSimNeutronStarFamily(eos)
@@ -207,7 +289,7 @@ class KNTable(Table):
     """
     # -- i/o ------------------------------------
     @classmethod
-    def read_samples(cls, filename_samples):
+    def read_samples(cls, filename_samples, Nsamples=100):
         """
         Read LALinference posterior_samples
         """
@@ -288,10 +370,13 @@ class KNTable(Table):
             elif "luminosity_distance" in data_out:
                 data_out["dist"] = data_out["luminosity_distance"]
 
-        return KNTable(data_out)
+        data_out = KNTable(data_out)
+        data_out = data_out.downsample(Nsamples)
+        return data_out
 
     @classmethod
     def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
+    #def read_mchirp_samples(cls, filename_samples, Nsamples=100, twixie_flag=False):
                 """
                 Read low latency posterior_samples
                 """
@@ -339,36 +424,44 @@ class KNTable(Table):
                
 
                 data_out['weight'] = data_out['weight'] / np.max(data_out['weight'])
-                kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
-                gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
-                params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
-                #params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'])).T
-                data = np.array(data_out['weight'])
-                gp.fit(params, data)
+                data_out = data_out[data_out['weight'] > 0]
+                #kernel = 1.0 * RationalQuadratic(length_scale=1.0, alpha=0.1)
+                #gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
+                #params = np.vstack((data_out['mchirp'],data_out['q'],data_out['chi_eff'],data_out['dist_mbta'])).T
+                #data = np.array(data_out['weight'])
+                #gp.fit(params, data)
 
-                mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
-                q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
-                chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
-                dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
+                #mchirp_min, mchirp_max = np.min(data_out['mchirp']), np.max(data_out['mchirp'])
+                #q_min, q_max = np.min(data_out['q']), np.max(data_out['q'])
+                #chi_min, chi_max = np.min(data_out['chi_eff']), np.max(data_out['chi_eff'])
+                #dist_mbta_min, dist_mbta_max = np.min(data_out['dist_mbta']), np.max(data_out['dist_mbta'])
 
-                cnt = 0
-                samples = []
-                while cnt < Nsamples:
-                    mchirp = np.random.uniform(mchirp_min, mchirp_max)
-                    q = np.random.uniform(q_min, q_max)
-                    chi_eff = np.random.uniform(chi_min, chi_max)
-                    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
-                    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
-                    #samp = np.atleast_2d(np.array([mchirp,q,chi_eff]))
-                    weight = gp.predict(samp)[0]
-                    thresh = np.random.uniform(0,1)
-                    if weight > thresh:
-                        samples.append([mchirp,q,chi_eff,dist_mbta])
-                        #samples.append([mchirp,q,chi_eff])
-                        cnt = cnt + 1
-                samples = np.array(samples)
-                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
-                #data_out = Table(data=samples, names=['mchirp','q','chi_eff'])
+                #cnt = 0
+                #samples = []
+                #while cnt < Nsamples:
+                #    mchirp = np.random.uniform(mchirp_min, mchirp_max)
+                #    q = np.random.uniform(q_min, q_max)
+                #    chi_eff = np.random.uniform(chi_min, chi_max)
+                #    dist_mbta = np.random.uniform(dist_mbta_min, dist_mbta_max)
+                #    samp = np.atleast_2d(np.array([mchirp,q,chi_eff,dist_mbta]))
+                #    weight = gp.predict(samp)[0]
+                #    thresh = np.random.uniform(0,1)
+                #    if weight > thresh:
+                #        samples.append([mchirp,q,chi_eff,dist_mbta])
+                #        cnt = cnt + 1
+
+
+                #samples = [] 
+                #for i in range(len(data_out)):
+                #        samples = samples + [[data_out[i]['mchirp'], data_out[i]['q'], data_out[i]['chi_eff'], data_out[i]['dist_mbta']]] * math.ceil(Nsamples * data_out[i]['weight'] / np.sum(data_out['weight'])) 
+                samples = np.zeros((len(data_out), 5))
+                samples[:,0], samples[:,1], samples[:,2], samples[:,3], samples[:,4] = data_out['mchirp'], data_out['q'], data_out['chi_eff'], data_out['dist_mbta'], data_out['weight']
+
+
+
+                #samples = np.array(samples)
+                #data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta'])
+                data_out = Table(data=samples, names=['mchirp','q','chi_eff','dist_mbta', 'weight_mbta'])
                 data_out["eta"] = lightcurve_utils.q2eta(data_out["q"])
                 data_out["m1"], data_out["m2"] = lightcurve_utils.mc2ms(data_out["mchirp"],data_out["eta"])
                 data_out["q"] = 1.0 / data_out["q"]
@@ -598,7 +691,24 @@ class KNTable(Table):
             print('you are therefore must have selected a EOS')
             self['c1'] = self['m1'] / self['r1'] * G / c**2 * msun
             self['c2'] = self['m2'] / self['r2'] * G / c**2 * msun
-        return self
+            
+            if (self['c1'] > 4./9.).any():
+                print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+                self['c1'][self['c1'] > 4./9.] = 4./9.
+            if (self['c1'] < 0.).any():
+                print("Warning: Returned compactnesses < 0 ... setting = 0.")
+                self['c1'][self['c1'] < 0.0] = 0.0
+                
+
+            
+            if (self['c2'] > 4./9.).any():
+                print("Warning: Returned compactnesses > 4/9 = 0.44 ... setting = 4/9")
+                self['c2'][self['c2'] > 4./9.] = 4./9.
+            if (self['c2'] < 0.).any():
+                print("Warning: Returned compactnesses < 0 ... setting = 0.")
+                self['c2'][self['c2'] < 0.0] = 0.0
+            return self
+
 
 
     def calc_baryonic_mass(self, EOS, TOV, fit=False):
@@ -703,10 +813,12 @@ class KNTable(Table):
                     G = C.G.value; c = C.c.value; msun = u.M_sun.to(u.kg)
 
                 ns_eos, eos_fam=construct_eos_from_polytrope(EOS)
-                self['r1']=lalsim.SimNeutronStarRadius(self['m1']*msun, eos_fam)
-                self['r2']=lalsim.SimNeutronStarRadius(self['m2']*msun, eos_fam)
+                self['r1'] = np.vectorize(lalsim.SimNeutronStarRadius)(self["m1"] * msun, eos_fam)
+                self['r2'] = np.vectorize(lalsim.SimNeutronStarRadius)(self["m2"] * msun, eos_fam)
 
             else:
+                import gwemlightcurves.EOS.TOV.Monica.MonotonicSpline as ms
+                import gwemlightcurves.EOS.TOV.Monica.eos_tools as et
                 MassRadiusBaryMassTable = Table.read(find_executable(EOS + '_lalsim_mr.dat'), format='ascii')
                 radius_of_mass_const = ms.interpolate(MassRadiusBaryMassTable['mass'], MassRadiusBaryMassTable['radius'])
                 # after obtaining the radius_of_mass constants we now can either take values directly from table or use pre calculated spline to extrapolate the values

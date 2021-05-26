@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 import pickle
 import pandas as pd
+from astropy.table import Table
 
 import h5py
 from scipy.interpolate import interpolate as interp
@@ -26,6 +27,7 @@ import matplotlib.gridspec as gridspec
 
 from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
+from gwemlightcurves.KNModels.table import marginalize_eos_spec
 from gwemlightcurves import __version__
 
 from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
@@ -65,6 +67,7 @@ def parse_commandline():
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
     parser.add_argument("--nsamples",default=-1,type=int)
+    parser.add_argument("--ndownsamples",default=-1,type=int)
 
     parser.add_argument("--doFixedLimit",  action="store_true", default=False)
     parser.add_argument("--limits",default="20.4,20.4")
@@ -77,12 +80,14 @@ def parse_commandline():
     parser.add_argument("--doAddPosteriors",  action="store_true", default=False)
     parser.add_argument("--eostype",default="spec")
     parser.add_argument("--phi_fixed", type=float, default=45)
-    parser.add_argument("--Xlan_fixed", type=float, default=-4)
+    parser.add_argument("--Xlan_fixed", type=str, default="uniform")
     parser.add_argument("--skymap_distance", type=str) 
     parser.add_argument("--sigma_ra", type=float, default=6.8)
     parser.add_argument("--sigma_dec", type=float, default=6.8)
     parser.add_argument("--waveform", type=str)
-    parser.add_argument("--twixie_flag", default = False, action='store_true')  
+    parser.add_argument("--twixie_flag", default = False, action='store_true') 
+    parser.add_argument("--doParallel", default = False, action='store_true')
+    parser.add_argument("--Ncore", type = int, default = 8) 
 
     args = parser.parse_args()
  
@@ -103,30 +108,30 @@ if (opts.skymap_distance):
         map_struct["distsigma"] = skymap[2]
 
         
-        ipix_best = np.argmax(skymap[0])
-        theta_best, phi_best = hp.pix2ang(nside, ipix_best)
-        ra_best = np.rad2deg(phi_best)
-        dec_best = np.rad2deg(0.5 * np.pi - theta_best)
+        #ipix_best = np.argmax(skymap[0])
+        #theta_best, phi_best = hp.pix2ang(nside, ipix_best)
+        #ra_best = np.rad2deg(phi_best)
+        #dec_best = np.rad2deg(0.5 * np.pi - theta_best)
       
         
 
-        ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
-        dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
+        #ra_vector = np.linspace(ra_best - opts.sigma_ra, ra_best + opts.sigma_ra, 400)
+        #dec_vector = np.linspace(dec_best - opts.sigma_dec, dec_best + opts.sigma_dec, 400)
 
-        theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
-        phi_vector = np.deg2rad(ra_vector)
-        theta_phi_array = list(itertools.product(theta_vector, phi_vector))
-        ipix_vector = [0] * (len(theta_phi_array))
+        #theta_vector = 0.5 * np.pi - np.deg2rad(dec_vector)
+        #phi_vector = np.deg2rad(ra_vector)
+        #theta_phi_array = list(itertools.product(theta_vector, phi_vector))
+        #ipix_vector = [0] * (len(theta_phi_array))
 
-        for i in range(len(theta_phi_array)):
-                ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
-        ipix_vector = list(set(ipix_vector))
+        #for i in range(len(theta_phi_array)):
+        #        ipix_vector[i] = hp.ang2pix(nside, theta_phi_array[i][0], theta_phi_array[i][1])
+        #ipix_vector = list(set(ipix_vector))
 
-        all_index = [index for index, value in enumerate(map_struct["prob"])]
-        bad_index = list( set(all_index) - set(ipix_vector))
+        #all_index = [index for index, value in enumerate(map_struct["prob"])]
+        #bad_index = list( set(all_index) - set(ipix_vector))
 
-        map_struct["prob"][bad_index] = 0
-        map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
+        #map_struct["prob"][bad_index] = 0
+        #map_struct["prob"] = map_struct["prob"] / np.sum(map_struct["prob"])
 
         distmean, diststd = parameters_to_marginal_moments(map_struct["prob"], map_struct["distmu"], map_struct["distsigma"])
 
@@ -215,8 +220,11 @@ plotDir = os.path.join(plotDir,opts.waveform)
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
 plotDir = os.path.join(plotDir,opts.eostype)
 if (opts.model == "Ka2017"):
-        plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(opts.Xlan_fixed))
-elif (opts.model == "Bu2019inc"):
+         if (opts.Xlan_fixed != "uniform"):
+                plotDir = os.path.join(plotDir,"Xlan = "+ "%.0f"%(float(opts.Xlan_fixed)))
+         else:
+                plotDir = os.path.join(plotDir,"Xlan = uniform")
+if (opts.model == "Bu2019inc"):
         plotDir = os.path.join(plotDir,"phi = "+ "%.0f"%(opts.phi_fixed))
 
 if opts.analysisType == "cbclist":
@@ -233,182 +241,232 @@ if not os.path.isdir(datDir):
 if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     # read in samples
     if opts.analysisType == "posterior":
-        samples = KNTable.read_samples(opts.posterior_samples)
-        #samples["dist"] = opts.distance
-        samples["phi"] = opts.phi_fixed
-        samples["Xlan"] = 10**opts.Xlan_fixed
-        samples['mbns'] = 0. 
-
-        if opts.eostype == "gp":
-            # read Phil + Reed's EOS files
-            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-            idxs = np.array(eospostdat["eos"])
-            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
-        elif opts.eostype == "Sly":
-            eosname = "SLy"
-            eos = EOS4ParameterPiecewisePolytrope(eosname)
+        samples = KNTable.read_samples(opts.posterior_samples, Nsamples=opts.nsamples)
+        if (opts.eostype == "spec"):
+                if opts.doParallel:
+                        from joblib import Parallel, delayed
+                        samples_array = Parallel(n_jobs=opts.Ncore)(delayed(marginalize_eos_spec)(row, low_latency_flag=False) for row in samples)
+                else:
+                        samples_array = []
+                        for row in samples:
+                                samples_array.append(marginalize_eos_spec(row, low_latency_flag=False)) 
+                m1s, m2s, chi_effs, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], []
+                for temp_samples in samples_array:
+                        m1s = m1s + list(temp_samples['m1'])
+                        m2s = m2s + list(temp_samples['m2'])
+                        chi_effs = chi_effs + list(temp_samples['chi_eff'])
+                        lambda1s = lambda1s + list(temp_samples['lambda1'])
+                        lambda2s = lambda2s + list(temp_samples['lambda2'])
+                        r1s = r1s + list(temp_samples['r1'])
+                        r2s = r2s + list(temp_samples['r2'])
+                        mb1s = mb1s + list(temp_samples['mb1'])
+                        mb2s = mb2s + list(temp_samples['mb2'])
+                        mbnss = mbnss + list(temp_samples['mbns'])
         
-        for ii, row in enumerate(samples):
-            m1, m2 = row["m1"], row["m2"]
-            nsamples = 1
-            if opts.eostype == "spec":
-                indices = np.random.randint(0, 2396, size=nsamples)
-            elif opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
-            for jj in range(nsamples):
-                if (opts.eostype == "spec") or (opts.eostype == "gp"):
-                    index = indices[jj] 
-                    lambda1, lambda2 = -1, -1
-                    mbns = -1
-                # samples lambda's from Phil + Reed's files
-                if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
-                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray = data_out["M"], data_out["Lambda"]
-                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        if float(f(m1)) > lambda1: lambda1 = f(m1)
-                        if float(f(m2)) > lambda2: lambda2 = f(m2)
-                        if np.max(marray) > mbns: mbns = np.max(marray)
+        else:
+                m1s, m2s, mbnss, r1s, r2s, chi_effs, lambda1s, lambda2s, mb1s, mb2s = [], [], [], [], [], [], [], [], [], []
 
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-                    	
-                elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        phasetr = 0
-                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        while os.path.isfile(eospath):
-                            data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                            marray, larray = data_out["M"], data_out["Lambda"]
-                            f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                            if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
-                            if float(f(m2)) > lambda2: lambda2 = f(m2)
-                            if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
-
-                            phasetr += 1 # check all stable branches
-                            eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-                    	
+                if opts.eostype == "gp":
+                        # read Phil + Reed's EOS files
+                        eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+                        idxs = np.array(eospostdat["eos"])
+                        weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
                 elif opts.eostype == "Sly":
-                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    mbns = eos.maxmass()
-              
-                samples['lambda1'][ii] = lambda1
-                samples['lambda2'][ii] = lambda2
-                samples['mbns'][ii] = mbns 
-                np.random.uniform(0)
+                        eosname = "SLy"
+                        eos = EOS4ParameterPiecewisePolytrope(eosname)
+        
+                for ii, row in enumerate(samples):
+                        print(ii)
+                        m1, m2, chi_eff = row["m1"], row["m2"], row["chi_eff"] 
+                        nsamples = 100
+                        if opts.eostype == "gp":
+                                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
+                        for jj in range(nsamples):
+                                lambda1, lambda2 = -1, -1
+                                radius1, radius2 = -1, -1
+                                mbaryon1, mbaryon2 = -1, -1
+                                mbns = -1
+                                index = indices[jj]
+                                # samples lambda's from Phil + Reed's files
+            
+                    	
+                                if opts.eostype == "gp":
+                                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.) or (radius1 < 0) or (radius2 < 0.):
+                                                phasetr = 0
+                                                eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                while os.path.isfile(eospath):
+                                                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                                                        marray, larray = data_out["M"], data_out["Lambda"]
+                                                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                                                        if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
+                                                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                                                        if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
 
+                                                        phasetr += 1 # check all stable branches
+                                                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                        index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
+                                                        lambda1, lambda2 = -1, -1
+                                                        mbns = -1
+                    	
+                                elif opts.eostype == "Sly":
+                                        lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                                        mbns = eos.maxmass()
+              
+  
+                                m1s.append(m1)
+                                m2s.append(m2)
+                                chi_effs.append(chi_eff)
+                                lambda1s.append(lambda1)
+                                lambda2s.append(lambda2)
+                                r1s.append(radius1)
+                                r2s.append(radius2)
+                                mb1s.append(mbaryon1)
+                                mb2s.append(mbaryon2)
+                                mbnss.append(mbns)
+                                np.random.uniform(0)
+
+        if (opts.Xlan_fixed != "uniform"):
+                Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
+        else:
+                Xlan_min, Xlan_max = -9, -1
+                Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
+        phis = [opts.phi_fixed] * len(m1s)
+        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(m1s))) / np.pi
+        idx_thetas = np.where(thetas > 90.)[0]
+        thetas[idx_thetas] = 180. - thetas[idx_thetas]
+        thetas = list(thetas)
+
+
+        # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
+        data = np.vstack((m1s,m2s,lambda1s,lambda2s,r1s,r2s,mb1s, mb2s,chi_effs,thetas, phis, mbnss, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "Xlan")) 
         
     else:
         if opts.nsamples < 1:
             print('Please set nsamples >= 1')
             exit(0)
         # read samples from template analysis
-        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag) 
-       
+        #samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = opts.twixie_flag)
+        samples = KNTable.read_mchirp_samples(opts.mchirp_samples, twixie_flag = opts.twixie_flag)
+        if (opts.eostype == "spec"):
+                if opts.doParallel:
+                        from joblib import Parallel, delayed
+                        samples_array = Parallel(n_jobs=opts.Ncore)(delayed(marginalize_eos_spec)(row, low_latency_flag=True) for row in samples)
+                else:
+                        samples_array = []
+                        for row in samples:
+                                samples_array.append(marginalize_eos_spec(row, low_latency_flag=True))
+                m1s, m2s, dists_mbta, chi_effs, weights_mbta, lambda1s, lambda2s, r1s, r2s, mb1s, mb2s, mbnss = [], [], [], [], [], [], [], [], [], [], [], []
+                for temp_samples in samples_array:
+                        m1s = m1s + list(temp_samples['m1'])
+                        m2s = m2s + list(temp_samples['m2'])
+                        dists_mbta = dists_mbta + list(temp_samples['dist_mbta'])
+                        chi_effs = chi_effs + list(temp_samples['chi_eff'])
+                        weights_mbta = weights_mbta + list(temp_samples['weight_mbta'])
+                        lambda1s = lambda1s + list(temp_samples['lambda1'])
+                        lambda2s = lambda2s + list(temp_samples['lambda2'])
+                        r1s = r1s + list(temp_samples['r1'])
+                        r2s = r2s + list(temp_samples['r2'])
+                        mb1s = mb1s + list(temp_samples['mb1'])
+                        mb2s = mb2s + list(temp_samples['mb2'])
+                        mbnss = mbnss + list(temp_samples['mbns'])
  
-        m1s, m2s, dists_mbta = [], [], []
-        lambda1s, lambda2s, chi_effs = [], [], []
-        Xlans = []
-        mbnss = []
-        if opts.eostype == "gp":
-            # read Phil + Reed's EOS files
-            eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-            idxs = np.array(eospostdat["eos"])
-            weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
-        elif opts.eostype == "Sly":
-            eosname = "SLy"
-            eos = EOS4ParameterPiecewisePolytrope(eosname)
-
-        Xlan_min, Xlan_max = -9, -1 
-     
-        for ii, row in enumerate(samples): 
-            m1, m2, dist_mbta, chi_eff = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"]
-            nsamples = 30
-            if opts.eostype == "spec":
-                indices = np.random.randint(0, 2396, size=nsamples)
-            elif opts.eostype == "gp":
-                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
-            for jj in range(nsamples):
-                if (opts.eostype == "spec") or (opts.eostype == "gp"):
-                    index = indices[jj] 
-                    lambda1, lambda2 = -1, -1
-                    mbns = -1
-                # samples lambda's from Phil + Reed's files
-                if opts.eostype == "spec":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
-                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray = data_out["M"], data_out["Lambda"]
-                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        if float(f(m1)) > lambda1: lambda1 = f(m1)
-                        if float(f(m2)) > lambda2: lambda2 = f(m2)
-                        if np.max(marray) > mbns: mbns = np.max(marray)
-
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-
-                elif opts.eostype == "gp":
-                    while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                        phasetr = 0
-                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        while os.path.isfile(eospath):
-                            data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                            marray, larray = data_out["M"], data_out["Lambda"]
-                            f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                            if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
-                            if float(f(m2)) > lambda2: lambda2 = f(m2)
-                            if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
-                    	
-                            phasetr += 1 # check all stable branches
-                            eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
-                        if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
-                            index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
-                            lambda1, lambda2 = -1, -1
-                            mbns = -1
-                    	
+        
+        else: 
+                m1s, m2s, dists_mbta = [], [], []
+                lambda1s, lambda2s, chi_effs = [], [], []
+                r1s, r2s = [], []
+                mb1s, mb2s = [], []
+                Xlans = []
+                mbnss = []
+                weights_mbta = []
+                if opts.eostype == "gp":
+                        # read Phil + Reed's EOS files
+                        eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+                        idxs = np.array(eospostdat["eos"])
+                        weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
                 elif opts.eostype == "Sly":
-                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    mbns = eos.maxmass()
+                        eosname = "SLy"
+                        eos = EOS4ParameterPiecewisePolytrope(eosname)
 
-                m1s.append(m1)
-                m2s.append(m2)
-                dists_mbta.append(dist_mbta)
-                lambda1s.append(lambda1)
-                lambda2s.append(lambda2)
-                chi_effs.append(chi_eff)
-                #Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
-                mbnss.append(mbns)
-                np.random.uniform(0)
+       
+     
+                for ii, row in enumerate(samples): 
+                        m1, m2, dist_mbta, chi_eff, weight_mbta = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"], row["weight_mbta"] 
+                        nsamples = 100
+                        if opts.eostype == "gp":
+                                indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
+                        for jj in range(nsamples):
+                                if (opts.eostype == "gp"):
+                                        lambda1, lambda2 = -1, -1
+                                        radius1, radius2 = -1, -1
+                                        mbns = -1, 
+                                        mbaryon1, mbaryon2 = -1, -1
+                                        index = indices[jj]
+                                # samples lambda's from Phil + Reed's files           
 
-  
-        Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
-        phis = [opts.phi_fixed] * len(samples) * nsamples 
-        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+                                if opts.eostype == "gp":
+                                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                phasetr = 0
+                                                eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                while os.path.isfile(eospath):
+                                                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                                                        marray, larray = data_out["M"], data_out["Lambda"]
+                                                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                                                        if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
+                                                        if float(f(m2)) > lambda2: lambda2 = f(m2)
+                                                        if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
+                    	
+                                                        phasetr += 1 # check all stable branches
+                                                        eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                                                if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                                        index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
+                                                        lambda1, lambda2 = -1, -1
+                                                        mbns = -1
+                    	
+                                elif opts.eostype == "Sly":
+                                        lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                                        mbns = eos.maxmass()
+
+                                m1s.append(m1)
+                                m2s.append(m2)
+                                dists_mbta.append(dist_mbta)
+                                lambda1s.append(lambda1)
+                                lambda2s.append(lambda2)
+                                r1s.append(radius1)
+                                r2s.append(radius2)
+                                mb1s.append(mbaryon1)
+                                mb2s.append(mbaryon2)
+                                chi_effs.append(chi_eff)
+                                mbnss.append(mbns)
+                                weights_mbta.append(weight_mbta)
+                                np.random.uniform(0)
+
+ 
+        if (opts.Xlan_fixed != "uniform"): 
+                Xlans = [10**float(opts.Xlan_fixed)] * len(m1s)
+        else:
+                Xlan_min, Xlan_max = -9, -1
+                Xlans = list(10**np.random.uniform(Xlan_min, Xlan_max, len(m1s)))
+        phis = [opts.phi_fixed] * len(m1s) 
+        thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(m1s))) / np.pi
         idx_thetas = np.where(thetas > 90.)[0]
         thetas[idx_thetas] = 180. - thetas[idx_thetas]
         thetas = list(thetas)
 
        
         # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
-        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,chi_effs,thetas, phis, mbnss,Xlans)).T
-        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2','chi_eff','theta', 'phi', 'mbns', "Xlan"))       
- 
+        data = np.vstack((m1s,m2s,dists_mbta,lambda1s,lambda2s,r1s,r2s,mb1s,mb2s,chi_effs,thetas, phis, mbnss, weights_mbta, Xlans)).T
+        samples = KNTable(data, names=('m1', 'm2', 'dist_mbta', 'lambda1', 'lambda2', 'r1', 'r2', 'mb1', 'mb2', 'chi_eff','theta', 'phi', 'mbns', "weight_mbta", "Xlan"))       
+  
 
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
  
     print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
     print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
-   
+  
 
     # Downsample 
     #samples = samples.downsample(Nsamples=100)
@@ -416,10 +474,11 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
     samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
 
     # Calc compactness
-    samples = samples.calc_compactness(fit=True)
+    #samples = samples.calc_compactness(fit=True)
+    samples = samples.calc_compactness(fit=False)
     
     # Calc baryonic mass 
-    samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+    #samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
 
    
     
@@ -439,7 +498,7 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
 
-        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+        from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
         mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
         # calc the velocity of ejecta
@@ -453,7 +512,8 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
         # calc the mass of ejecta
        
         
-        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
+        #mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
+        mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'], samples['mb2'])
         # calc the velocity of ejecta
         vej2 = calc_vave(samples['q'])
        
@@ -496,10 +556,14 @@ if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
                 idx = np.where(samples['mej'] <= 1e-3)[0]
                 samples['mej'][idx] = 1e-11
            
-        
+        idx = np.where(samples['mej'] <= 3e-4)[0] 
         print("Probability of having ejecta")
-        print(100 * (len(samples) - len(idx)) /len(samples))
-     
+        if opts.analysisType == "mchirp":
+                print(100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta'])))
+                np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (1 - np.sum(samples[idx]['weight_mbta']) / np.sum(samples['weight_mbta']))])
+        else:
+                print(100 * (len(samples) - len(idx)) / len(samples))
+                np.savetxt(os.path.join(plotDir, "HasEjecta.txt"), [100 * (len(samples) - len(idx)) / len(samples)])
        
 elif opts.analysisType == "multinest":
     multinest_samples = opts.multinest_samples.split(",")
@@ -582,7 +646,7 @@ elif opts.analysisType == "cbclist":
 
 
 if opts.nsamples > 0:
-    samples = samples.downsample(Nsamples=opts.nsamples)
+    samples = samples.downsample(Nsamples=opts.ndownsamples)
 
 
 
@@ -624,7 +688,17 @@ if os.path.isfile(pcklFile):
 else:
     model_tables = {} 
     for model in models:
-        model_tables[model] = KNTable.model(model, samples, **kwargs)
+        if opts.doParallel:
+                from joblib import Parallel, delayed
+                lightcurve_array = Parallel(n_jobs=opts.Ncore)(delayed(KNTable.model)(model, KNTable(row), **kwargs) for row in samples)
+                model_tables[model] = Table([[]], names = (lightcurve_array[0].keys()[0],))
+                for keyname in lightcurve_array[0].keys():
+                        liste_temp = []
+                        for i in range(len(lightcurve_array)):
+                                liste_temp.append(lightcurve_array[i][keyname][0]) 
+                        model_tables[model][keyname] = liste_temp 
+        else:
+                model_tables[model] = KNTable.model(model, samples, **kwargs)
         if (opts.model == "Bu2019inc"):
                 idx = np.where(model_tables[model]['mej'] <= 1e-6)[0]
                 model_tables[model]['mag'][idx] = 10.
@@ -670,6 +744,7 @@ mag_all = {}
 app_mag_all = {}
 if (opts.analysisType == "mchirp"):
         app_mag_all_mbta = {}
+        weights_mbta_all = {}
 lbol_all = {}
 
 for model in models:
@@ -677,6 +752,7 @@ for model in models:
     app_mag_all[model] = {}
     if (opts.analysisType == "mchirp"):
         app_mag_all_mbta[model] = {}
+        weights_mbta_all[model] = []
     lbol_all[model] = {}
 
     lbol_all[model] = np.empty((0,len(tt)), float)
@@ -693,6 +769,7 @@ for model in models:
         t, lbol, mag = row["t"], row["lbol"], row["mag"]
         if (opts.analysisType == "mchirp"):
             dist_mbta = row['dist_mbta']
+            weight_mbta = row['weight_mbta']
 
         if np.sum(lbol) == 0.0:
             #print "No luminosity..."
@@ -720,6 +797,10 @@ for model in models:
         f = interp.interp1d(t[idx], np.log10(lbol[idx]), fill_value='extrapolate')
         lbolinterp = 10**f(tt)
         lbol_all[model] = np.append(lbol_all[model],[lbolinterp],axis=0)
+        if (opts.analysisType == "mchirp"):
+            weights_mbta_all[model] = np.append(weights_mbta_all[model], [weight_mbta])
+
+
 
 if opts.doEvent:
     filename = "%s/%s.dat"%(lightcurvesDir,opts.event)
@@ -760,9 +841,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["m1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["m1"], samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["m1"], Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$m_{1}$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -785,11 +872,79 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["m2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["m2"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["m2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["m2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$m_2$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+#plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+ax.set_yscale('log')
+plt.savefig(plotName)
+plt.close()
+
+
+bounds = [0, 30.]
+xlims = [0, 30.]
+ylims = [1e-1,5]
+
+plotName = "%s/radius1.pdf"%(plotDir)
+plt.figure(figsize=(15,10))
+ax = plt.gca()
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["r1"] / 1000, samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["r1"] / 1000,Nbins=80,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
+    plt.plot([lim,lim],ylims,'k--')
+plt.xlabel(r"$R_{1}(km)$",fontsize=24)
+plt.ylabel('Probability Density Function',fontsize=24)
+#plt.legend(loc="best",prop={'size':24})
+plt.xticks(fontsize=24)
+plt.yticks(fontsize=24)
+plt.xlim(xlims)
+plt.ylim(ylims)
+ax.set_yscale('log')
+plt.savefig(plotName)
+plt.close()
+
+
+bounds = [0, 30.]
+xlims = [0, 30.]
+ylims = [1e-1,5]
+
+plotName = "%s/radius2.pdf"%(plotDir)
+plt.figure(figsize=(15,10))
+ax = plt.gca()
+for ii,model in enumerate(models):
+    legend_name = get_legend(model)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["r2"]/1000, samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["r2"]/1000,Nbins=80,bounds=bounds)
+    plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["m1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["m1"], 90)
+    plt.plot([lim,lim],ylims,'k--')
+plt.xlabel(r"$R_{2}(km)$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
 #plt.legend(loc="best",prop={'size':24})
 plt.xticks(fontsize=24)
@@ -811,9 +966,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["lambda1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["lambda1"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["lambda1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["lambda1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["lambda1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["lambda1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\Lambda_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -837,9 +998,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["lambda2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["lambda2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["lambda2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["lambda2"], 90) 
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["lambda2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["lambda2"], 90) 
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\Lambda_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -863,9 +1030,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["c1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["c1"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["c1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["c1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["c1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["c1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$c_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -888,9 +1061,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["c2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["c2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["c2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["c2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["c2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["c2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$c_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -914,9 +1093,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["mb1"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mb1"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["mb1"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["mb1"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["mb1"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["mb1"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$mb_1$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -939,9 +1124,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["mb2"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mb2"],samples["weight_mbta"],Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["mb2"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["mb2"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["mb2"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["mb2"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$mb_2$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -964,9 +1155,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["chi_eff"],Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["chi_eff"], samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["chi_eff"],Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(samples["chi_eff"], 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(samples["chi_eff"], samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(samples["chi_eff"], 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"$\chi_{eff}$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -991,9 +1188,15 @@ plt.figure(figsize=(15,10))
 ax = plt.gca()
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(np.log10(samples['mej']),Nbins=80,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(np.log10(samples['mej']), samples["weight_mbta"], Nbins=80,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(np.log10(samples['mej']),Nbins=80,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name,where='mid')
-    lim = np.percentile(np.log10(samples['mej']), 90)
+    if (opts.analysisType == "mchirp"):
+        lim = lightcurve_utils.weighted_percentile(np.log10(samples['mej']), samples["weight_mbta"], 0.9)
+    else:
+        lim = np.percentile(np.log10(samples['mej']), 90)
     plt.plot([lim,lim],ylims,'k--')
 plt.xlabel(r"${\rm log}_{10} (M_{\rm ej})$",fontsize=24)
 plt.ylabel('Probability Density Function',fontsize=24)
@@ -1018,7 +1221,10 @@ plt.figure(figsize=(10,8))
 
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["vej"],Nbins=30,bounds=bounds)
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["vej"],samples["weight_mbta"],Nbins=30,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["vej"],Nbins=30,bounds=bounds)
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name)
 
 plt.xlabel(r"${v}_{\rm ej}$",fontsize=24)
@@ -1038,7 +1244,10 @@ plotName = "%s/theta.pdf"%(plotDir)
 plt.figure(figsize=(10,8))
 for ii,model in enumerate(models):
     legend_name = get_legend(model)
-    bins, hist1 = lightcurve_utils.hist_results(samples["theta"],Nbins=30,bounds=bounds) 
+    if (opts.analysisType == "mchirp"):
+        bins, hist1 = lightcurve_utils.weighted_hist_results(samples["theta"],samples["weight_mbta"],Nbins=30,bounds=bounds)
+    else:
+        bins, hist1 = lightcurve_utils.hist_results(samples["theta"],Nbins=30,bounds=bounds) 
     plt.step(bins,hist1,'-',color='k',linewidth=3,label=legend_name)
 
 plt.xlabel(r"$\theta$",fontsize=24)
@@ -1063,7 +1272,10 @@ gs = gridspec.GridSpec(1, 2)
 ax1 = fig.add_subplot(gs[0, 0])
 ax2 = fig.add_subplot(gs[0, 1])
 plt.axes(ax1)
-bins, hist1 = lightcurve_utils.hist_results(samples["mchirp"],Nbins=25)
+if (opts.analysisType == "mchirp"):
+    bins, hist1 = lightcurve_utils.weighted_hist_results(samples["mchirp"],samples["weight_mbta"],Nbins=25)
+else:
+    bins, hist1 = lightcurve_utils.hist_results(samples["mchirp"],Nbins=25)
 plt.step(bins,hist1,'-',color='k',linewidth=3)
 if opts.doAddPosteriors:
     bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["mchirp"],Nbins=25)
@@ -1073,7 +1285,10 @@ plt.ylabel('Probability Density Function',fontsize=24)
 plt.xticks(fontsize=24)
 plt.yticks(fontsize=24)
 plt.axes(ax2)
-bins, hist1 = lightcurve_utils.hist_results(samples["q"],Nbins=25)
+if (opts.analysisType == "mchirp"):
+    bins, hist1 = lightcurve_utils.weighted_hist_results(samples["q"],samples["weight_mbta"],Nbins=25)
+else:
+    bins, hist1 = lightcurve_utils.hist_results(samples["q"],Nbins=25)
 plt.step(bins,hist1,'-',color='k',linewidth=3, label='Template Bank')
 if opts.doAddPosteriors:
     bins, hist1 = lightcurve_utils.hist_results(samples_posteriors["q"],Nbins=25)
@@ -1204,11 +1419,18 @@ for model in models:
     for filt, color, magidx in zip(filts,colors,magidxs):
 
         fid = open(os.path.join(datDir,'%s_%s.dat'%(model,filt)),'w')
-        fid.write("t [days] min median max\n")
-       
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
-        magmax = np.percentile(mag_all[model][filt], 95, axis=0) + opts.errorbudget
-        magmin = np.percentile(mag_all[model][filt], 5, axis=0) - opts.errorbudget
+        fid.write("t [days] min(10th percentile) median max(90th percentile)\n")
+     
+        if (opts.analysisType == "mchirp"):
+            magmed, magmax, magmin = np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1])
+            for kk in range(mag_all[model][filt].shape[1]):
+                   magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                   magmax[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                   magmin[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+           magmed = np.percentile(mag_all[model][filt], 50, axis=0) 
+           magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+           magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
         for a,b,c,d in zip(tt,magmin,magmed,magmax):
             fid.write("%.5f %.5f %.5f %.5f\n"%(a,b,c,d))
         fid.close()
@@ -1249,10 +1471,16 @@ for filt, color, magidx in zip(filts,colors,magidxs):
 
 
         
-
-        magmed = np.percentile(mag_all[model][filt], 50, axis=0)
-        magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
-        magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
+        if (opts.analysisType == "mchirp"):
+                magmed, magmax, magmin = np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1]), np.zeros(mag_all[model][filt].shape[1])
+                for kk in range(mag_all[model][filt].shape[1]):
+                   magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                   magmax[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                   magmin[kk] = lightcurve_utils.weighted_percentile(mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+                magmed = np.percentile(mag_all[model][filt], 50, axis=0)
+                magmax = np.percentile(mag_all[model][filt], 90, axis=0) + opts.errorbudget
+                magmin = np.percentile(mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
         plt.plot(tt,magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(tt,magmin,'-',c=colors_names[ii],linewidth=4)
@@ -1329,11 +1557,16 @@ for filt, color, magidx in zip(filts,colors,magidxs):
         legend_name = get_legend(model)
 
       
-        
-
-        app_magmed = np.percentile(app_mag_all[model][filt], 50, axis=0)
-        app_magmax = np.percentile(app_mag_all[model][filt], 90, axis=0) + opts.errorbudget
-        app_magmin = np.percentile(app_mag_all[model][filt], 10, axis=0) - opts.errorbudget
+        if (opts.analysisType == "mchirp"):
+                app_magmed, app_magmax, app_magmin = np.zeros(app_mag_all[model][filt].shape[1]), np.zeros(app_mag_all[model][filt].shape[1]), np.zeros(app_mag_all[model][filt].shape[1])
+                for kk in range(app_mag_all[model][filt].shape[1]):
+                        app_magmed[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                        app_magmax[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                        app_magmin[kk] = lightcurve_utils.weighted_percentile(app_mag_all[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+        else:
+                app_magmed = np.percentile(app_mag_all[model][filt], 50, axis=0)
+                app_magmax = np.percentile(app_mag_all[model][filt], 90, axis=0) + opts.errorbudget
+                app_magmin = np.percentile(app_mag_all[model][filt], 10, axis=0) - opts.errorbudget
 
         plt.plot(tt,app_magmed,'--',c=colors_names[ii],linewidth=4,label=legend_name)
         plt.plot(tt,app_magmin,'-',c=colors_names[ii],linewidth=4)
@@ -1417,10 +1650,12 @@ if (opts.analysisType == "mchirp"):
 
       
         
-
-                app_magmed_mbta = np.percentile(app_mag_all_mbta[model][filt], 50, axis=0)
-                app_magmax_mbta = np.percentile(app_mag_all_mbta[model][filt], 90, axis=0) + opts.errorbudget
-                app_magmin_mbta = np.percentile(app_mag_all_mbta[model][filt], 10, axis=0) - opts.errorbudget
+                app_magmed_mbta, app_magmax_mbta, app_magmin_mbta = np.zeros(app_mag_all_mbta[model][filt].shape[1]), np.zeros(app_mag_all_mbta[model][filt].shape[1]), np.zeros(app_mag_all_mbta[model][filt].shape[1]) 
+                for kk in range(app_mag_all_mbta[model][filt].shape[1]):
+                        app_magmed_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.5)
+                        app_magmax_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.9) + opts.errorbudget
+                        app_magmin_mbta[kk] = lightcurve_utils.weighted_percentile(app_mag_all_mbta[model][filt][:,kk], weights_mbta_all[model], 0.1) - opts.errorbudget
+                
 
                 plt.plot(tt,app_magmed_mbta,'--',c=colors_names[ii],linewidth=4,label=legend_name)
                 plt.plot(tt,app_magmin_mbta,'-',c=colors_names[ii],linewidth=4)
@@ -1474,7 +1709,12 @@ cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    magmed = np.median(mag_all[model]["g"]-mag_all[model]["r"],axis=0)
+    if (opts.analysisType == "mchirp"):
+        magmed = np.zeros(mag_all[model]["r"].shape[1])
+        for kk in range(mag_all[model]["r"].shape[1]):
+                magmed[kk] = lightcurve_utils.weighted_percentile(mag_all[model]["g"][:,kk]-mag_all[model]["r"][:,kk],weights_mbta_all[model], 0.5)
+    else:          
+        magmed = np.median(mag_all[model]["g"]-mag_all[model]["r"],axis=0)
     magmax = np.max(mag_all[model]["g"]-mag_all[model]["r"],axis=0) + opts.errorbudget
     magmin = np.min(mag_all[model]["g"]-mag_all[model]["r"],axis=0) - opts.errorbudget
 
@@ -1496,7 +1736,12 @@ cnt = 0
 for ii, model in enumerate(models):
     legend_name = get_legend(model)
 
-    lbolmed = np.median(lbol_all[model],axis=0)
+    if (opts.analysisType == "mchirp"):
+        lbolmed = np.zeros(lbol_all[model].shape[1])
+        for kk in range(lbol_all[model].shape[1]):
+                lbolmed[kk] = lightcurve_utils.weighted_percentile(lbol_all[model][:,kk], weights_mbta_all[model], 0.5)
+    else:
+        lbolmed = np.median(lbol_all[model],axis=0)
     lbolmax = np.max(lbol_all[model],axis=0) * (2.5 * opts.errorbudget)
     lbolmin = np.min(lbol_all[model],axis=0) / (2.5 * opts.errorbudget)
     plt.loglog(tt,lbolmed,'--',c=colors_names[ii],linewidth=2,label=legend_name)

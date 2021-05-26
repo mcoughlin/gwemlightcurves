@@ -484,6 +484,32 @@ def hist_results(samples,Nbins=16,bounds=None):
 
     return bins, hist1
 
+def weighted_hist_results(samples, weights, Nbins=16,bounds=None):
+
+    if not bounds==None:
+        bins = np.linspace(bounds[0],bounds[1],Nbins)
+    else:
+        bins = np.linspace(np.min(samples),np.max(samples),Nbins)
+    hist1, bin_edges = np.histogram(samples, weights=weights, bins=bins, density=True)
+    hist1[hist1==0.0] = 1e-10
+    #hist1 = hist1 / float(np.sum(hist1))
+    bins = (bins[1:] + bins[:-1])/2.0
+
+    return bins, hist1
+
+
+def weighted_percentile(data, weights, perc):
+    """
+    perc : percentile in [0-1]!
+    """
+    ix = np.argsort(data)
+    data = data[ix] # sort data
+    weights = weights[ix] # sort weights
+    cdf = (np.cumsum(weights) - 0.5 * weights) / np.sum(weights) # 'like' a CDF function
+    return np.interp(perc, cdf, data)
+
+
+
 def get_post_file(basedir):
     filenames = glob.glob(os.path.join(basedir,'2-pos*'))
     if len(filenames)>0:

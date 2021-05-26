@@ -41,11 +41,13 @@ def FoucartEjecta(Q,C,chi):
     Mej[Mej<0] = 0.
     return Mej
 
-def calc_meje(q,chi_eff,c,mns,f=0.15):
+def calc_meje(q,chi_eff,c,mns,mbns,f=0.15):
 
-    mb = mns*(1+0.6*c/(1.-0.5*c))
+    #mb = mns*(1+0.6*c/(1.-0.5*c))
+    mb = mbns
     mdyn = FoucartEjecta(q,c,chi_eff)*mb
-    mwind = f*(FHN18RemnantMass(q,c,chi_eff)-FoucartEjecta(q,c,chi_eff))*mb
+    #mwind = f*(FHN18RemnantMass(q,c,chi_eff)-FoucartEjecta(q,c,chi_eff))*mb
+    mwind = f*(FHN18RemnantMass(q,c,chi_eff))*mb
     mwind = np.array(mwind)
     mwind[mwind<0] = 0.0
     mtot = mdyn+mwind
