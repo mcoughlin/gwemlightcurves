@@ -707,7 +707,7 @@ class KNTable(Table):
             if (self['c2'] < 0.).any():
                 print("Warning: Returned compactnesses < 0 ... setting = 0.")
                 self['c2'][self['c2'] < 0.0] = 0.0
-            return self
+        return self
 
 
 
