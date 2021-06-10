@@ -1,3 +1,4 @@
+# https://arxiv.org/abs/1710.05841
 # Kilonova Light Curve Calculator
 # includes heating from r-process nuclei, free neutrons, and remnant magnetar
 # based on physics in Metzger et al. 2010, Fernandez & Metzger 2014, Metzger 2017
