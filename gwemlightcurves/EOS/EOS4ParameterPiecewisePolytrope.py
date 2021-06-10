@@ -13,11 +13,11 @@ class EOS4ParameterPiecewisePolytrope(object):
         #print(find_executable('polytrope_table.dat'))
         # load in polytop table
         polytable = Table.read(find_executable('polytrope_table.dat'), format='ascii')
-        polytable = polytable[polytable['col1'] == EOS]
-        lp_cgs = float(polytable['col2'])
-        g1 = float(polytable['col3'])
-        g2 = float(polytable['col4'])
-        g3 = float(polytable['col5'])
+        polytable = polytable[polytable['eos'] == EOS]
+        lp_cgs = float(polytable['logP1'])
+        g1 = float(polytable['gamma1'])
+        g2 = float(polytable['gamma2'])
+        g3 = float(polytable['gamma3'])
 
         # lalsimulation uses SI units.
         lp_si = lp_cgs - 1.
