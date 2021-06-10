@@ -70,7 +70,7 @@ from mass_grid import run_EOS
 '''
 The number of points to evaluate the KDE at and plot
 '''
-mass_points = 10
+mass_points = 100
 '''
 Determines the number of masses to draw from the inital mass dists, should be >1000. uniform_mass_draws can be
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
@@ -222,12 +222,13 @@ def run_theoretical(Type, lan, chi, EOS):
             twixie_tf =True
 
         if Type == 'BNS_equal_alsing':
-            
             m1 = a_dist.rvs(size = mass_draws)
             m2 = m1
-
             Type = 'BNS' 
-            
+        if Type == 'BNS_equal_farrow':
+            m1 = f_dist.rvs(size = mass_draws)
+            m2 = m1
+            Type = 'BNS'
         if Type == 'BNS_chirp_q':
             chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
             chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5) 
@@ -408,8 +409,8 @@ def run_prob(mass, lan, chi, coverage_factors = False, theor = False, Type = Non
                  
                 all_data[all_data > 1e0] = 1e0
                 all_data[all_data <= 1e-6] = 1e-12
-                datafilename = '/home/andrew.toivonen/public_html/'+str(Type)+'_data.txt'
-                np.savetxt(datafilename, np.array(all_data))
+                #datafilename = '/home/andrew.toivonen/public_html/'+str(Type)+'_data.txt'
+                #np.savetxt(datafilename, np.array(all_data))
                 
                 all_data = np.log10(all_data)
             print('Initializing '+str(event)+' '+str(lan))
@@ -480,9 +481,9 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     colors = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
  
     plot_mass = 10**mass
-    labels = ['BNS (Alsing et al.)', 'BNS (Farrow et al.)', 'BNS equal masses (Alsing et al.)', 'BNS Uniform Dist', 'NSBH Uniform in m1, m2', 'NSBH (Zhu et al.)', 'BNS Uniform in chirp, q'] 
-    Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
-    fig, ax = plt.subplots(figsize=(8, 6))
+    labels = ['BNS (Alsing et al.)', 'BNS (Farrow et al.)', 'BNS, m1=m2 (Alsing et al.)', 'BNS, m1=m2 (Farrow et al.)',  'BNS, Uniform in m1, m2', 'NSBH, Uniform in m1, m2', 'NSBH (Zhu et al.)', 'BNS, Uniform in chirp, q'] 
+    Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
+    fig, ax = plt.subplots(figsize=(16, 12))
     for n, t in enumerate(Types):
         prob_events, prob_norm_events, mej_test, chi, EOS_type = run_prob(mass, lan, chi, theor = True, Type = t)
         prob_events = np.reshape(prob_events,len(prob_events)) 
