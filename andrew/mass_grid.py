@@ -59,7 +59,7 @@ def parse_commandline():
     parser.add_argument("--distance",default=125.0,type=float)
     parser.add_argument("--T0",default=57982.5285236896,type=float)
     parser.add_argument("--errorbudget",default=1.0,type=float)
-    parser.add_argument("--nsamples",default=-1,type=int)
+    parser.add_argument("--nsamples",default=10,type=int)
 
     parser.add_argument("--doFixedLimit",  action="store_true", default=False)
     parser.add_argument("--limits",default="20.4,20.4")
@@ -175,20 +175,29 @@ if not os.path.isdir(datDir):
 twixie_tf = opts.twixie_flag
 model = opts.model
 Type = opts.analysisType
-def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twixie_tf, lan_override=False, lan_override_val=None, chirp_q = False):
-
+def run_EOS(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twixie_tf, lan_override=False, lan_override_val=None, chirp_q = False):
+    #samples["dist"] = opts.distance
+    #samples["phi"] = opts.phi_fixed
+    #samples["Xlan"] = 10**opts.Xlan_fixed
+    #samples['mbns'] = 0.
+    #print(samples)
+    N_EOS = 1
     if type_set == 'BNS_chirp_q':
         type_set = 'BNS' 
     if not chirp_q:
-        m1 = np.random.normal(m1, .05, 100)
-        m2 = np.random.normal(m2, .05, 100)
+        #m1 = np.random.normal(m1, .05, 100)
+        #m2 = np.random.normal(m2, .05, 100)
+        #m1 = np.random.normal(m1, .001, 100)
+        #m2 = np.random.normal(m2, .001, 100)
+        m1 = np.ones(N_EOS) * m1
+        m2 = np.ones(N_EOS) * m2
         q = m2/m1
         mchirp = np.power((m1*m2), 3/5) / np.power((m1+m2), 1/5)
         eta = m1*m2/( (m1+m2)*(m1+m2) )
     if chirp_q:
         print('running chirp_q')
-        m1 = np.random.normal(m1, .05, 100)
-        m2 = np.random.normal(m2, .05, 100)
+        m1 = np.random.normal(m1, .05, N_EOS)
+        m2 = np.random.normal(m2, .05, N_EOS)
         #m1 = np.ones(100) * m1
         #m2 = np.ones(100) * m2
         q = m2 
@@ -196,28 +205,45 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
         eta = lightcurve_utils.q2eta(q) 
         m1, m2 = lightcurve_utils.mc2ms(mchirp, eta)
 
-    dist = np.ones(100)
+    dist = np.ones(N_EOS)
     #chi_eff = np.random.uniform(-1,1,100)
-    chi_eff = np.ones(100)*chi
-    Xlan = 1e-3 * np.ones(100)
+    chi_eff = np.ones(N_EOS)*chi
+    Xlan = 1e-3 * np.ones(N_EOS*10)
     
     if lan_override:
-        Xlan = lan_override_val * np.ones(100)
+        Xlan = lan_override_val * np.ones(N_EOS*10)
  
-    c1 = np.ones(1000)
-    c2 = np.ones(1000)
-    mb1 = np.ones(1000)
-    mb2 = np.ones(1000)
-    mej = np.ones(1000)
-    vej = np.ones(1000)
+    c1 = np.ones(N_EOS*10)
+    c2 = np.ones(N_EOS*10)
+    mb1 = np.ones(N_EOS*10)
+    mb2 = np.ones(N_EOS*10)
+    mej = np.ones(N_EOS*10)
+    vej = np.ones(N_EOS*10)
+    dyn_mej = np.ones(N_EOS*10)
+    wind_mej = np.ones(N_EOS*10)
+    #lambda1s=
+    #lambda2s=np.ones(100)
+    #m1s=m1
+    #m2s=m1
+    #dists=dist
+    #chi_effs=chi_eff
+    #Xlans=Xlan
+    #qs=q
+    #etas=eta
+    #mchirps=mchirp
+    #mbnss=np.ones(100)
     
+    data = np.vstack((m1,m2,dist,chi_eff,mchirp,eta,q)).T
+    samples = KNTable((data), names = ('m1','m2','dist','chi_eff','mchirp','eta','q') )
 
-    data = np.vstack((m1,m2,dist,chi_eff,Xlan,mchirp,eta,q)).T
-    samples_tmp = KNTable((data), names = ('m1','m2','dist','chi_eff','Xlan','mchirp','eta','q') )
+    #data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans,c1,c2,mb1,mb2,mchirps,etas,qs,mej,vej, dyn_mej, wind_mej, mbnss)).T
+    #samples = KNTable((data), names = ('m1','m2','dist','lambda1','lambda2','chi_eff','Xlan','c1','c2','mb1','mb2','mchirp','eta','q','mej','vej', 'dyn_mej', 'wind_mej', 'mbns'))    
 
-    if twixie:
-        samples_tmp = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=100, twixie_flag = twixie_tf)
 
+
+    #if twixie:
+        #samples_tmp = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=100, twixie_flag = twixie_tf)
+   
     lambda1s=[]
     lambda2s=[]
     m1s=[]
@@ -229,153 +255,222 @@ def Test(EOS, m1, m2, chi, type_set=Type, model_set = 'Bu2019inc', twixie = twix
     etas=[]
     mchirps=[]
     mbnss=[]
-    term1_list, term2_list, term3_list, term4_list=[],[],[],[]
-
-
-    if EOS == "gp":
-             # read Phil + Reed's EOS files
-            filenames = glob.glob("/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-*-0.csv")
-            idxs = []
-            for filename in filenames:
-                filenameSplit = filename.replace(".csv","").split("/")[-1].split("-")
-                idxs.append(int(filenameSplit[1]))
-            idxs = np.array(idxs)
-    elif EOS == "Sly":
-            eosname = "SLy"
-            eos = EOS4ParameterPiecewisePolytrope(eosname)
-
-
-    for ii, row in enumerate(samples_tmp):
-            if not twixie:
-                m1, m2, dist, chi_eff, q, mchirp, eta, Xlan = row["m1"], row["m2"], row["dist"], row["chi_eff"], row['q'], row['mchirp'], row['eta'], row['Xlan']
-            if twixie:
-                m1, m2, dist, chi_eff, q, mchirp, eta = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"], row['q'], row['mchirp'], row['eta']
-            nsamples = 10
-            if EOS == "spec":
-                indices = np.random.randint(0, 2395, size=nsamples)
-            elif EOS == "gp":
-                indices = np.random.randint(0, len(idxs), size=nsamples)
-            for jj in range(nsamples):
-                if (EOS == "spec") or (EOS == "gp"):
-                    index = indices[jj] 
-                
-                # samples lambda's from Phil + Reed's files
-                if EOS == "spec":
-                    eospath = "/home/philippe.landry/gw170817eos/spec/macro/macro-spec_%dcr.csv" % index
-                    data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                    marray, larray = data_out["M"], data_out["Lambda"]
-                    f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                    lambda1, lambda2 = f(m1), f(m2)
-                    mbns = np.max(marray)
-
-                elif EOS == "Sly":
-                    lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
-                    mbns = eos.maxmass()
-                    #print(mbns)
-            
-                elif EOS == "gp":
-                    lambda1, lambda2 = 0.0, 0.0
-                    phasetr = 0
-                    while (lambda1==0.0) or (lambda2 == 0.0):
-                        eospath = "/home/philippe.landry/gw170817eos/gp/macro/MACROdraw-%06d-%d.csv" % (idxs[index], phasetr)
-                        if not os.path.isfile(eospath):
-                            break
-                        data_out = np.genfromtxt(eospath, names=True, delimiter=",")
-                        marray, larray = data_out["M"], data_out["Lambda"]
-                        f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
-                        lambda1_tmp, lambda2_tmp = f(m1), f(m2)
-                        if (lambda1_tmp>0) and (lambda1==0.0):
-                            lambda1 = lambda1_tmp
-                        if (lambda2_tmp>0) and (lambda2 == 0.0):
-                            lambda2 = lambda2_tmp
-                        phasetr = phasetr + 1
-                        mbns = np.max(marray)
     
-                lambda1s.append(lambda1)
-                lambda2s.append(lambda2)
-                m1s.append(m1)
-                m2s.append(m2)
-                dists.append(dist)
-                chi_effs.append(chi_eff)
-                Xlans.append(Xlan)
-                qs.append(q)
-                etas.append(eta)
-                mchirps.append(mchirp)
-                mbnss.append(mbns)
-                  
-                
-    if twixie:
-        Xlans = np.ones(1000)*1e-3           
+ 
 
-    data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans,c1,c2,mb1,mb2,mchirps,etas,qs,mej,vej, mbnss)).T
-    samples = KNTable((data), names = ('m1','m2','dist','lambda1','lambda2','chi_eff','Xlan','c1','c2','mb1','mb2','mchirp','eta','q','mej','vej', 'mbns'))    
-
-    #calc compactness
-    samples = samples.calc_compactness(fit=True)
-
-    #clac baryonic mass
-    samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
-
-    if type_set == 'BNS':
-
-        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
-        #from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
-        # calc the mass of ejecta
-        mej = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'])
-        # calc the velocity of ejecta
-        vej = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
-
-        samples['mchirp'], samples['eta'], samples['q'] = lightcurve_utils.ms2mc(samples['m1'], samples['m2'])
-
-        samples['q'] = 1.0 / samples['q']
-
-        samples['mej'] = mej
-        samples['vej'] = vej
-
-        if model_set == 'Bu2019inc':
-            idx = np.where(samples['mej']<=1e-6)[0]
-            samples['mej'][idx] = 1e-6
-            idx2 = np.where(samples['mej']>=1)[0]
-            samples['mej'][idx2] = 1e-6
-        print('mej = ' +str(samples['mej'][0]))
-
+     
+    print('...running')
+    #if (opts.analysisType == "posterior") or (opts.analysisType == "mchirp"):
+    
+    #need to fix indents
+    if True:
+        if True: 
+            nsamples = 10
+            if opts.nsamples < 1:
+                print('Please set nsamples >= 1')
+                exit(0)
+            # read samples from template analysis
+            #samples = KNTable.read_mchirp_samples(opts.mchirp_samples, Nsamples=opts.nsamples, twixie_flag = twixie_tf) 
+           
+     
+            m1s, m2s, dists_mbta = [], [], []
+            lambda1s, lambda2s, chi_effs = [], [], []
+            Xlans = []
+            mbnss = []
+            if EOS == "gp":
+                # read Phil + Reed's EOS files
+                eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+                idxs = np.array(eospostdat["eos"])
+                weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
+            elif EOS == "Sly":
+                eosname = "SLy"
+                eos = EOS4ParameterPiecewisePolytrope(eosname)
+    
+            Xlan_min, Xlan_max = -9, -1 
+         
+            for ii, row in enumerate(samples): 
+                #m1, m2, dist_mbta, chi_eff = row["m1"], row["m2"], row["dist_mbta"], row["chi_eff"]
+                m1, m2, chi_eff = row["m1"], row["m2"], row["chi_eff"]
+                nsamples = 10
+                if EOS == "spec":
+                    indices = np.random.randint(0, 2396, size=nsamples)
+                elif EOS == "gp":
+                    indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
+                for jj in range(nsamples):
+                    if (EOS == "spec") or (EOS == "gp"):
+                        index = indices[jj] 
+                        lambda1, lambda2 = -1, -1
+                        mbns = -1
+                    # samples lambda's from Phil + Reed's files
+                    if EOS == "spec":
+                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                            eospath = "/home/philippe.landry/nseos/eos/spec/macro/macro-spec_%dcr.csv" % index
+                            data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                            marray, larray = data_out["M"], data_out["Lambda"]
+                            f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                            if float(f(m1)) > lambda1: lambda1 = f(m1)
+                            if float(f(m2)) > lambda2: lambda2 = f(m2)
+                            if np.max(marray) > mbns: mbns = np.max(marray)
+    
+                            if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                index = int(np.random.randint(0, 2396, size=1)) # pick a different EOS if it returns negative Lambda or Mmax
+                                lambda1, lambda2 = -1, -1
+                                mbns = -1
+    
+                    elif EOS == "gp":
+                        while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                            phasetr = 0
+                            eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                            while os.path.isfile(eospath):
+                                data_out = np.genfromtxt(eospath, names=True, delimiter=",")
+                                marray, larray = data_out["M"], data_out["Lambda"]
+                                f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
+                                if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch
+                                if float(f(m2)) > lambda2: lambda2 = f(m2)
+                                if np.max(marray) > mbns: mbns = np.max(marray) # get global maximum mass
+                    	    
+                                phasetr += 1 # check all stable branches
+                                eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
+                            if (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
+                                index = int(np.random.choice(np.arange(0,len(idxs)), size=1,replace=True,p=weights/np.sum(weights))) # pick a different EOS if it returns negative Lambda or Mmax
+                                lambda1, lambda2 = -1, -1
+                                mbns = -1
+                    	    
+                    elif EOS == "Sly":
+                        lambda1, lambda2 = eos.lambdaofm(m1), eos.lambdaofm(m2)
+                        mbns = eos.maxmass()
+    
+                    m1s.append(m1)
+                    m2s.append(m2)
+                    #dists_mbta.append(dist_mbta)
+                    lambda1s.append(lambda1)
+                    lambda2s.append(lambda2)
+                    chi_effs.append(chi_eff)
+                    #Xlans.append(10**np.random.uniform(Xlan_min, Xlan_max))
+                    #Xlans.append(Xlan)
+                    mbnss.append(mbns)
+                    np.random.uniform(0)
+    
+      
+            #Xlans = [10**opts.Xlan_fixed] * len(samples) * nsamples
+            #phis = [opts.phi_fixed] * len(samples) * nsamples 
+            thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+            idx_thetas = np.where(thetas > 90.)[0]
+            thetas[idx_thetas] = 180. - thetas[idx_thetas]
+            thetas = list(thetas)
+    
+            # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions 
+            data = np.vstack((m1s,m2s,lambda1s,lambda2s, Xlan, chi_effs,thetas, mbnss)).T
+            samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2','Xlan','chi_eff','theta', 'mbns'))       
+     
+    
+        # limit masses
+        #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
+     
+        print("m1: %.5f +-%.5f"%(np.mean(samples["m1"]),np.std(samples["m1"])))
+        print("m2: %.5f +-%.5f"%(np.mean(samples["m2"]),np.std(samples["m2"])))
+       
+    
+        # Downsample 
+        #samples = samples.downsample(Nsamples=100)
+       
+        samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
+    
+        # Calc compactness
+        samples = samples.calc_compactness(fit=True)
         
+        # Calc baryonic mass 
+        samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
+    
+        #print(samples)
+       
+        #'''    
+        #----------------------------------------------------------------------------------
+        if (not 'mej' in samples.colnames) and (not 'vej' in samples.colnames):
+            #mbns = 2.1
+            #idx1 = np.where((samples['m1'] < mbns) & (samples['m2'] < mbns))[0]
+            #idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
+            
+            idx1 = np.where((samples['m1'] <= samples['mbns']) & (samples['m2'] <= samples['mbns']))[0]
+            idx2 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] <= samples['mbns']))[0]
+            idx3 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] > samples['mbns']))[0]
+    
+         
+    
+           
+    
+            mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
+    
+            from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+            # calc the mass of ejecta
+            mej1, dyn_mej1, wind_mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'], split_mej=True)
+            # calc the velocity of ejecta
+            vej1 = calc_vej(samples['m1'],samples['c1'],samples['m2'],samples['c2'])
+    
+            samples['mchirp'], samples['eta'], samples['q'] = lightcurve_utils.ms2mc(samples['m1'], samples['m2'])
+    
+            #samples['q'] = 1.0 / samples['q']
+    
+            from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
+            # calc the mass of ejecta
+           
+            
+            mej2, dyn_mej2, wind_mej2 = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'], split_mej=True)
+            # calc the velocity of ejecta
+            vej2 = calc_vave(samples['q'])
+           
+    
+            # calc the mass of ejecta
+            mej3 = np.zeros(samples['m1'].shape)
 
-
-    if type_set == 'NSBH':
-
-        from gwemlightcurves.EjectaFits.KrFo2019 import calc_meje, calc_vave
-        # calc the mass of ejecta
-        mej = calc_meje(samples['q'],samples['chi_eff'],samples['c2'], samples['m2'])
-        # calc the velocity of ejecta
-        vej = calc_vave(samples['q'])
-
-        samples['mej'] = mej
-        samples['vej'] = vej
-        
-        if model_set == 'Bu2019inc':
-            idx = np.where(samples['mej']<=1e-6)[0]
-            samples['mej'][idx] = 1e-6
-            idx2 = np.where(samples['mej']>=1)[0]
-            samples['mej'][idx2] = 1e-6
-        
-        print('mej = ' +str(samples['mej'][0]))
-
-    if type_set == 'BNS' or 'NSBH':
-        # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
-        erroropt = 'none'
-        if erroropt == 'none':
-            print("Not applying an error to mass ejecta")
-        elif erroropt == 'log':
-            samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
-        elif erroropt == 'lin':
-            samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
-        elif erroropt == 'loggauss':
-            samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
-        idx = np.where(samples['mej'] > 0)[0]
-        samples = samples[idx]
-    print(EOS + ' calculation finished') 
-    return samples
+            dyn_mej3 = np.zeros(samples['m1'].shape)
+            wind_mej3 = np.zeros(samples['m1'].shape)
+            # calc the velocity of ejecta
+            vej3 = np.zeros(samples['m1'].shape) + 0.2
+            
+            mej[idx1], vej[idx1] = mej1[idx1], vej1[idx1]
+            mej[idx2], vej[idx2] = mej2[idx2], vej2[idx2]
+            mej[idx3], vej[idx3] = mej3[idx3], vej3[idx3]
+    
+            wind_mej[idx1], dyn_mej[idx1] = wind_mej1[idx1], dyn_mej1[idx1]
+            wind_mej[idx2], dyn_mej[idx2] = wind_mej2[idx2], dyn_mej2[idx2]
+            wind_mej[idx3], dyn_mej[idx3] = wind_mej3[idx3], dyn_mej3[idx3]   
+ 
+            samples['mej'] = mej
+            samples['vej'] = vej
+            samples['dyn_mej'] = dyn_mej
+            samples['wind_mej'] = wind_mej
+         
+    
+            # Add draw from a gaussian in the log of ejecta mass with 1-sigma size of 70%
+            erroropt = 'none'
+            if erroropt == 'none':
+                print("Not applying an error to mass ejecta")
+            elif erroropt == 'log':
+                samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.236))
+            elif erroropt == 'lin':
+                samples['mej'] = np.random.normal(samples['mej'],0.72*samples['mej'])
+            elif erroropt == 'loggauss':
+                samples['mej'] = np.power(10.,np.random.normal(np.log10(samples['mej']),0.312))
+            #idx = np.where(samples['mej'] > 0)[0]
+            #samples = samples[idx]
+    
+            idx = np.where(samples['mej'] <= 0)[0]
+            samples['mej'][idx] = 1e-11
+            
+           
+            if (opts.model == "Bu2019inc"):  
+                    idx = np.where(samples['mej'] <= 1e-6)[0]
+                    samples['mej'][idx] = 1e-11
+            elif (opts.model == "Ka2017"):
+                    idx = np.where(samples['mej'] <= 1e-3)[0]
+                    samples['mej'][idx] = 1e-11
+               
+            
+            print("Probability of having ejecta")
+            print(100 * (len(samples) - len(idx)) /len(samples))
+            #print(samples) 
+            return samples
 
 
 if __name__ == "__main__":
@@ -399,7 +494,7 @@ if __name__ == "__main__":
         if chirp_q_tf:
             chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
             chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5)
-            print(chirp_min, chirp_max)
+            #print(chirp_min, chirp_max)
             #m2 becomes q
             #m1 becomes mchirp
             m1 = np.arange(chirp_min, chirp_max, .1) 

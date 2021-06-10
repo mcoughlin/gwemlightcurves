@@ -5,7 +5,7 @@
 import numpy as np
 import scipy
 
-def calc_meje(m1,c1,m2,c2):
+def calc_meje(m1,c1,m2,c2, split_mej = False):
     """
 .. py:function:: calc_meje(m1,mb1,c1,m2,mb2,c2)
 
@@ -44,8 +44,6 @@ def calc_meje(m1,c1,m2,c2):
     p = np.poly1d(coeff)
     lambda1 = p(c1)
     lambda2 = p(c2)
-    lambda1[lambda1 < 0] = 0
-    lambda2[lambda2 < 0] = 0
     q = m1/m2
 
     lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
@@ -83,8 +81,11 @@ def calc_meje(m1,c1,m2,c2):
     meje_wind_fit[meje_wind_fit > 0.1] = 0.1
 
     meje_fit = meje_dynamical_fit + meje_wind_fit
-
-    return meje_fit
+    
+    if split_mej:
+        return meje_fit, meje_dynamical_fit, meje_wind_fit
+    else:
+        return meje_fit
 
 def calc_vej(m1,c1,m2,c2):
     """

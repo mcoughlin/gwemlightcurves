@@ -65,6 +65,8 @@ install_requires = [
     'requests',
     'penquins',
     'afterglowpy',
+    'Cython',
+    'extinction',
 ]
 
 # test dependencies
