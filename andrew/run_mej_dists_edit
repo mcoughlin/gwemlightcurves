@@ -613,7 +613,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
         model_tables[model]['mag'][idx] = 10.
         model_tables[model]['lbol'][idx] = 1e30
          
-        mags = model_tables[model]['mag']
+        mags = model_tables[model]['mag'][0]
 
         t = model_tables[model]['t'][0]
         #print(np.shape(t))
