@@ -549,9 +549,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plt.grid()
 
     
-    plotname = '/home/andrew.toivonen/public_html/KDE_comp_analytical.pdf'
-    plt.savefig(plotname)
-    plotname = '/home/andrew.toivonen/gwemlightcurves/andrew/output/KDE_comp_analytical.pdf'
+    plotname = './output/KDE_comp_analytical.pdf'
     plt.savefig(plotname)
     plt.close(fig)
     
@@ -617,8 +615,8 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
          
         mags = model_tables[model]['mag']
 
-        plt.plot(plot_mas[model]['t'][0])
-        print(np.shape(t))
+        t = model_tables[model]['t'][0]
+        #print(np.shape(t))
         for i, band in enumerate(mags):
             l = len(band)
             plt.plot(t, band)
@@ -637,9 +635,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plt.grid()
 
     
-    plotname = '/home/andrew.toivonen/public_html/KDE_comp_mag.pdf'
-    plt.savefig(plotname)
-    plotname = '/home/andrew.toivonen/gwemlightcurves/andrew/output/KDE_comp_mag.pdf'
+    plotname = './output/KDE_comp_mag.pdf'
     plt.savefig(plotname)
     plt.close(fig)
 
