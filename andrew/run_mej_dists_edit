@@ -50,7 +50,7 @@ import pandas as pd
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves import __version__
 from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
-from twixie import kde
+#from twixie import kde
 from gwemlightcurves import lightcurve_utils
 from mass_grid import run_EOS
 #-------------------------------------------------
@@ -554,7 +554,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plotname = '/home/andrew.toivonen/gwemlightcurves/andrew/output/KDE_comp_analytical.pdf'
     plt.savefig(plotname)
     plt.close(fig)
-    '''
+    
     fig, ax = plt.subplots(figsize=(16, 12))
     for i, mej_data in enumerate(mej_kde):
         
@@ -617,12 +617,13 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
          
         mags = model_tables[model]['mag']
 
-        #f = open("mags.txt", 'w')
-        #for m in model_tables[model]['mag']:
-        #    f.write(str(m))
-        #f.close()
-      
-        ax.plot(plot_mass, mags, color=colors[i], label=labels[i])
+        plt.plot(plot_mas[model]['t'][0])
+        print(np.shape(t))
+        for i, band in enumerate(mags):
+            l = len(band)
+            plt.plot(t, band)
+            plt.ylim([10,-20])
+    plt.savefig('mag_test.pdf', mags, color=colors[i], label=labels[i])
 
     #ax.plot([.03,.03],[1e-6,1e6], color = 'black', linestyle='--')
     #ax.plot([.05,.05],[1e-6,1e6], color = 'black', linestyle='--')
@@ -641,8 +642,6 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plotname = '/home/andrew.toivonen/gwemlightcurves/andrew/output/KDE_comp_mag.pdf'
     plt.savefig(plotname)
     plt.close(fig)
-
-    '''
 
 
 #---------------------------------------------------------------------------------
