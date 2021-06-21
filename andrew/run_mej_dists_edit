@@ -76,15 +76,15 @@ from mass_grid import run_EOS
 The number of points to evaluate the KDE at and plot
 '''
 mass_points = 100
-mass_points = 10
+#mass_points = 10
 '''
 Determines the number of masses to draw from the inital mass dists, should be >1000. uniform_mass_draws can be
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 mass_draws = 2000
-mass_draws = 20
+#mass_draws = 20
 uniform_mass_draws = int(mass_draws/2)
-uniform_mass_draws = 20
+#uniform_mass_draws = 20
 
 mass = np.linspace(-5, .5, mass_points) 
 
@@ -522,7 +522,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plot_mass = 10**mass
     labels = ['BNS (Alsing et al.)', 'BNS (Farrow et al.)', 'BNS, m1=m2 (Alsing et al.)', 'BNS, m1=m2 (Farrow et al.)',  'BNS, Uniform in m1, m2', 'NSBH, Uniform in m1, m2', 'NSBH (Alsing et al., Zhu et al.)', 'BNS, Uniform in chirp, q'] 
     #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
-    Types = ['BNS_alsing']
+    Types = ['BNS_farrow']
 
     fig, ax = plt.subplots(figsize=(16, 12))
     for n, t in enumerate(Types):
@@ -555,9 +555,12 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     
     fig, ax = plt.subplots(figsize=(16, 12))
     for i, mej_data in enumerate(mej_kde):
-        
-        phis = [45] * len(mej_data)
-        thetas = [30] * len(mej_data)
+        max_mej_idx = np.argmax(mej_data)
+        mej_data = [plot_mass[max_mej_idx]]
+        print(mej_data)
+        phis = [45]
+        #should I be taking thetas from samples?? 
+        thetas = [30] 
         samples = Table((mej_data, phis, thetas), names=('mej', 'phi', 'theta'))
     
         tini = 0.1
@@ -620,23 +623,22 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
         for i, band in enumerate(mags):
             l = len(band)
             plt.plot(t, band)
-            plt.ylim([10,-20])
-    plt.savefig('mag_test.pdf', mags, color=colors[i], label=labels[i])
+    plt.ylim([10,-20])
+
+    plt.savefig('mag_test.pdf')
 
     #ax.plot([.03,.03],[1e-6,1e6], color = 'black', linestyle='--')
     #ax.plot([.05,.05],[1e-6,1e6], color = 'black', linestyle='--')
-    ax.set_yscale('log')
-    ax.set_xscale('log')
+    #ax.set_yscale('log')
+    #ax.set_xscale('log')
     #ax.set_xlim(-9.8, -20.2)
     #plt.ylim(1e-3,1.1)
     plt.xlabel('Magnitude')
     plt.ylabel('Probability')
     plt.legend()
     plt.grid()
-
+    plt.savefig('mag_test.pdf')
     
-    plotname = './output/KDE_comp_mag.pdf'
-    plt.savefig(plotname)
     plt.close(fig)
 
 
