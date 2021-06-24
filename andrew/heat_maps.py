@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[76]:
-
-
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
-ns_dirs = os.listdir('./data/bulla_2Component_lmid')
-nsbh_dirs = os.listdir('./data/bulla_2Component_lnsbh')
+
+#ns_dirs = os.listdir('./heatmap_files/bulla_2Component_lmid')
+#nsbh_dirs = os.listdir('./heatmap_files/bulla_2Component_lnsbh')
 
 nsns_dict = {}
 nsbh_dict = {}
@@ -17,35 +13,29 @@ bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
 for band in bands:
     nsns_dict[band], nsbh_dict[band] = [],[]
 
-for ns_dir in ns_dirs:
-    if 'Lbol' in ns_dir or 'nsns' not in ns_dir: continue
+#for ns_dir in ns_dirs:
+    #if 'Lbol' in ns_dir or 'nsns' not in ns_dir: continue
     
     # comment this part out to include all inclinations:
 #     if '_90.0.dat' not in ns_dir: continue
 
-    mag_d = np.loadtxt(f'./data/bulla_2Component_lmid/{ns_dir}')
-    t = mag_d[:,0]
+    #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}')
+mag_d = np.loadtxt('lightcurve_data.txt')
+t = mag_d[:,0]
+for ii,band in enumerate(bands):
+    nsns_dict[band].append(mag_d[:,ii+1].T)
 
-    for ii,band in enumerate(bands):
-        nsns_dict[band].append(mag_d[:,ii+1].T)
-        
-for nsbh_dir in nsbh_dirs:
-    if 'Lbol' in nsbh_dir or 'nsbh' not in nsbh_dir: continue
+#for nsbh_dir in nsbh_dirs:
+    #if 'Lbol' in nsbh_dir or 'nsbh' not in nsbh_dir: continue
         
     # comment this part out to include all inclinations:
 #     if '_90.0.dat' not in nsbh_dir: continue
         
-    mag_d = np.loadtxt(f'./data/bulla_2Component_lnsbh/{nsbh_dir}')
-    t = mag_d[:,0]
-
-    for ii,band in enumerate(bands):
-        nsbh_dict[band].append(mag_d[:,ii+1].T)
-
-
-# In[1]:
-
-
-import matplotlib.pyplot as plt
+    #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lnsbh/{nsbh_dir}')
+mag_d = np.loadtxt('lightcurve_data.txt')
+t = mag_d[:,0]
+for ii,band in enumerate(bands):
+    nsbh_dict[band].append(mag_d[:,ii+1].T)
 
 f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
 plt.rcParams['figure.dpi'] = 200
@@ -58,14 +48,14 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
     nsbh = np.array(nsbh_dict[band])
 
     bins = np.linspace(-20, 1, 50)
-    X, Y = np.meshgrid(t, bins)
+    X, Y = np.meshgrid(t, bins[:-1])
 
     hist2d_1 = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 0, nsns)
 
     hist2d_1 = hist2d_1.astype('float')
-
     hist2d_1[hist2d_1 == 0] = np.nan
-    im = axes[i][j].pcolormesh(X, Y, hist2d_1,cmap='cool',alpha=0.7)
+   
+    im = axes[i][j].pcolormesh(X, Y, hist2d_1, shading = 'auto', cmap='cool',alpha=0.7)
     
     # plot 10th, 50th, 90th percentiles
     axes[i][j].plot(t, np.nanpercentile(nsns,50,axis=0),c='k',linestyle='--',label='NSNS')
@@ -84,7 +74,7 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
     hist2d_2 = hist2d_2.astype('float')
     hist2d_2[hist2d_2 == 0] = np.nan
 
-    im = axes[i][j].pcolormesh(X, Y, hist2d_2,cmap='hot',alpha=0.6)
+    im = axes[i][j].pcolormesh(X, Y, hist2d_2, shading = 'auto', cmap='hot',alpha=0.6)
     axes[i][j].plot(t, np.nanpercentile(nsbh,50,axis=0),'w--',label='NSBH')
     axes[i][j].plot(t, np.nanpercentile(nsbh,90,axis=0),'w--')
     axes[i][j].plot(t, np.nanpercentile(nsbh,10,axis=0),'w--')
@@ -113,10 +103,6 @@ legend = axes[-1][-1].legend(h1, l1,  bbox_to_anchor=(0,1,1.0,-0.15), loc=9,
 frame = legend.get_frame()
 frame.set_color('skyblue')
 
-plt.savefig('./figures/bulla_BNSvNSBH_alltheta.pdf',bbox_inches='tight')
+plt.savefig('./heatmap_test.pdf',bbox_inches='tight')
 plt.show()
-
-
-# In[ ]:
-
 
