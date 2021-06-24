@@ -155,4 +155,9 @@ plt.savefig('mag_test.pdf')
 
 plt.close(fig)
 
+file1=open ('mej_theta_data_BNS_alsing.txt','w')
 
+log_mej = np.randsom.normal(loc =-2,scale=.5,size=100) 
+mej_data=10**log_mej 
+ 
+file1.write(s)
