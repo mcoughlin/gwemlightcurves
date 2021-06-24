@@ -164,5 +164,8 @@ with open ('mej_theta_data_BNS_alsing.txt','w') as t:
         savetxt(output_mej_theta_data_BNS_alsing.dat)
 with open ('samples_BNS_alsing.txt','w') as f:
         t.write(str(log_mej) 
-        savetxt(output_samples_BNS_alsing.dat))
+        savetxt(output_samples_BNS_alsing.dat)) 
+with open ('samples_BNS_chrip_q.txt','w') as t:
+        t.write(str(log_mej)
+        savetxt(output_samples_BNS_alsing.dat)) 
  
