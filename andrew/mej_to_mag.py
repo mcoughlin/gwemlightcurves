@@ -49,33 +49,15 @@ from gwemlightcurves import lightcurve_utils
 from mass_grid import run_EOS
 #
 
-
-def alsing_pdf(m):
-        mu1, sig1, mu2, sig2, a = 1.34, 0.07, 1.8, 0.21, 2.12
-        PDF1 = a/(sig1*np.sqrt(2*np.pi))*np.exp(-((m-mu1)/(np.sqrt(2)*sig1))**2)
-        PDF2 = a/(sig2*np.sqrt(2*np.pi))*np.exp(-((m-mu2)/(np.sqrt(2)*sig2))**2)
-        PDF = PDF1+PDF2
-        return PDF
-
-
-class alsing_dist(rv_continuous):        
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.normalize, _ = quad(alsing_pdf, self.a, self.b)
-
-    def _pdf(self, m):
-        return alsing_pdf(m) / self.normalize  
-
-
-
 fig, ax = plt.subplots(figsize=(16, 12))
 
-mej_data = 
+mej_theta_data=np.loadtxt('mej_theta_data_BNS_alsing.txt')
 
-phis = [45]
-#should I be taking thetas from samples?? 
-thetas = [30] 
+
+mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1] 
+l= len(mej_data)
+
+phis = 30+30*np.random.rand(l)
 samples = Table((mej_data, phis, thetas), names=('mej', 'phi', 'theta'))
 
 tini = 0.1
@@ -153,6 +135,5 @@ plt.legend()
 plt.grid()
 plt.savefig('mag_test.pdf')
 
-plt.close(fig)
-
+plt.close(fig) 
 
