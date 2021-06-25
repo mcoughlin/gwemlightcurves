@@ -44,37 +44,57 @@ def get_Bu2019lm_model(table, **kwargs):
         elif doSpec:
             table['n_coeff'] = 21
 
-    print(table['n_coeff'])
+    if not 'gptype' in table.colnames:
+        table['gptype'] = 'sklearn'
 
     if doAB:
         if not Global.svd_mag_model == 0:
             svd_mag_model = Global.svd_mag_model
         else:
+            if np.all(table['gptype'] == "sklearn"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_mag.pkl')
+            elif np.all(table['gptype'] == "gpytorch"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpy.pkl')
+            elif np.all(table['gptype'] == "gp_api"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpapi.pkl')
             if LoadModel:
             #if True:
-                modelfile = os.path.join(ModelPath,'Bu2019lm_mag.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
+
             else:
-                svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Bu2019lm_mag.pkl')
+                svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_mag_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            if np.all(table['gptype'] == "gp_api"):
+                for filt in svd_mag_model.keys():
+                    for ii in range(len(svd_mag_model[filt]["gps"])):
+                        svd_mag_model[filt]["gps"][ii] = svd_utils.load_gpapi(svd_mag_model[filt]["gps"][ii])
+
             Global.svd_mag_model = svd_mag_model
 
         if not Global.svd_lbol_model == 0:
             svd_lbol_model = Global.svd_lbol_model
         else:
+            if np.all(table['gptype'] == "sklearn"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol.pkl')
+            elif np.all(table['gptype'] == "gpytorch"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpy.pkl')
+            elif np.all(table['gptype'] == "gp_api"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpapi.pkl')
             if LoadModel:
             #if True:
-                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol.pkl')
                 with open(modelfile, 'rb') as handle:
                     svd_lbol_model = pickle.load(handle)            
             else:
-                svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0])
-                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol.pkl')
+                svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_lbol_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+            if np.all(table['gptype'] == "gp_api"):
+                for ii in range(len(svd_mag_model[filt]["gps"])):
+                    svd_lbol_model["gps"][ii] = svd_utils.load_gpapi(svd_lbol_model["gps"][ii])
+
             Global.svd_lbol_model = svd_lbol_model
     elif doSpec:
         if not Global.svd_spec_model == 0:
@@ -122,7 +142,7 @@ def get_Bu2019lm_model(table, **kwargs):
     for isample in range(len(table)):
         print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
-            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019lm")
+            table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019lm", gptype=table['gptype'][0])
         elif doSpec:
             table['t'][isample], table['lambda'][isample], table['spec'][isample] = svd_utils.calc_spectra(table['tini'][isample], table['tmax'][isample],table['dt'][isample], table['lambdaini'][isample], table['lambdamax'][isample]+table['dlambda'][isample], table['dlambda'][isample], [np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample]],svd_spec_model = svd_spec_model, model = "Bu2019lm")
 
