@@ -1,7 +1,11 @@
 # https://arxiv.org/abs/1705.07084
 
 import os, sys, glob
+import json
 import numpy as np
+seed = 0
+random_state = np.random.RandomState(seed)
+
 import scipy.interpolate
 from scipy.interpolate import interpolate as interp
 from scipy.interpolate import griddata
@@ -29,6 +33,12 @@ try:
             return gpytorch.distributions.MultivariateNormal(mean_x,                                                                    covar_x)
 except:
     print('Install gpytorch if you want to use it...')
+
+try:
+    from gp_api.gaussian_process import GaussianProcess
+    from gp_api.kernels import CompactKernel, WhiteNoiseKernel
+except:
+    print('Install gp_api if you want to use it...')
 
 #import george
 #from george import kernels
@@ -307,6 +317,57 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             gp = GaussianProcessRegressor(kernel=kernel,n_restarts_optimizer=0)
             gp.fit(param_array_postprocess, cAmat[i,:])
             gps.append(gp)
+    elif gptype == "gp_api":
+        nd = 1
+        # Construct hyperparamters
+        coeffs = [0.5] * nd
+        whitenoise = 0.5
+
+        # Create the compact kernel
+        k1 = CompactKernel.fit(param_array_postprocess, method="simple", coeffs=coeffs, sparse=True)
+
+        # Create the whitenoise kernel
+        k2 = WhiteNoiseKernel.fit(param_array_postprocess, method = "simple", scale = whitenoise, sparse = True)
+
+        # Add them together
+        kernel = k1 # + k2
+
+        gps = []
+        for i in range(n_coeff):
+            # Fit the training data
+            gp = GaussianProcess.fit(param_array_postprocess, cAmat[i,:], kernel=kernel, train_err=1e-2)
+            store = gp.store_options
+
+            gp_dict = {}
+            if gp.param_names is not None:
+                gp_dict["param_names"] = ",".join(gp.param_names)
+            else:
+                gp_dict["param_names"] = None
+
+            # Save the kernel
+            gp_dict["kernel"] = gp.kernel.to_json()
+
+            # Save basic attributes
+            gp_dict["sparse"] = gp.sparse
+            gp_dict["hypercube_rescale"] = gp.hypercube_rescale
+
+            # Save any extra metadata
+            gp_dict["metadata"] = json.dumps(gp.metadata)
+
+            # Save the training error
+            gp_dict["train_err"] = gp.train_err
+
+            for option in store:
+                if option == "x":
+                    gp_dict["x"] = gp.x
+                    gp_dict["y"] = gp.y
+                elif option == "predictor":
+                    gp_dict["predictor"] = gp.predictor
+                else:
+                    assert False
+
+            gps.append(gp_dict)
+
     elif gptype == "gpytorch":
         # initialize likelihood and model
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -680,6 +741,67 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
                                               n_restarts_optimizer=0)
                 gp.fit(param_array_postprocess, cAmat[i,:])
                 gps.append(gp)
+
+                #import pickle
+                #size_estimate = len(pickle.dumps(gp))
+                #gp = GaussianProcessRegressor(kernel=kernel,
+                #                              n_restarts_optimizer=0,
+                #                              copy_X_train=False)
+                #gp.fit(param_array_postprocess, cAmat[i,:])
+                #size_estimate = len(pickle.dumps(gp))
+            
+        elif gptype == "gp_api":
+            nd = 1
+            # Construct hyperparamters
+            coeffs = [0.5] * nd
+            whitenoise = 0.5
+
+            # Create the compact kernel
+            k1 = CompactKernel.fit(param_array_postprocess, method="simple", coeffs=coeffs, sparse=True)
+
+            # Create the whitenoise kernel
+            k2 = WhiteNoiseKernel.fit(param_array_postprocess, method = "simple", scale = whitenoise, sparse = True)
+
+            # Add them together
+            kernel = k1 #+ k2
+        
+            gps = []
+            for i in range(n_coeff):
+                # Fit the training data
+                gp = GaussianProcess.fit(param_array_postprocess, cAmat[i,:], kernel=kernel, train_err=None)
+
+                store = gp.store_options
+
+                gp_dict = {}
+                if gp.param_names is not None:
+                    gp_dict["param_names"] = ",".join(gp.param_names)
+                else:
+                    gp_dict["param_names"] = None    
+
+                # Save the kernel
+                gp_dict["kernel"] = gp.kernel.to_json()
+    
+                # Save basic attributes
+                gp_dict["sparse"] = gp.sparse
+                gp_dict["hypercube_rescale"] = gp.hypercube_rescale
+    
+                # Save any extra metadata
+                gp_dict["metadata"] = json.dumps(gp.metadata)
+    
+                # Save the training error
+                gp_dict["train_err"] = gp.train_err
+
+                for option in store:
+                    if option == "x":
+                        gp_dict["x"] = gp.x
+                        gp_dict["y"] = gp.y
+                    elif option == "predictor":
+                        gp_dict["predictor"] = gp.predictor
+                    else:
+                        assert False
+
+                gps.append(gp_dict)
+     
         elif gptype == "gpytorch":
             # initialize likelihood and model
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -1075,7 +1197,14 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
                 y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
                 cAproj[i] = y_pred
                 cAstd[i] = sigma2_pred
+            elif gptype == "gp_api":
+                y_pred = gp.mean(np.atleast_2d(param_list_postprocess))
 
+                y_samples_test = gp.rvs(100, np.atleast_2d(param_list_postprocess), random_state=random_state)
+                y_90_lo_test, y_90_hi_test = np.percentile(y_samples_test, [5, 95], axis=1)    
+        
+                cAproj[i] = y_pred
+                cAstd[i] = y_90_hi_test - y_90_lo_test
             elif gptype == "gpytorch":
                 likelihood = gpytorch.likelihoods.GaussianLikelihood()
                 model = ExactGPModel(torch.from_numpy(param_array_postprocess).float(),
@@ -1135,6 +1264,14 @@ def calc_lc(tini,tmax,dt,param_list,svd_mag_model=None,svd_lbol_model=None,
         if gptype == "sklearn":
             y_pred, sigma2_pred = gp.predict(np.atleast_2d(param_list_postprocess), return_std=True)
             cAproj[i] = y_pred
+        elif gptype == "gp_api":
+            y_pred = gp.mean(np.atleast_2d(param_list_postprocess))
+
+            y_samples_test = gp.rvs(100, np.atleast_2d(param_list_postprocess), random_state=random_state)
+            y_90_lo_test, y_90_hi_test = np.percentile(y_samples_test, [5, 95], axis=1)
+
+            cAproj[i] = y_pred
+            cAstd[i] = y_90_hi_test - y_90_lo_test
         elif gptype == "gpytorch":
             likelihood = gpytorch.likelihoods.GaussianLikelihood()
             model = ExactGPModel(torch.from_numpy(param_array_postprocess).float(),
@@ -1235,3 +1372,37 @@ def calc_spectra(tini,tmax,dt,lambdaini,lambdamax,dlambda,param_list,svd_spec_mo
 
     return np.squeeze(tt), np.squeeze(lambdas), spec
 
+def load_gpapi(gp):
+
+    from gp_api.kernels import from_json as load_kernel
+
+    param_names = gp.get("param_names", None)
+    if param_names is not None:
+        param_names = param_names.split(",")
+
+    sparse = gp["sparse"]
+    hypercube_rescale = gp["hypercube_rescale"]
+
+    metadata = json.loads(gp["metadata"])
+
+    ## TODO: actually figure out what can be loaded and what has to
+    ## be re-computed
+
+    x = gp["x"]
+    y = gp["y"]
+
+    train_err = gp["train_err"]
+
+    kernel = load_kernel(gp["kernel"])
+    if train_err is not None:
+        Kaa = kernel(x, x, train_err)
+    else:
+        Kaa = kernel(x, x)
+    LL = GaussianProcess._get_cholesky(Kaa, sparse=sparse)
+
+    predictor = gp["predictor"]
+
+    return GaussianProcess(x, y, LL, predictor, kernel,
+                           hypercube_rescale=hypercube_rescale,
+                           param_names=param_names,
+                           metadata=metadata)

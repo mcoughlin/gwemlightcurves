@@ -25,7 +25,7 @@ from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves.sampler import run
 from gwemlightcurves import __version__
-from gwemlightcurves import lightcurve_utils, ztf_utils, Global
+from gwemlightcurves import svd_utils, lightcurve_utils, ztf_utils, Global
 
 def parse_commandline():
     """
@@ -81,6 +81,8 @@ def parse_commandline():
     parser.add_option("--username",default="username")
     parser.add_option("--password",default="password")
 
+    parser.add_option("--gptype",default="sklearn")
+
     opts, args = parser.parse_args()
 
     return opts
@@ -88,8 +90,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh","Bu2019rpd"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019inc_TrPi2018, Bu2019rp, Bu2019rps, Wo2020, Wo2020dw, Wo2020dyn, Bu2019nsbh, Bu2019rpd")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019lm, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps")
     exit(0)
 
 if opts.doFixZPT0:
@@ -139,7 +141,7 @@ if opts.model in ["Ka2017inc","Ka2017x2inc","Ka2017x3inc"]:
     plotDir = os.path.join(plotDir,'%s'%("_".join(colormodel)))
 plotDir = os.path.join(plotDir,"_".join(filters))
 plotDir = os.path.join(plotDir,"%.0f_%.0f"%(opts.tmin,opts.tmax))
-if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh"]:
+if opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017inc","Ka2017_A","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc", "RoFe2017","Bu2019","Bu2019inc","Bu2019rp","Bu2019rps"]:
     if opts.doMasses:
         plotDir = os.path.join(plotDir,'masses')
     elif opts.doEjecta:
@@ -407,6 +409,7 @@ Global.doLightcurves = 1
 Global.filters = filters
 Global.doWaveformExtrapolate = opts.doWaveformExtrapolate
 Global.n_coeff = opts.n_coeff
+Global.gptype = opts.gptype
 
 if opts.doFixXlan:
     Global.Xlan = np.log10(opts.Xlan)
@@ -417,7 +420,7 @@ if opts.doFixT:
 if opts.doFixXlan:
     Global.phi = opts.phi
 
-if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr","Bu2019rp","Bu2019rps","Wo2020","Wo2020dw","Wo2020dyn","Bu2019nsbh","Bu2019rpd"]:
+if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr", "Bu2019lm", "Bu2019rp","Bu2019rps"]:
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
@@ -470,6 +473,27 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2019lm":
+        if opts.gptype == "sklearn":
+            magmodelfile = os.path.join(ModelPath,'Bu2019lm_mag.pkl')
+            lbolmodelfile = os.path.join(ModelPath,'Bu2019lm_lbol.pkl')
+        elif opts.gptype == "gp_api":
+            magmodelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpapi.pkl')
+            lbolmodelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpapi.pkl')
+        with open(magmodelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        with open(lbolmodelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+
+        if opts.gptype == "gp_api":
+            for filt in svd_mag_model.keys():
+                for ii in range(len(svd_mag_model[filt]["gps"])):
+                    svd_mag_model[filt]["gps"][ii] = svd_utils.load_gpapi(svd_mag_model[filt]["gps"][ii])
+            for ii in range(len(svd_lbol_model["gps"])):
+                svd_lbol_model["gps"][ii] = svd_utils.load_gpapi(svd_lbol_model["gps"][ii])
+
+        Global.svd_mag_model = svd_mag_model
+        Global.svd_lbol_model = svd_lbol_model
     elif opts.model == "Bu2019rps":
         modelfile = os.path.join(ModelPath,'Bu2019rps_mag.pkl')
         with open(modelfile, 'rb') as handle:
@@ -477,56 +501,6 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         Global.svd_mag_model = svd_mag_model
 
         modelfile = os.path.join(ModelPath,'Bu2019rps_lbol.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_lbol_model = pickle.load(handle)
-        Global.svd_lbol_model = svd_lbol_model
-    elif opts.model == "Bu2019rpd":
-        modelfile = os.path.join(ModelPath,'Bu2019rpd_mag.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-
-        modelfile = os.path.join(ModelPath,'Bu2019rpd_lbol.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-    elif opts.model == "Wo2020dyn":
-        modelfile = os.path.join(ModelPath,'Wo2020dyn_mag.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-
-        modelfile = os.path.join(ModelPath, 'Wo2020dyn_lbol.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_lbol_model = pickle.load(handle)
-        Global.svd_lbol_model = svd_lbol_model
-    elif opts.model == "Wo2020dw":
-        modelfile = os.path.join(ModelPath,'Wo2020dw_mag.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-
-        modelfile = os.path.join(ModelPath, 'Wo2020dw_lbol.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_lbol_model = pickle.load(handle)
-        Global.svd_lbol_model = svd_lbol_model
-    elif opts.model == "Wo2020":
-        modelfile = os.path.join(ModelPath,'Wo2020_mag.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-
-        modelfile = os.path.join(ModelPath, 'Wo2020_lbol.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_lbol_model = pickle.load(handle)
-        Global.svd_lbol_model = svd_lbol_model
-    elif opts.model == "Bu2019nsbh":
-        modelfile = os.path.join(ModelPath,'Bu2019nsbh_mag.pkl')
-        with open(modelfile, 'rb') as handle:
-            svd_mag_model = pickle.load(handle)
-        Global.svd_mag_model = svd_mag_model
-
-        modelfile = os.path.join(ModelPath, 'Bu2019nsbh_lbol.pkl')
         with open(modelfile, 'rb') as handle:
             svd_lbol_model = pickle.load(handle)
         Global.svd_lbol_model = svd_lbol_model
@@ -589,17 +563,17 @@ else:
                        color="coral")
 if n_params >= 10:
     figure.set_size_inches(40.0,40.0)
-elif n_params >= 6:
+elif n_params > 6:
     figure.set_size_inches(24.0,24.0)
 else:
-    figure.set_size_inches(14.0,14.0)
+    figure.set_size_inches(20.0,20.0)
 plt.savefig(plotName)
 plt.close()
 
 tmag = tmag + t0_best
 
-#colors=cm.rainbow(np.linspace(0,1,len(filters)))
-colors=cm.Spectral(np.linspace(0,1,len(filters)))[::-1]
+colors=cm.rainbow(np.linspace(0,1,len(filters)))
+#colors=cm.Spectral(np.linspace(0,1,len(filters)))[::-1]
 
 tini, tmax, dt = opts.tmin, opts.tmax, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -739,7 +713,7 @@ color1 = 'cornflowerblue'
 
 plotName = "%s/models_panels.pdf"%(plotDir)
 #plt.figure(figsize=(20,18))
-plt.figure(figsize=(20,28))
+fig = plt.figure(figsize=(24,28))
 
 tini, tmax, dt = 0.0, 21.0, 0.1
 tt = np.arange(tini,tmax,dt)
@@ -778,7 +752,7 @@ for filt, color in zip(filters,colors):
     plt.ylabel(r'$%s$'%filt,fontsize=52,rotation=0,labelpad=40)
 
     if opts.name == "GW170817":
-        if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc"]:
+        if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc","Bu2019lm"]:
             plt.xlim([0.0, 14.0])
             plt.ylim([-17.0,-11.0])
         elif opts.model in ["Bu2019","Bu2019inc"]:
@@ -805,13 +779,13 @@ for filt, color in zip(filters,colors):
         #l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
     elif not cnt == len(filters):
         plt.setp(ax2.get_xticklabels(), visible=False)
-    plt.xticks(fontsize=36)
-    plt.yticks(fontsize=36)
+    plt.xticks(fontsize=44)
+    plt.yticks(fontsize=44)
 
 ax1.set_zorder(1)
 plt.xlabel(r'$\textrm{Time [days]}$',fontsize=52)
 fig.text(0.001, 0.5, r'$\textrm{Photometric Band [mag]}$', va='center', rotation='vertical', fontsize=52)
 #plt.tight_layout()
-plt.tight_layout(rect=[0.03, 0.00, 0.96, 0.95])
+plt.tight_layout(rect=[0.03, 0.00, 0.96, 0.95])  
 plt.savefig(plotName)
 plt.close()
