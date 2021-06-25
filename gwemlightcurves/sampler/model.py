@@ -14,6 +14,11 @@ def generate_lightcurve(model,samples):
 
     if Global.n_coeff > 0:
         samples["n_coeff"] = Global.n_coeff
+    try:
+        samples["gptype"] = Global.gptype
+    except:
+        pass
+
     model_table = KNTable.model(model, samples)
 
     if len(model_table) == 0:
