@@ -10,8 +10,8 @@ nsns_dict = {}
 nsbh_dict = {}
 bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
 
-for band in bands:
-    nsns_dict[band], nsbh_dict[band] = [],[]
+#for band in bands:
+#    nsns_dict[band], nsbh_dict[band] = [],[]
 
 #for ns_dir in ns_dirs:
     #if 'Lbol' in ns_dir or 'nsns' not in ns_dir: continue
@@ -21,10 +21,11 @@ for band in bands:
 
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}')
 mag_d = np.loadtxt('lightcurve_data.txt')
+#print(np.shape(mag_d))
 t = mag_d[:,0]
 for ii,band in enumerate(bands):
-    nsns_dict[band].append(mag_d[:,ii+1].T)
-
+    nsns_dict[band] = mag_d[:,ii+1]
+    #print(np.shape(nsns_dict[band]))
 #for nsbh_dir in nsbh_dirs:
     #if 'Lbol' in nsbh_dir or 'nsbh' not in nsbh_dir: continue
         
@@ -32,35 +33,43 @@ for ii,band in enumerate(bands):
 #     if '_90.0.dat' not in nsbh_dir: continue
         
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lnsbh/{nsbh_dir}')
+
+'''
 mag_d = np.loadtxt('lightcurve_data.txt')
+mag_d = mag_d[0:100]
 t = mag_d[:,0]
 for ii,band in enumerate(bands):
-    nsbh_dict[band].append(mag_d[:,ii+1].T)
-
+    nsbh_dict[band] = mag_d[:,ii+1]
+'''
 f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
 plt.rcParams['figure.dpi'] = 200
 plt.rc('xtick',labelsize=30)
 plt.rc('ytick',labelsize=30)
 
+print('Initializing BNS')
 for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
 
     nsns = np.array(nsns_dict[band])
-    nsbh = np.array(nsbh_dict[band])
-
+    #nsbh = np.array(nsbh_dict[band])
+    t_bins = t[0:99]
     bins = np.linspace(-20, 1, 50)
-    X, Y = np.meshgrid(t, bins[:-1])
+    #X, Y = np.meshgrid(t, bins[:-1])
 
-    hist2d_1 = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 0, nsns)
+    #hist2d_1 = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 0, nsns)
 
-    hist2d_1 = hist2d_1.astype('float')
-    hist2d_1[hist2d_1 == 0] = np.nan
-   
-    im = axes[i][j].pcolormesh(X, Y, hist2d_1, shading = 'auto', cmap='cool',alpha=0.7)
-    
+    #hist2d_1 = hist2d_1.astype('float')
+    #hist2d_1[hist2d_1 == 0] = np.nan
+    hist2d_1, xedges, yedges = np.histogram2d(t, nsns, bins = (t_bins,bins))
+    X, Y = np.meshgrid(xedges, yedges)
+    #print(np.shape(X))
+    #print(np.shape(Y))
+    #print(np.shape(hist2d_1)) 
+    im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='Reds',alpha=0.7)
+    print(str(band)+' complete') 
     # plot 10th, 50th, 90th percentiles
-    axes[i][j].plot(t, np.nanpercentile(nsns,50,axis=0),c='k',linestyle='--',label='NSNS')
-    axes[i][j].plot(t, np.nanpercentile(nsns,90,axis=0),'k--')
-    axes[i][j].plot(t, np.nanpercentile(nsns,10,axis=0),'k--')
+    #axes[i][j].plot(t, np.nanpercentile(nsns,50,axis=0),c='k',linestyle='--',label='NSNS')
+    #axes[i][j].plot(t, np.nanpercentile(nsns,90,axis=0),'k--')
+    #axes[i][j].plot(t, np.nanpercentile(nsns,10,axis=0),'k--')
     if band == 'K':
         cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
         cb = f.colorbar(im, cax = cb_ax, ticks=[])
@@ -68,7 +77,7 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
 
 #        axes[i][j].text(0.676,0.8,'   High \nDensity',size=10.1)
 #        axes[i][j].text(0.676,0.1,'   Low \nDensity',size=10.1)
-
+    '''
     hist2d_2 = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 0, nsbh)
 
     hist2d_2 = hist2d_2.astype('float')
@@ -83,7 +92,7 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
         cb_ax = f.add_axes([1.00, 0.14, 0.023, 0.7])
         cb = f.colorbar(im, cax = cb_ax, ticks=[])
         cb.set_label(label='NSBH',size=30)
-
+    '''
     axes[i][j].set_ylim([0,-20])
     axes[i][j].text(10,-17,f'{band}',size=30)
 
