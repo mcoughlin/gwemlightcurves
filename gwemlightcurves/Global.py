@@ -19,3 +19,4 @@ svd_mag_color_models = []
 doWaveformExtrapolate = 0
 doAbsorption = 0
 n_coeff = 0
+gptype = "sklearn"

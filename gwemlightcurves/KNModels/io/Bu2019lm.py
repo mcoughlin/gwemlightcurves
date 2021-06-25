@@ -70,7 +70,6 @@ def get_Bu2019lm_model(table, **kwargs):
                 for filt in svd_mag_model.keys():
                     for ii in range(len(svd_mag_model[filt]["gps"])):
                         svd_mag_model[filt]["gps"][ii] = svd_utils.load_gpapi(svd_mag_model[filt]["gps"][ii])
-
             Global.svd_mag_model = svd_mag_model
 
         if not Global.svd_lbol_model == 0:
@@ -92,7 +91,7 @@ def get_Bu2019lm_model(table, **kwargs):
                     pickle.dump(svd_lbol_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             if np.all(table['gptype'] == "gp_api"):
-                for ii in range(len(svd_mag_model[filt]["gps"])):
+                for ii in range(len(svd_lbol_model["gps"])):
                     svd_lbol_model["gps"][ii] = svd_utils.load_gpapi(svd_lbol_model["gps"][ii])
 
             Global.svd_lbol_model = svd_lbol_model
