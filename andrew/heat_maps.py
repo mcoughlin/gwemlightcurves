@@ -20,7 +20,7 @@ bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
 #     if '_90.0.dat' not in ns_dir: continue
 
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}')
-mag_d = np.loadtxt('lightcurve_data_'+str(Type)+'.txt')
+mag_d = np.loadtxt('lightcurve_data.txt') 
 #print(np.shape(mag_d))
 t = mag_d[:,0]
 for ii,band in enumerate(bands):
@@ -30,7 +30,7 @@ for ii,band in enumerate(bands):
     #if 'Lbol' in nsbh_dir or 'nsbh' not in nsbh_dir: continue
         
     # comment this part out to include all inclinations:
-#     if '_90.0.dat' not in nsbh_dir: continue
+#     #if '_90.0.dat' not in nsbh_dir: continue
         
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lnsbh/{nsbh_dir}')
 
@@ -70,17 +70,19 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
     im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='Reds',alpha=0.7)
     print(str(band)+' complete') 
    
-    '''
+'''
     Fix percentiles --------------------------------------------
-    '''
-    # plot 10th, 50th, 90th percentiles
-    #axes[i][j].plot(t, np.nanpercentile(nsns,50,axis=0),c='k',linestyle='--',label='NSNS')
-    #axes[i][j].plot(t, np.nanpercentile(nsns,90,axis=0),'k--')
-    #axes[i][j].plot(t, np.nanpercentile(nsns,10,axis=0),'k--')
-    if band == 'K':
-        cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
-        cb = f.colorbar(im, cax = cb_ax, ticks=[])
-        cb.set_label(label='NSNS',size=30)
+'''   
+
+print (np.shape(nsns))
+#plot 10th, 50th, 90th percentiles
+axes[i][j].plot(t_bins, np.nanpercentile(nsns,50),c='k',linestyle='--',label='NSNS')
+axes[i][j].plot(t_bins, np.nanpercentile(nsns,90),'k--')
+axes[i][j].plot(t_bins, np.nanpercentile(nsns,10),'k--')   
+if band == 'K':
+    cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
+    cb = f.colorbar(im, cax = cb_ax, ticks=[])
+    cb.set_label(label='NSNS',size=30)
 
 #        axes[i][j].text(0.676,0.8,'   High \nDensity',size=10.1)
 #        axes[i][j].text(0.676,0.1,'   Low \nDensity',size=10.1)
@@ -125,4 +127,6 @@ plt.show()
 
 '''
 Types = [....all the types from the othr code....
-'''
+''' 
+
+
