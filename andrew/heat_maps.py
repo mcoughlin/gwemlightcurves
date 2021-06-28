@@ -20,7 +20,7 @@ bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
 #     if '_90.0.dat' not in ns_dir: continue
 
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}')
-mag_d = np.loadtxt('lightcurve_data.txt')
+mag_d = np.loadtxt('lightcurve_data_'+str(Type)+'.txt')
 #print(np.shape(mag_d))
 t = mag_d[:,0]
 for ii,band in enumerate(bands):
@@ -33,6 +33,7 @@ for ii,band in enumerate(bands):
 #     if '_90.0.dat' not in nsbh_dir: continue
         
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lnsbh/{nsbh_dir}')
+
 
 '''
 mag_d = np.loadtxt('lightcurve_data.txt')
@@ -61,11 +62,17 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
     #hist2d_1[hist2d_1 == 0] = np.nan
     hist2d_1, xedges, yedges = np.histogram2d(t, nsns, bins = (t_bins,bins))
     X, Y = np.meshgrid(xedges, yedges)
+    hist2d_1[hist2d_1 == 0] = np.nan
+
     #print(np.shape(X))
     #print(np.shape(Y))
     #print(np.shape(hist2d_1)) 
     im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='Reds',alpha=0.7)
     print(str(band)+' complete') 
+   
+    '''
+    Fix percentiles --------------------------------------------
+    '''
     # plot 10th, 50th, 90th percentiles
     #axes[i][j].plot(t, np.nanpercentile(nsns,50,axis=0),c='k',linestyle='--',label='NSNS')
     #axes[i][j].plot(t, np.nanpercentile(nsns,90,axis=0),'k--')
@@ -115,3 +122,7 @@ frame.set_color('skyblue')
 plt.savefig('./heatmap_test.pdf',bbox_inches='tight')
 plt.show()
 
+
+'''
+Types = [....all the types from the othr code....
+'''
