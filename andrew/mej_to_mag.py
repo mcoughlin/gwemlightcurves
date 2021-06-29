@@ -35,7 +35,8 @@ from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import math
-import pandas as pd
+import pandas as pd 
+import pickle
 
 
 
@@ -96,7 +97,7 @@ samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['theta_r'] = theta_r
 samples['Ye'] = Ye
-
+samples = samples[0:10]
 
 ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
 kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
@@ -118,6 +119,33 @@ mags = model_tables[model]['mag']
 t = model_tables[model]['t'][0]
 
 #bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
+
+
+t_list, u_list, g_list, r_list, i_list = [], [], [], [], []
+z_list, y_list, J_list, H_list, K_list = [], [], [], [], []
+
+data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
+ 
+mej_samples = samples['mej']
+theta_samples = samples['theta']
+phi_samples = samples['phi']
+
+Type = 'BNS_alsing'
+for n, sample in enumerate(mags):
+    sample_name = 'lc_'+str(Type)+'_mej_'+str(mej_samples[n])+'_theta_'+str(theta_samples[n])+'_phi_'+str(phi_samples[n])+'.pickle' 
+    data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
+    for i, band in enumerate(sample):
+        #data_lists[i].append(band)
+        data_lists[i] = np.concatenate((data_lists[i], band))
+    lightcurve_data = np.column_stack((t, data_lists[0], data_lists[1], data_lists[2], data_lists[3], data_lists[4], data_lists[5], data_lists[6], data_lists[7], data_lists[8]))
+    print(np.shape(lightcurve_data))
+    print(lightcurve_data)
+    with open(sample_name, 'wb') as filename:
+        pickle.dump (lightcurve_data,filename, protocol=pickle.HIGHEST_PROTOCOL)
+
+'''    
+#np.savetxt('lightcurve_data.txt', lightcurve_data)
+
 t_list, u_list, g_list, r_list, i_list = [], [], [], [], []
 z_list, y_list, J_list, H_list, K_list = [], [], [], [], []
 
@@ -125,6 +153,7 @@ data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_
 
 
 for sample in mags:
+    #sample_name =
     for i, band in enumerate(sample):
         #data_lists[i].append(band)
         data_lists[i] = np.concatenate((data_lists[i], band))
@@ -135,4 +164,31 @@ for band in data_lists:
     lightcurve_data = np.column_stack((lightcurve_data, band))
     
 np.savetxt('lightcurve_data.txt', lightcurve_data)
+print(np.shape((mags)))
+
+ 
+
+#example lightcurve to pickle
+#orginal_lc = {'lc_'+str(Type)+'mej_.'+str(mej_value)+str(mej_theta_data)} 
+
+#is this the right data to open
+
+with open('test.pickle','wb')as filename:
+   pickle.dump(lightcurve_data, filename, protocol=pickle.HIGHEST_PROTOCOL)
+
+#how do i make it loop over for every light curve
+#print 'orginal_lc', orginal_lc 
+
+#can i use a dataframe 
+# df = pd.DataFrame 
+
+
+with open('test.pickle','rb') as input_file: 
+
+    lc_pickle = pickle.load(input_file)
+print(lc_pickle)
+'''
+
+ 
+
  
