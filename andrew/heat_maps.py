@@ -1,31 +1,36 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle 
 
-
-#ns_dirs = os.listdir('./heatmap_files/bulla_2Component_lmid')
+ns_dirs = os.listdir('./lcdata')
 #nsbh_dirs = os.listdir('./heatmap_files/bulla_2Component_lnsbh')
+
+print (ns_dirs) 
 
 nsns_dict = {}
 nsbh_dict = {}
-bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
+bands = ['t','u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
 
-#for band in bands:
-#    nsns_dict[band], nsbh_dict[band] = [],[]
+for band in bands:
+    nsns_dict[band], nsbh_dict[band] = [],[]
 
-#for ns_dir in ns_dirs:
+for ns_dir in ns_dirs:   
+    with open (f'./lcdata/{ns_dir}','rb') as f:
+        data= pickle.load(f)
+ 
+    for ii,band in enumerate(bands):
+        nsns_dict[band].append(data[:,ii])
     #if 'Lbol' in ns_dir or 'nsns' not in ns_dir: continue
     
     # comment this part out to include all inclinations:
 #     if '_90.0.dat' not in ns_dir: continue
 
-    #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}')
-mag_d = np.loadtxt('lightcurve_data.txt') 
+    #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lmid/{ns_dir}') 
+
+#mag_d = np.loadtxt('lightcurve_data.txt') 
 #print(np.shape(mag_d))
-t = mag_d[:,0]
-for ii,band in enumerate(bands):
-    nsns_dict[band] = mag_d[:,ii+1]
-    #print(np.shape(nsns_dict[band]))
+#t = mag_d[:,0] 
 #for nsbh_dir in nsbh_dirs:
     #if 'Lbol' in nsbh_dir or 'nsbh' not in nsbh_dir: continue
         
@@ -33,7 +38,17 @@ for ii,band in enumerate(bands):
 #     #if '_90.0.dat' not in nsbh_dir: continue
         
     #mag_d = np.loadtxt(f'./heatmap_files/bulla_2Component_lnsbh/{nsbh_dir}')
-
+'''
+#pickle  
+for i, band in enumerate(sample):
+    a = np.array(['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K'] 
+    np.vstack(a)
+heatmap_name = 'hm_'+str(label)+'.pickle'  
+print(np.shape(lightcurve_data)) 
+print(lightcurve_data)
+with open(heatmap_name,'wb') as filename:
+    pickle.dump(lightcurve_data,filename,protocol=pickle.HIGHEST_PROTOCOL)
+'''
 
 '''
 mag_d = np.loadtxt('lightcurve_data.txt')
@@ -47,12 +62,19 @@ plt.rcParams['figure.dpi'] = 200
 plt.rc('xtick',labelsize=30)
 plt.rc('ytick',labelsize=30)
 
-print('Initializing BNS')
+print('Initializing BNS') 
+
+t = nsns_dict['t'] 
+t = t[0] 
+
+print (np.shape(t)) 
+
 for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
 
     nsns = np.array(nsns_dict[band])
     #nsbh = np.array(nsbh_dict[band])
-    t_bins = t[0:99]
+    #t_bins = t[0:99] 
+    t_bins = t
     bins = np.linspace(-20, 1, 50)
     #X, Y = np.meshgrid(t, bins[:-1])
 
@@ -128,5 +150,7 @@ plt.show()
 '''
 Types = [....all the types from the othr code....
 ''' 
+
+#pickle 
 
 
