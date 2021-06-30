@@ -52,7 +52,7 @@ from gwemlightcurves import __version__
 from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
-from mass_grid import run_EOS
+from mass_grid_fast import run_EOS
 #-------------------------------------------------
 
 #-------------------------------------------------
@@ -191,7 +191,8 @@ def run_theoretical(Type, lan, chi, EOS):
     twixie_tf = False
  
     print(Type)
-    check_vals = open('samples_'+str(Type2)+'.txt', 'w')
+    #check_vals = open('samples_'+str(Type2)+'.txt', 'w')
+    #mej_theta = open('mej_theta_data_'+str(Type2)+'.txt', 'w')
     for chi in chi_list:
         #-----------------------------------------------------------
         '''
@@ -275,7 +276,10 @@ def run_theoretical(Type, lan, chi, EOS):
             m2 = np.ones(uniform_mass_draws)+np.random.rand(uniform_mass_draws)
             m1 = chirp_min+(chirp_max-chirp_min)*np.random.rand(uniform_mass_draws)
             chirp_q_tf = True
-        all_data = np.array([])
+        all_mej_data, all_thetas, all_m1s, all_m2s = np.array([]), np.array([]),np.array([]), np.array([]) 
+        all_mchirps, all_qs, all_vej, all_wind_mej, all_dyn_mej = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]) 
+
+ 
         medians, stds = [], []
         m1_plot, m2_plot=[], []
         lambdatildes=[]
@@ -317,6 +321,7 @@ def run_theoretical(Type, lan, chi, EOS):
                         print('-----------------------------------------------------')
 
                     mej_samples = mej_samples[idx]                    
+                    samples = samples[idx]
 
                     m1_vals = samples['m1']
                     m2_vals = samples['m2']
@@ -340,17 +345,29 @@ def run_theoretical(Type, lan, chi, EOS):
                     dyn_mej = samples['dyn_mej']
                     wind_mej = samples['wind_mej']
                     mbns = samples['mbns']
+                    thetas = samples['theta']
                     #'m1','m2','lambda1','lambda2','chi_eff','Xlan','c1','c2','mb1','mb2','mchirp','eta','q','mej','vej', 'dyn_mej', 'wind_mej', 'mbns'
-                    for l in range(len(samples)):
-                        check_vals.write(str(m1_vals[l])+' '+str(m2_vals[l])+' '+str(l1_vals[l])+' '+str(l2_vals[l])+' '+str(chi_eff[l])+' '+str(Xlan[l])+' '+str(c1[l])+' '+str(c2[l])+' '+str(mb1[l])+' '+str(mb2[l])+' '+str(mchirp[l])+' '+str(eta[l])+' '+str(q[l])+' '+str(mej_vals[l])+' '+str(vej[l])+' '+str(dyn_vals[l])+' '+str(wind_vals[l])+' '+str(mbns[l])+'\n')
-                     
+                    #for l in range(len(samples)):
+                    #    check_vals.write(str(m1_vals[l])+' '+str(m2_vals[l])+' '+str(l1_vals[l])+' '+str(l2_vals[l])+' '+str(chi_eff[l])+' '+str(Xlan[l])+' '+str(c1[l])+' '+str(c2[l])+' '+str(mb1[l])+' '+str(mb2[l])+' '+str(mchirp[l])+' '+str(eta[l])+' '+str(q[l])+' '+str(mej_vals[l])+' '+str(vej[l])+' '+str(dyn_vals[l])+' '+str(wind_vals[l])+' '+str(mbns[l])+'\n')
+                    #    mej_theta.write(str(mej_samples[l])+' '+str(thetas[l])+'\n') 
                     if len(mej_samples) > 3:
                         mean=np.mean(mej_samples)
                         if math.isnan(mean):
                             mean = 0
                 
                         data.append(mean)
-                        all_data = np.concatenate((all_data, mej_samples))
+                        all_mej_data = np.concatenate((all_mej_data, mej_samples))
+                        all_thetas = np.concatenate((all_thetas, thetas))
+                        all_m1s = np.concatenate((all_m1s, m1_vals))
+                        all_m2s = np.concatenate((all_m2s, m2_vals))
+                        all_mchirps = np.concatenate((all_mchirps, mchirp))
+                        all_qs = np.concatenate((all_qs, q))
+                        all_vej = np.concatenate((all_vej, vej))
+                        all_wind_mej = np.concatenate((all_wind_mej, wind_mej))
+                        all_dyn_mej = np.concatenate((all_dyn_mej, dyn_mej))
+
+
+
                         samples_gp=samples
                     if len(mej_samples) <= 4:
                         print('----------------------> Too few '+Type+', samples discarded, running next iteration')
@@ -386,9 +403,14 @@ def run_theoretical(Type, lan, chi, EOS):
                     m1_0.append(m1_plot[num])
                     m2_0.append(m2_plot[num])               
         
-    check_vals.close()
-    data=np.array(data)
-    return data, all_data
+    #check_vals.close()
+    #mej_theta.close()
+    mean_data=np.array(data)
+    mej_theta = np.column_stack((all_mej_data, all_thetas))
+    corner_data = np.column_stack((all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas))
+    np.savetxt('./mej_theta_data/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
+    np.savetxt('./corner_data/corner_data_'+str(Type2)+'.txt', corner_data)
+    return mean_data, all_mej_data
 
 
 
@@ -424,9 +446,9 @@ def run_prob(mass, lan, chi, coverage_factors = False, theor = False, Type = Non
                     prob_events.append(np.array(prob_list))
                     prob_norm_events.append(np.array(prob_norm_list))
                     continue
-            if not theor:
-                data = np.loadtxt(filename, usecols = 1)
-                all_data=data
+            #if not theor:
+            #    data = np.loadtxt(filename, usecols = 1)
+            #    all_data=data
             if theor:
                 #----------------------------------------------------------------------
                 '''
@@ -435,8 +457,7 @@ def run_prob(mass, lan, chi, coverage_factors = False, theor = False, Type = Non
                 #---------------------------------------------------------------------
                 EOS_type = 'gp'
                 #EOS_type = 'Sly'
-                data, all_data = (run_theoretical(Type, lan, chi, EOS_type))
-                data = np.array(data)
+                mean_data, all_data = (run_theoretical(Type, lan, chi, EOS_type))
                 shape = np.shape(all_data)
                 num = 1
  
@@ -521,9 +542,8 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     mej_kde = []
     plot_mass = 10**mass
     labels = ['BNS (Alsing et al.)', 'BNS (Farrow et al.)', 'BNS, m1=m2 (Alsing et al.)', 'BNS, m1=m2 (Farrow et al.)',  'BNS, Uniform in m1, m2', 'NSBH, Uniform in m1, m2', 'NSBH (Alsing et al., Zhu et al.)', 'BNS, Uniform in chirp, q'] 
-    #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
-    Types = ['BNS_farrow']
-
+    Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
+    #Types = ['BNS_alsing']
     fig, ax = plt.subplots(figsize=(16, 12))
     for n, t in enumerate(Types):
         prob_events, prob_norm_events, mej_test, chi, EOS_type = run_prob(mass, lan, chi, theor = True, Type = t)
@@ -549,98 +569,9 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     plt.grid()
 
     
-    plotname = './output/KDE_comp_analytical.pdf'
+    plotname = './output/KDE_comp_edit.pdf'
     plt.savefig(plotname)
     plt.close(fig)
-    
-    fig, ax = plt.subplots(figsize=(16, 12))
-    for i, mej_data in enumerate(mej_kde):
-        max_mej_idx = np.argmax(mej_data)
-        mej_data = [plot_mass[max_mej_idx]]
-        print(mej_data)
-        phis = [45]
-        #should I be taking thetas from samples?? 
-        thetas = [30] 
-        samples = Table((mej_data, phis, thetas), names=('mej', 'phi', 'theta'))
-    
-        tini = 0.1
-        tmax = 50.0
-        dt = 0.1
-
-        vmin = 0.02
-        th = 0.2
-        ph = 3.14
-        kappa = 10.0
-        eps = 1.58*(10**10)
-        alp = 1.2
-        eth = 0.5
-        flgbct = 1
-
-        beta = 3.0
-        kappa_r = 0.1
-        slope_r = -1.2
-        theta_r = 0.0
-        Ye = 0.3
-
-        samples['tini'] = tini
-        samples['tmax'] = tmax
-        samples['dt'] = dt
-        samples['vmin'] = vmin
-        samples['th'] = th
-        samples['ph'] = ph
-        samples['kappa'] = kappa
-        samples['eps'] = eps
-        samples['alp'] = alp
-        samples['eth'] = eth
-        samples['flgbct'] = flgbct
-        samples['beta'] = beta
-        samples['kappa_r'] = kappa_r
-        samples['slope_r'] = slope_r
-        samples['theta_r'] = theta_r
-        samples['Ye'] = Ye
-
-
-        ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
-        kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
-        kwargs["doAB"] = True
-        kwargs["doSpec"] = False
-
-        #model = "Ka2017"
-        model = "Bu2019inc"
-        model_tables = {}
-        model_tables[model] = KNTable.model(model, samples, **kwargs)
-
-        idx = np.where(model_tables[model]['mej'] <= 1e-3)[0]
-        print("idx")
-        print(idx)
-        model_tables[model]['mag'][idx] = 10.
-        model_tables[model]['lbol'][idx] = 1e30
-         
-        mags = model_tables[model]['mag'][0]
-
-        t = model_tables[model]['t'][0]
-        #print(np.shape(t))
-        for i, band in enumerate(mags):
-            l = len(band)
-            plt.plot(t, band)
-    plt.ylim([10,-20])
-
-    plt.savefig('mag_test.pdf')
-
-    #ax.plot([.03,.03],[1e-6,1e6], color = 'black', linestyle='--')
-    #ax.plot([.05,.05],[1e-6,1e6], color = 'black', linestyle='--')
-    #ax.set_yscale('log')
-    #ax.set_xscale('log')
-    #ax.set_xlim(-9.8, -20.2)
-    #plt.ylim(1e-3,1.1)
-    plt.xlabel('Magnitude')
-    plt.ylabel('Probability')
-    plt.legend()
-    plt.grid()
-    plt.savefig('mag_test.pdf')
-    
-    plt.close(fig)
-
 
 #---------------------------------------------------------------------------------
 '''
