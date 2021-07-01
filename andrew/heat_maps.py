@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle5 as pickle 
 
-folder_dir = 'lightcurves2'
+folder_dir = 'lightcurves2/alsing'
 ns_dirs = os.listdir(f'./{folder_dir}')
 #nsbh_dirs = os.listdir('./heatmap_files/bulla_2Component_lnsbh')
 
@@ -58,8 +58,8 @@ for ii,band in enumerate(bands):
 '''
 f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
 plt.rcParams['figure.dpi'] = 200
-plt.rc('xtick',labelsize=60)
-plt.rc('ytick',labelsize=60)
+#plt.rc('xtick',labelsize=60)
+#plt.rc('ytick',labelsize=60)
 
 print('Initializing BNS') 
 
@@ -123,6 +123,8 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands[1:10]):
     '''
     axes[i][j].set_ylim([0,-20])
     axes[i][j].text(10,-17,f'{band}',size=30)
+    axes[i][j].tick_params(axis='x', labelsize=30)
+    axes[i][j].tick_params(axis='y', labelsize=30)
 
 f.text(0.5,0.05,'Time [days]',size=30)
 axes[0][0].set_ylabel('$M_{AB}$',size=30)
@@ -140,7 +142,7 @@ legend = axes[-1][-1].legend(h1, l1,  bbox_to_anchor=(0,1,1.0,-0.15), loc=9,
 frame = legend.get_frame()
 frame.set_color('skyblue')
 
-plt.savefig('./heatmap_farrow.pdf',bbox_inches='tight')
+plt.savefig('./heatmap_alsing.pdf',bbox_inches='tight')
 plt.show()
 
 
