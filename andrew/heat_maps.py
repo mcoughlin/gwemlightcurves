@@ -1,12 +1,11 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle 
+import pickle5 as pickle 
 
-ns_dirs = os.listdir('./lcdata')
+folder_dir = 'lightcurves2'
+ns_dirs = os.listdir(f'./{folder_dir}')
 #nsbh_dirs = os.listdir('./heatmap_files/bulla_2Component_lnsbh')
-
-print (ns_dirs) 
 
 nsns_dict = {}
 nsbh_dict = {}
@@ -16,11 +15,11 @@ for band in bands:
     nsns_dict[band], nsbh_dict[band] = [],[]
 
 for ns_dir in ns_dirs:   
-    with open (f'./lcdata/{ns_dir}','rb') as f:
-        data= pickle.load(f)
- 
+    with open (f'./{folder_dir}/{ns_dir}','rb') as f:
+        data = pickle.load(f)
     for ii,band in enumerate(bands):
-        nsns_dict[band].append(data[:,ii])
+        #nsns_dict[band].append(data[:,ii])
+        nsns_dict[band] = np.concatenate((nsns_dict[band], data[:,ii]))
     #if 'Lbol' in ns_dir or 'nsns' not in ns_dir: continue
     
     # comment this part out to include all inclinations:
@@ -59,29 +58,27 @@ for ii,band in enumerate(bands):
 '''
 f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
 plt.rcParams['figure.dpi'] = 200
-plt.rc('xtick',labelsize=30)
-plt.rc('ytick',labelsize=30)
+plt.rc('xtick',labelsize=60)
+plt.rc('ytick',labelsize=60)
 
 print('Initializing BNS') 
 
-t = nsns_dict['t'] 
-t = t[0] 
+t = nsns_dict['t']
 
-print (np.shape(t)) 
 
-for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
-
+for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands[1:10]):
     nsns = np.array(nsns_dict[band])
     #nsbh = np.array(nsbh_dict[band])
-    #t_bins = t[0:99] 
-    t_bins = t
+    
+    #edit t range visible
+    t_bins = t[0:99]
     bins = np.linspace(-20, 1, 50)
-    #X, Y = np.meshgrid(t, bins[:-1])
-
-    #hist2d_1 = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 0, nsns)
-
+    
+    #some sort of 0/nan check would be good
     #hist2d_1 = hist2d_1.astype('float')
     #hist2d_1[hist2d_1 == 0] = np.nan
+
+
     hist2d_1, xedges, yedges = np.histogram2d(t, nsns, bins = (t_bins,bins))
     X, Y = np.meshgrid(xedges, yedges)
     hist2d_1[hist2d_1 == 0] = np.nan
@@ -92,19 +89,19 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands):
     im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='Reds',alpha=0.7)
     print(str(band)+' complete') 
    
-'''
+    '''
     Fix percentiles --------------------------------------------
-'''   
+    '''   
 
-print (np.shape(nsns))
-#plot 10th, 50th, 90th percentiles
-axes[i][j].plot(t_bins, np.nanpercentile(nsns,50),c='k',linestyle='--',label='NSNS')
-axes[i][j].plot(t_bins, np.nanpercentile(nsns,90),'k--')
-axes[i][j].plot(t_bins, np.nanpercentile(nsns,10),'k--')   
-if band == 'K':
-    cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
-    cb = f.colorbar(im, cax = cb_ax, ticks=[])
-    cb.set_label(label='NSNS',size=30)
+    #print (np.shape(nsns))
+    #plot 10th, 50th, 90th percentiles
+    #axes[i][j].plot(t_bins, np.nanpercentile(nsns,50),c='k',linestyle='--',label='NSNS')
+    #axes[i][j].plot(t_bins, np.nanpercentile(nsns,90),'k--')
+    #axes[i][j].plot(t_bins, np.nanpercentile(nsns,10),'k--')   
+    if band == 'K':
+        cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
+        cb = f.colorbar(im, cax = cb_ax, ticks=[])
+        cb.set_label(label='NSNS',size=30)
 
 #        axes[i][j].text(0.676,0.8,'   High \nDensity',size=10.1)
 #        axes[i][j].text(0.676,0.1,'   Low \nDensity',size=10.1)
@@ -151,6 +148,5 @@ plt.show()
 Types = [....all the types from the othr code....
 ''' 
 
-#pickle 
 
 
