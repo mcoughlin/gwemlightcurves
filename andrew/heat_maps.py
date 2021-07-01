@@ -86,7 +86,7 @@ for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands[1:10]):
     #print(np.shape(X))
     #print(np.shape(Y))
     #print(np.shape(hist2d_1)) 
-    im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='Reds',alpha=0.7)
+    im = axes[i][j].pcolormesh(X, Y, hist2d_1.T, shading = 'auto', cmap='magma',alpha=0.7)
     print(str(band)+' complete') 
    
     '''
@@ -140,7 +140,7 @@ legend = axes[-1][-1].legend(h1, l1,  bbox_to_anchor=(0,1,1.0,-0.15), loc=9,
 frame = legend.get_frame()
 frame.set_color('skyblue')
 
-plt.savefig('./heatmap_test.pdf',bbox_inches='tight')
+plt.savefig('./heatmap_farrow.pdf',bbox_inches='tight')
 plt.show()
 
 
