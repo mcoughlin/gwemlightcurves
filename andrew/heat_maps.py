@@ -9,7 +9,7 @@ Types = ['BNS_alsing']
 
 for Type in Types:
     #folder_dir = f'./lightcurves_parallel/{Type}/'
-    folder_dir = f'./lightcurves2/alsing/'
+    folder_dir = f'./lightcurves2/{Type}/'
     ns_dirs = os.listdir(f'{folder_dir}')
 
     nsns_dict = {}
@@ -19,25 +19,35 @@ for Type in Types:
     for band in bands:
         nsns_dict[band], nsbh_dict[band] = [],[]
 
+    count = 0
     for ns_dir in ns_dirs:   
+        count+=1
         with open (f'./{folder_dir}/{ns_dir}','rb') as f:
             data = pickle.load(f)
+        if count%1000 == 0:
+            print(f'{count} samples loaded')
         for ii,band in enumerate(bands):
-            nsns_dict[band] = np.concatenate((nsns_dict[band], data[:,ii]))
+            #nsns_dict[band] = np.concatenate((nsns_dict[band], data[:,ii]))
+            nsns_dict[band].append(data[:,ii])
 
     f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
     plt.rcParams['figure.dpi'] = 200
 
     print(f'Initializing {Type}') 
 
-    t = nsns_dict['t']
+    t = np.array(nsns_dict['t'])
+    shape1, shape2 = t.shape[0], t.shape[1]
+    t = np.reshape(t, (shape1*shape2))
 
 
     for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands[1:10]):
         nsns = np.array(nsns_dict[band])
-        t_bins = t[0:99]
+        t_bins = t[0:149]
         bins = np.linspace(-20, 1, 50)
-
+        
+        shape1, shape2 = nsns.shape[0], nsns.shape[1]
+        nsns = np.reshape(nsns, (shape1*shape2))        
+        
         hist2d_1, xedges, yedges = np.histogram2d(t, nsns, bins = (t_bins,bins))
         X, Y = np.meshgrid(xedges, yedges)
         hist2d_1[hist2d_1 == 0] = np.nan
