@@ -77,7 +77,6 @@ samples['kappa_r'] = kappa_r
 samples['slope_r'] = slope_r
 samples['theta_r'] = theta_r
 samples['Ye'] = Ye
-samples = samples[0:2]
 
 ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
 kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
@@ -120,11 +119,8 @@ for n, sample in enumerate(mags):
         data_lists[i] = np.concatenate((data_lists[i], band))
     lightcurve_data = np.column_stack((t, data_lists[0], data_lists[1], data_lists[2], data_lists[3], data_lists[4], data_lists[5], data_lists[6], data_lists[7], data_lists[8]))
     u_band_data = lightcurve_data[:,1]
-    u_band_max.append(np.max(i))
+    u_band_max.append(np.max(u_band_data))
 
-
-
-print(u_band_max) 
 
 
 plt.hist2d(mej_data, u_band_max)
