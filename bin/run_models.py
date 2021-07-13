@@ -17,6 +17,8 @@ from matplotlib.pyplot import cm
 #import statsmodels.api as sm
 from scipy.ndimage.filters import gaussian_filter
 
+import sncosmo
+
 def parse_commandline():
     """
     Parse the options given on the command-line.
@@ -131,7 +133,7 @@ def getMagLbol(filename,band,model):
         i = [float(x) for x in i]
         i = np.array(i)
         L = i[1:]-(5*np.log10(200*1e6)-5)
-        spec = np.array(zip(w,L))
+        spec = np.array(list(zip(w,L)))
         effwave = np.sum(band[:,0]*band[:,1])/np.sum(band[:,1])
         mag = np.interp(effwave,w,L)
         #Lbol = np.trapz(spec[:,1],x=spec[:,0])
@@ -314,7 +316,7 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
 
     return t_d, mag_d, L_d
 
-def getMagSpec(filename,band,model,theta=0.0):
+def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     #u = np.genfromtxt(opts.name)
 
     if "bulla" in filename:
@@ -322,13 +324,20 @@ def getMagSpec(filename,band,model,theta=0.0):
         lines = [line.rstrip('\n') for line in open(filename)]
         lineSplit = lines[2].split(" ")
         nt, t0, tf = int(lineSplit[0]), float(lineSplit[1]), float(lineSplit[2])
-        tt = np.linspace(t0, tf, nt)
+        dlogt = (np.log(tf)-np.log(t0)) / float(nt)
+
+        tt = []
+        for i in range(nt):
+            tt.append(np.exp(np.log(t0) + i * dlogt))
+        tt = np.array(tt)
+
         ntheta, nwave = int(lines[0]), int(lines[1])
         if not np.isnan(theta) and ntheta > 1:
             costhetas = np.linspace(0,1,ntheta)
             thetas = np.rad2deg(np.arccos(costhetas))
             idx = np.argmin(np.abs(thetas-theta))
             istart, iend = int(idx*nwave), int((idx+1)*nwave)
+
             u = []
             for ii, t in enumerate(tt):
                 if model in ["bulla_blue_cone","bulla_red_ellipse"]:
@@ -352,7 +361,7 @@ def getMagSpec(filename,band,model,theta=0.0):
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
-    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
+    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D","bulla_2Comp_kappas"]:
         u[:,2] /= 1.0
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
@@ -384,7 +393,10 @@ def getMagSpec(filename,band,model,theta=0.0):
         else:
             w = np.array(w)
             L = np.array(L)
-            spec = np.array(zip(w,L))
+            if not np.isnan(redshift):
+                w = w*(1+redshift)
+
+            spec = np.array(list(zip(w,L)))
             spec1 = easyint(spec[:,0],spec[:,1],band[:,0])
             conv = spec1*band[:,1]
             flux = np.trapz(conv,x=band[:,0])
@@ -409,7 +421,7 @@ def getMagSpec(filename,band,model,theta=0.0):
         #print(mag_d)
         ii = np.where(~np.isnan(mag_d))[0]
         f1 = interp.interp1d(t_d[ii], mag_d[ii])
-	f = extrap1d(f1,4)
+        f = extrap1d(f1,4)
         mag_d = f(t_d)
         #print(mag_d)
         L_d = np.log10(L_d)
@@ -437,6 +449,60 @@ def getMagSpec(filename,band,model,theta=0.0):
         L_d = 10**L_d_medfilt
 
     return t_d, mag_d, L_d
+
+def getMagSncosmo(filename,band,model,theta=0.0,redshift=0.0):
+    #u = np.genfromtxt(opts.name)
+
+    D_cm = 10*3.0857e16*100 # 10 pc in cm
+
+    with open(filename) as f:
+        content = f.readlines()
+    for ii in range(3):
+        if ii == 0:
+            Nobs=int(content[0])
+        elif ii == 1:
+            Nwave=int(content[1])
+        elif ii == 2:
+            Ntime=int(content[2].split()[0])
+            ti = float(content[2].split()[1])
+            tf = float(content[2].split()[2])
+
+    dlogt = (np.log(tf)-np.log(ti)) / float(Ntime)
+
+    tt = []
+    for i in range(Ntime):
+        tt.append(np.exp(np.log(ti) + i * dlogt))
+    tt = np.array(tt)
+
+    a = np.genfromtxt(filename, skip_header=3)
+
+    dMpc = 10e-6
+
+    mall = []
+    costhetas = np.linspace(0,1,Nobs)
+    thetas = np.rad2deg(np.arccos(costhetas))
+    j = np.argmin(np.abs(thetas-theta))
+
+    w = a[Nwave*j:Nwave*(j+1),0]
+
+    fl = np.ones((Ntime,len(w)))
+    Lbol = np.ones(Ntime)
+    for i in range(0,Ntime):
+        I = a[Nwave*j:Nwave*(j+1),1+i*3] * (1./dMpc)**2
+        fl[i] = I
+        Lbol[i] = np.trapz(I*(4*np.pi*D_cm**2),x=w)
+    source = sncosmo.TimeSeriesSource(tt,w,fl)
+
+    bp = sncosmo.Bandpass(band[:,0], band[:,1])
+    m = source.bandmag(bp,"ab",tt)
+    mag_d = m - 5. * np.log10(dMpc*1e6/10.)
+
+    ii = np.where(~np.isnan(mag_d) & np.isfinite(mag_d))[0]
+    f1 = interp.interp1d(tt[ii], mag_d[ii])
+    f = extrap1d(f1,4)
+    mag_d = f(tt)
+
+    return tt, mag_d, Lbol
 
 def getSpecH5(filename,model):
 
@@ -579,17 +645,23 @@ def getSpec(filename,model):
 opts = parse_commandline()
 
 baseoutputDir = opts.outputDir
-outputDir = os.path.join(baseoutputDir,opts.model)
+if not np.isnan(opts.redshift):
+    outputDir = os.path.join(baseoutputDir,opts.model, '%.5f' % opts.redshift)
+else:
+    outputDir = os.path.join(baseoutputDir,opts.model)
 if not os.path.isdir(outputDir):
     os.makedirs(outputDir)
 
 baseplotDir = opts.plotDir
-plotDir = os.path.join(baseplotDir,opts.model)
+if not np.isnan(opts.redshift):
+    plotDir = os.path.join(baseplotDir,opts.model,'%.5f' % opts.redshift)
+else:
+    plotDir = os.path.join(baseplotDir,opts.model)
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 dataDir = opts.dataDir
 
-specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]
+specmodels = ["barnes_kilonova_spectra","ns_merger_spectra","kilonova_wind_spectra","macronovae-rosswog","bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D","bulla_2Comp_kappas"]
 spech5models = ["kasen_kilonova_survey","kasen_kilonova_grid","kasen_kilonova_2D"]
 ABmodels = ["ns_precursor_AB"]
 Lbolmodels = ["ns_precursor_Lbol"]
@@ -599,7 +671,7 @@ if opts.model == "kilonova_wind_spectra":
     filename = "%s/%s/%s.mod"%(dataDir,opts.model,opts.name)
 elif opts.model == "macronovae-rosswog":
     filename = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
-elif opts.model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
+elif opts.model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D","bulla_2Comp_kappas"]:
     filename = "%s/%s/%s.txt"%(dataDir,opts.model,opts.name)
 elif opts.model == "korobkin_kilonova":
     filename_AB = "%s/%s/%s.dat"%(dataDir,opts.model,opts.name)
@@ -626,9 +698,10 @@ if opts.doAB:
     filtnames = ["u","g","r","i","z","y","J","H","K"]
     for ii in range(9):
     #for ii in [6]:
-        band = np.array(zip(filts[:,0]*10,filts[:,ii+1]))
+        band = np.array(list(zip(filts[:,0]*10,filts[:,ii+1])))
         if opts.model in specmodels:
-            t_d, mag_d, L_d = getMagSpec(filename,band,opts.model,theta=opts.theta)
+            t_d, mag_d, L_d = getMagSncosmo(filename,band,opts.model,theta=opts.theta,redshift=opts.redshift)
+            #t_d, mag_d, L_d = getMagSpec(filename,band,opts.model,theta=opts.theta,redshift=opts.redshift)
         elif opts.model in absABmodels:
             t_d, mag_d, L_d = getMagAbsAB(filename_AB,filename_bol,filtnames[ii],opts.model)
         elif opts.model in spech5models:
