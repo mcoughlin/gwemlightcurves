@@ -17,7 +17,7 @@ from gwemlightcurves import __version__
 fig, ax = plt.subplots(figsize=(16, 12))
 #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
 
-Types = ['BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','BNS_chirp_q']
+Types = ['BNS_alsing','BNS_farrow']
     
 for Type in Types:
     print(f'Initializing {Type}')
