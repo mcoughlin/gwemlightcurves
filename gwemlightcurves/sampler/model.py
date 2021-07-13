@@ -670,6 +670,27 @@ def Bu2019lm_model_ejecta(mej_dyn,mej_wind,phi,theta):
 
     return t, lbol, mag
 
+def Bu2021ka_model_ejecta(mej_dyn,mej_wind,phi,theta,kappa):
+
+    tini = 0.1
+    tmax = 50.0
+    dt = 0.1
+
+    samples = {}
+    samples['tini'] = tini
+    samples['tmax'] = tmax
+    samples['dt'] = dt
+    samples['mej_dyn'] = mej_dyn
+    samples['mej_wind'] = mej_wind
+    samples['phi'] = phi
+    samples['theta'] = theta
+    samples['kappa'] = kappa
+
+    model = "Bu2021ka"
+    t, lbol, mag = generate_lightcurve(model,samples)
+
+    return t, lbol, mag
+
 def Bu2019lw_model_ejecta(mej_wind,phi,theta):
 
     tini = 0.1

@@ -84,6 +84,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
         fileDir = "../output/bulla_reprocess_decimated"
     elif model == "Bu2019nsbh":
         fileDir = "../output/bulla_2Component_lnsbh"
+    elif model == "Bu2021ka":
+        fileDir = "../output/bulla_2Comp_kappas"
     elif model == "Wo2020dyn":
         fileDir = "../output/bulla_rosswog_dynamical"
     elif model == "Wo2020dw":
@@ -136,6 +138,20 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             lbols[key]["kappaLR"] = kappaLR
             lbols[key]["gammaLR"] = gammaLR
             lbols[key]["theta"] = theta
+
+        elif "scalekappa" in key:
+
+            mejdyn = float(keySplit[1].replace("mejdyn",""))
+            mejwind = float(keySplit[2].replace("mejwind",""))
+            phi0 = float(keySplit[3].replace("phi",""))
+            kappa = float(keySplit[4].replace("scalekappa",""))
+            theta = float(keySplit[6])
+
+            lbols[key]["mej_dyn"] = mejdyn
+            lbols[key]["mej_wind"] = mejwind
+            lbols[key]["phi"] = phi0
+            lbols[key]["theta"] = theta
+            lbols[key]["kappa"] = kappa
 
         elif "nsns" in key:
 
@@ -263,6 +279,8 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             param_array.append([np.log10(lbols[key]["mej"]),lbols[key]["phi"],lbols[key]["theta"]])
         elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"]])
+        elif model in ["Bu2021ka"]:
+            param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["phi"],lbols[key]["theta"],lbols[key]["kappa"]])
         elif model in ["Bu2019nsbh"]:
             param_array.append([np.log10(lbols[key]["mej_dyn"]),np.log10(lbols[key]["mej_wind"]),lbols[key]["theta"]])
         elif model in ["Bu2019lw"]:
@@ -475,6 +493,8 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
         fileDir = "../output/bulla_reprocess_decimated"
     elif model == "Bu2019nsbh":
         fileDir = "../output/bulla_2Component_lnsbh"
+    elif model == "Bu2021ka":
+        fileDir = "../output/bulla_2Comp_kappas"
     elif model == "Wo2020dyn":
         fileDir = "../output/bulla_rosswog_dynamical"
     elif model == "Wo2020dw":
@@ -538,6 +558,20 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             mags[key]["kappaLR"] = kappaLR
             mags[key]["gammaLR"] = gammaLR
             mags[key]["theta"] = theta
+
+        elif "scalekappa" in key:
+
+            mejdyn = float(keySplit[1].replace("mejdyn",""))
+            mejwind = float(keySplit[2].replace("mejwind",""))
+            phi0 = float(keySplit[3].replace("phi",""))
+            kappa = float(keySplit[4].replace("scalekappa",""))
+            theta = float(keySplit[6])
+
+            mags[key]["mej_dyn"] = mejdyn
+            mags[key]["mej_wind"] = mejwind
+            mags[key]["phi"] = phi0
+            mags[key]["theta"] = theta
+            mags[key]["kappa"] = kappa
 
         elif "nsns" in key:
 
@@ -676,6 +710,9 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             param_array.append([np.log10(mags[key]["mej"]),mags[key]["phi"],mags[key]["theta"]])
         elif model in ["Bu2019lf","Bu2019lr","Bu2019lm"]:
             param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"]])
+        elif model in ["Bu2021ka"]:
+            param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["phi"],mags[key]["theta"],mags[key]["kappa"]])
+        
         elif model in ["Bu2019nsbh"]:
             param_array.append([np.log10(mags[key]["mej_dyn"]),np.log10(mags[key]["mej_wind"]),mags[key]["theta"]])
         elif model in ["Bu2019lw"]:

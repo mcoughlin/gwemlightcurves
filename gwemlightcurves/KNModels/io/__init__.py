@@ -43,6 +43,7 @@ from . import (  # pylint: disable=unused-import
     Bu2019ops, # Bulla (2019) Model (opacity slim)
     Bu2019rp, # Bulla (2019) Model (Red ellipse + Blue cone reprocessing)
     Bu2019rps, # Bulla (2019) Model (Red ellipse + Blue cone reprocessing slim)
+    Bu2021ka, # Bulla (2021) Model with kappa scaling
     Wo2020dyn, # Wollaeger et al. (2017) inspired dynamical geometry, POSSIS simulated 
     Wo2020dw, # Wollaeger et al. (2017) inspired disk wind geometry, POSSIS simulated
     Bu2019nsbh # Bulla (2019) Model (Two component, nsbh)

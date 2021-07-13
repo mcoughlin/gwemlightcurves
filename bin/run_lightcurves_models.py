@@ -90,8 +90,8 @@ def parse_commandline():
 # Parse command line
 opts = parse_commandline()
 
-if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps"]:
-    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019lm, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps")
+if not opts.model in ["DiUj2017","KaKy2016","Me2017","Me2017_A","Me2017x2","SmCh2017","WoKo2017","BaKa2016","Ka2017","Ka2017_A","Ka2017inc","Ka2017x2","Ka2017x2inc","Ka2017x3","Ka2017x3inc","RoFe2017","BoxFit","TrPi2018","Ka2017_TrPi2018","Ka2017_TrPi2018_A","Bu2019","Bu2019inc","Bu2019lf","Bu2019lr","Bu2019lm","Bu2019inc_TrPi2018","Bu2019rp","Bu2019rps","Bu2021ka"]:
+    print("Model must be either: DiUj2017,KaKy2016,Me2017,Me2017_A,Me2017x2,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017inc, Ka2017_A, Ka2017x2, Ka2017x2inc, Ka2017x3, Ka2017x3inc, RoFe2017, BoxFit, TrPi2018, Ka2017_TrPi2018, Ka2017_TrPi2018_A, Bu2019, Bu2019inc, Bu2019lf, Bu2019lr, Bu2019lm, Bu2019inc_TrPi2018,Bu2019rp,Bu2019rps, Bu2021ka")
     exit(0)
 
 if opts.doFixZPT0:
@@ -420,7 +420,7 @@ if opts.doFixT:
 if opts.doFixXlan:
     Global.phi = opts.phi
 
-if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr", "Bu2019lm", "Bu2019rp","Bu2019rps"]:
+if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", "Ka2017x3", "Ka2017x3inc", "Ka2017_TrPi2018", "Ka2017_TrPi2018_A", "Bu2019", "Bu2019inc", "Bu2019inc_TrPi2018", "Bu2019lf", "Bu2019lr", "Bu2019lm", "Bu2019rp","Bu2019rps", "Bu2021ka"]:
     ModelPath = '%s/svdmodels'%(opts.outputDir)
 
     if opts.model == "Bu2019":
@@ -480,6 +480,27 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         elif opts.gptype == "gp_api":
             magmodelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpapi.pkl')
             lbolmodelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpapi.pkl')
+        with open(magmodelfile, 'rb') as handle:
+            svd_mag_model = pickle.load(handle)
+        with open(lbolmodelfile, 'rb') as handle:
+            svd_lbol_model = pickle.load(handle)
+
+        if opts.gptype == "gp_api":
+            for filt in svd_mag_model.keys():
+                for ii in range(len(svd_mag_model[filt]["gps"])):
+                    svd_mag_model[filt]["gps"][ii] = svd_utils.load_gpapi(svd_mag_model[filt]["gps"][ii])
+            for ii in range(len(svd_lbol_model["gps"])):
+                svd_lbol_model["gps"][ii] = svd_utils.load_gpapi(svd_lbol_model["gps"][ii])
+
+        Global.svd_mag_model = svd_mag_model
+        Global.svd_lbol_model = svd_lbol_model
+    elif opts.model == "Bu2021ka":
+        if opts.gptype == "sklearn":
+            magmodelfile = os.path.join(ModelPath,'Bu2021ka_mag.pkl')
+            lbolmodelfile = os.path.join(ModelPath,'Bu2021ka_lbol.pkl')
+        elif opts.gptype == "gp_api":
+            magmodelfile = os.path.join(ModelPath,'Bu2021ka_mag_gpapi.pkl')
+            lbolmodelfile = os.path.join(ModelPath,'Bu2021ka_lbol_gpapi.pkl')
         with open(magmodelfile, 'rb') as handle:
             svd_mag_model = pickle.load(handle)
         with open(lbolmodelfile, 'rb') as handle:
@@ -752,7 +773,7 @@ for filt, color in zip(filters,colors):
     plt.ylabel(r'$%s$'%filt,fontsize=52,rotation=0,labelpad=40)
 
     if opts.name == "GW170817":
-        if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc","Bu2019lm"]:
+        if opts.model in ["Ka2017inc","Ka2017x2","Ka2017x2inc","Bu2019lm","Bu2021ka"]:
             plt.xlim([0.0, 14.0])
             plt.ylim([-17.0,-11.0])
         elif opts.model in ["Bu2019","Bu2019inc"]:
