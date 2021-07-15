@@ -27,7 +27,8 @@ for Type in Types:
  
     l = len(mej_data)
     print(f'{l} samples loaded')
-    phis = 30+30*np.random.rand(l)
+    #phis = 30+30*np.random.rand(l)
+    phis = 45 * np.ones(l)
     samples = Table((mej_data, phis, thetas), names=('mej', 'phi', 'theta'))
 
     tini = 0.1
@@ -102,7 +103,7 @@ for Type in Types:
             phi = sample['phi']
             theta = sample['theta']
         
-            sample_name = f'./lightcurves_parallel/{Type}/lc_{Type}_mej_{mej}_theta_{theta}_phi_{phi}.pickle'
+            sample_name = f'./lightcurves_parallel/phi45/{Type}/lc_{Type}_mej_{mej}_theta_{theta}_phi_{phi}.pickle'
             data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
             for i, band in enumerate(mag):
                 #data_lists[i].append(band)
