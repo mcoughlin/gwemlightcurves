@@ -24,6 +24,8 @@ for Type in Types:
     #mej_theta_data=np.loadtxt('./mej_theta_data/N_50/mej_theta_data_BNS_alsing.txt')
     mej_theta_data=np.loadtxt(f'./mej_theta_data/mej_theta_data_{Type}.txt')
     mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
+    
+    #mej_data, thetas = mej_data[:20], thetas[:20]
  
     l = len(mej_data)
     print(f'{l} samples loaded')
@@ -67,6 +69,8 @@ for Type in Types:
     samples['theta_r'] = theta_r
     samples['Ye'] = Ye
 
+    #samples = samples[:20]
+ 
     ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
     kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
     kwargs["doAB"] = True
@@ -79,11 +83,12 @@ for Type in Types:
     sample_split = []
 
     N_parallel = 16
+    #N_parallel = 4
     N_per_core = int(l/N_parallel)
     for k in range(N_per_core, l, N_per_core):
         sample_split.append(samples[(k-N_per_core):k])
-    if k < (l-1):
-        sample_split.append(samples[k:l-1])
+    if k < (l):
+        sample_split.append(samples[k:l])
     print(f'Running on {N_parallel} cores for ~{N_per_core} samples each')
     mag_data = []
     t_data = [] 
@@ -98,17 +103,23 @@ for Type in Types:
     for data in parallel_data:
         for sample in data:
             mag = sample['mag']
-            mej = sample['mej']
             t = sample['t']
-            phi = sample['phi']
-            theta = sample['theta']
-        
-            sample_name = f'./lightcurves_parallel/phi45/{Type}/lc_{Type}_mej_{mej}_theta_{theta}_phi_{phi}.pickle'
+            sample_length = len(mag[0])
+            
+            mej = sample['mej'] * np.ones(sample_length)
+            phi = sample['phi'] * np.ones(sample_length)
+            theta = sample['theta'] * np.ones(sample_length)
+            
+            sample_name = f'./lightcurves_parallel/phi45_updated/{Type}/lc_{Type}_mej_{mej[0]}_theta_{theta[0]}_phi_{phi[0]}.pickle'
             data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
-            for i, band in enumerate(mag):
+             
+            #for i, band in enumerate(mag):
                 #data_lists[i].append(band)
-                data_lists[i] = np.concatenate((data_lists[i], band))
-            lightcurve_data = np.column_stack((t, data_lists[0], data_lists[1], data_lists[2], data_lists[3], data_lists[4], data_lists[5], data_lists[6], data_lists[7], data_lists[8]))
+                #data_lists[i] = np.concatenate((data_lists[i], band))
+
+            #lightcurve_data = np.column_stack((t, data_lists[0], data_lists[1], data_lists[2], data_lists[3], data_lists[4], data_lists[5], data_lists[6], data_lists[7], data_lists[8], mej, theta, phi))
+            
+            lightcurve_data = np.column_stack((t, mag[0], mag[1], mag[2], mag[3], mag[4], mag[5], mag[6], mag[7], mag[8], mej, theta, phi))
             with open(sample_name, 'wb') as filename:
                 pickle.dump(lightcurve_data,filename, protocol=pickle.HIGHEST_PROTOCOL)
                 #pickle.dump(lightcurve_data,filename)
