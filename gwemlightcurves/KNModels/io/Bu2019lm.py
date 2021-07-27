@@ -12,6 +12,11 @@ from .. import KNTable
 from gwemlightcurves import lightcurve_utils, Global, svd_utils
 from gwemlightcurves.EjectaFits.DiUj2017 import calc_meje, calc_vej
 
+try:
+    from tensorflow.keras.models import load_model
+except:
+    print('Install tensorflow if you want to use it...')
+
 def get_Bu2019lm_model(table, **kwargs):
 
     if 'LoadModel' in kwargs: 
@@ -57,15 +62,39 @@ def get_Bu2019lm_model(table, **kwargs):
                 modelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpy.pkl')
             elif np.all(table['gptype'] == "gp_api"):
                 modelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpapi.pkl')
+            elif np.all(table['gptype'] == "tensorflow"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_mag_tf.pkl')
             if LoadModel:
             #if True:
                 with open(modelfile, 'rb') as handle:
                     svd_mag_model = pickle.load(handle)
 
+                if np.all(table['gptype'] == "tensorflow"):
+                    outdir = modelfile.replace(".pkl","")
+                    for filt in svd_mag_model.keys():
+                        outfile = os.path.join(outdir, f'{filt}.h5')
+                        svd_mag_model[filt]['model'] = load_model(outfile)
+
             else:
                 svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
+
+                if np.all(table['gptype'] == "tensorflow"):
+                    outdir = modelfile.replace(".pkl","")
+                    if not os.path.isdir(outdir):
+                        os.makedirs(outdir)
+                    for filt in svd_mag_model.keys():
+                        outfile = os.path.join(outdir, f'{filt}.h5')
+                        svd_mag_model[filt]['model'].save(outfile)
+                        del svd_mag_model[filt]['model']
+
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_mag_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                if np.all(table['gptype'] == "tensorflow"):
+                    for filt in svd_mag_model.keys():
+                        outfile = os.path.join(outdir, f'{filt}.h5')
+                        svd_mag_model[filt]['model'] = load_model(outfile)
+
             if np.all(table['gptype'] == "gp_api"):
                 for filt in svd_mag_model.keys():
                     for ii in range(len(svd_mag_model[filt]["gps"])):
@@ -81,14 +110,35 @@ def get_Bu2019lm_model(table, **kwargs):
                 modelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpy.pkl')
             elif np.all(table['gptype'] == "gp_api"):
                 modelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpapi.pkl')
+            elif np.all(table['gptype'] == "tensorflow"):
+                modelfile = os.path.join(ModelPath,'Bu2019lm_lbol_tf.pkl')
             if LoadModel:
             #if True:
+
                 with open(modelfile, 'rb') as handle:
-                    svd_lbol_model = pickle.load(handle)            
+                    svd_lbol_model = pickle.load(handle)
+
+                if np.all(table['gptype'] == "tensorflow"):
+                    outdir = modelfile.replace(".pkl","")
+                    outfile = os.path.join(outdir, 'model.h5')
+                    svd_lbol_model['model'] = load_model(outfile)
+ 
             else:
                 svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019lm", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
+
+                if np.all(table['gptype'] == "tensorflow"):
+                    outdir = modelfile.replace(".pkl","")
+                    if not os.path.isdir(outdir):
+                        os.makedirs(outdir)
+                    outfile = os.path.join(outdir, 'model.h5')
+                    svd_lbol_model['model'].save(outfile)
+                    del svd_lbol_model['model']
+
                 with open(modelfile, 'wb') as handle:
                     pickle.dump(svd_lbol_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+                if np.all(table['gptype'] == "tensorflow"):
+                    svd_lbol_model['model'] = load_model(outfile)
 
             if np.all(table['gptype'] == "gp_api"):
                 for ii in range(len(svd_lbol_model["gps"])):
@@ -139,6 +189,8 @@ def get_Bu2019lm_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
+        print(np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample])
+
         print('Generating sample %d/%d' % (isample, len(table)))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019lm", gptype=table['gptype'][0])

@@ -74,6 +74,8 @@ def parse_commandline():
     parser.add_option("--kappaLR",default=10,type=float)
     parser.add_option("--gammaLR",default=-1.0,type=float)
 
+    parser.add_option("--kappa",default=1,type=float)
+
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)
     parser.add_option("--doSaveModel",  action="store_true", default=False)
@@ -82,6 +84,8 @@ def parse_commandline():
     parser.add_option("--comparisonFile",default="../output/kasen_kilonova_grid/knova_d1_n10_m0.050_vk0.20_fd1.0_Xlan1e-3.0.dat") 
 
     parser.add_option("--gptype",default="sklearn")
+
+    parser.add_option("--doPlots",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
  
@@ -116,7 +120,7 @@ T = opts.T
 a = opts.a
 sd = opts.sd
 rwind = opts.rwind
-
+kappa = opts.kappa
 
 mej1 = opts.mej1
 vej1 = opts.vej1
@@ -147,13 +151,14 @@ elif opts.eos == "MS1":
 mns = 1.35
 
 tini = 0.1
-dt = 0.5
+dt = 0.1
 
 if opts.model == "SN":
     tmax = 50.0
 else:
     if opts.doAB:
         tmax = 21.0
+        tmax = 30.0
     elif opts.doSpec:
         tmax = 10.0
 
@@ -170,7 +175,6 @@ vave = 0.267
 vmin = 0.02
 th = 0.2
 ph = 3.14
-kappa = 10.0
 eps = 1.58*(10**10)
 alp = 1.2
 eth = 0.5
@@ -351,7 +355,7 @@ elif opts.model in "Bu2019lr":
         name = "Bu2019lr_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
 elif opts.model in "Bu2019lm":
     if opts.doEjecta:
-        name = "Bu2019lm_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
+        name = "Bu2019lm_Mdyn_%.3e_Mwind_%.3e_phi_%.3e_theta_%.3e"%(opts.mej_dyn,opts.mej_wind,opts.phi,opts.theta_0)
 elif opts.model in "Bu2019lw":
     if opts.doEjecta:
         name = "Bu2019lw_Mwind%03dP%d"%(opts.mej_wind*1000,opts.phi)
@@ -364,6 +368,9 @@ elif opts.model in "Bu2019op":
 elif opts.model in "Bu2019ops":
     if opts.doEjecta:
         name = "Bu2019bc_kappaLF%03dkappaLR%03d"%(opts.kappaLF,opts.kappaLR)
+elif opts.model in "Bu2021ka":
+    if opts.doEjecta:
+        name = "Bu2021ka_Mdyn%03dMwind%03dP%d"%(opts.mej_dyn*1000,opts.mej_wind*1000,opts.phi)
 elif opts.model in ["Bu2019rp", "Bu2019rps","Bu2019rpd"]:
     if opts.doEjecta:
         name = "Bu2019lm_M1%03dM2%03dP%d"%(opts.mej1*1000,opts.mej2*1000,opts.phi)
@@ -397,7 +404,7 @@ elif opts.model == "Afterglow":
     name = "theta0%.0fE0%.0en%.0fthetaobs%.0f"%(theta_0*100,E,n*10,theta_obs*100)
 
 else:
-   print("Model must be either: DiUj2017,KaKy2016,Me2017,SmCh2017,WoKo2017,BaKa2016, Ka2017, Ka2017x2, SN, Afterglow,")
+   print("Model missing... please add.")
    exit(0)
 
 if opts.doAB:
@@ -434,101 +441,7 @@ if opts.doAB:
             fid.write("%.3f "%mag[jj][ii])
         fid.write("\n")
     fid.close()
-    
-    filts = ["u","g","r","i","z","y","J","H","K"]
-    colors=cm.rainbow(np.linspace(0,1,len(filts)))
-    magidxs = [0,1,2,3,4,5,6,7,8]
-
-    plotName = "%s/%s.pdf"%(plotDir,name)
-    plt.figure(figsize=(10,12))
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
-    plt.xlabel('Time [days]')
-    plt.ylabel('Absolute AB Magnitude')
-    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
-        plt.xlim([0,7])
-    if not opts.model in ["SN"]:
-        plt.ylim([-20,10])
-    if opts.model in ["Ka2017inc","Ka2017x2inc"]:
-        plt.title('Inclination: %.1f' % opts.iota) 
-    plt.legend(loc="lower center",ncol=5)
-    plt.gca().invert_yaxis()
-    plt.savefig(plotName, bbox_inches='tight')
-    plotNamePNG = "%s/%s.png"%(plotDir,name)
-    plt.savefig(plotNamePNG)
-    plt.close()   
-
-    color1 = 'coral'
-    color2 = 'cornflowerblue'
    
-    if opts.doComparison: 
-        mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
-        key = list(mag_d_comparison[0].keys())[0]
-        mag_d_comparison = mag_d_comparison[0][key]
-
-    tini, tmax, dt = 0.0, 21.0, 0.1
-    tt = np.arange(tini,tmax,dt)
-    zp_best1, zp_best2 = 0, 0
-    errorbudget = 1.0
-
-    plotName = "%s/%s_panels.pdf"%(plotDir,name)
-    plotNamePNG = "%s/%s_panels.png"%(plotDir,name)
-    plt.figure(figsize=(20,28))
-   
-    cnt = 0
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        cnt = cnt+1
-        vals = "%d%d%d"%(len(filts),1,cnt)
-        if cnt == 1:
-            ax1 = plt.subplot(eval(vals))
-        else:
-            ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
-    
-        magave1 = mag[magidx,:]
- 
-        if opts.doComparison:
-            magave2 = mag_d_comparison[filt]
-
-        ii = np.where(~np.isnan(magave1))[0]
-        if len(ii) > 1:
-            f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')
-            maginterp1 = f(tt)
-            plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='1 Component')
-            plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
-            plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
-            plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
-   
-        if opts.doComparison: 
-            ii = np.where(~np.isnan(magave2))[0]
-            f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
-            maginterp2 = f(tt)
-            plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
-            plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
-            plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
-            plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
-    
-        plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
-        plt.xlim([0.0, 14.0])
-        plt.ylim([-18.0,-8.0])
-        plt.gca().invert_yaxis()
-        plt.grid()
-    
-        if cnt == 1:
-            ax1.set_yticks([-18,-16,-14,-12,-10,-8])
-            plt.setp(ax1.get_xticklabels(), visible=False)
-            l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
-        elif not cnt == len(filts):
-            plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.xticks(fontsize=32)
-        plt.yticks(fontsize=32)
-    
-    ax1.set_zorder(1)
-    plt.xlabel('Time [days]',fontsize=48)
-    plt.savefig(plotNamePNG, bbox_inches='tight')
-    plt.close()
-    convert_command = "convert %s %s"%(plotNamePNG,plotName)
-    os.system(convert_command)
-
     filename = "%s/%s_Lbol.dat"%(outputDir,name)
     fid = open(filename,'w')
     fid.write('# t[days] Lbol[erg/s]\n')
@@ -539,14 +452,109 @@ if opts.doAB:
     Lbol_ds = np.loadtxt(filename)
     t = Lbol_ds[:,0]
     Lbol = Lbol_ds[:,1]
+ 
+    if opts.doPlots:
+        filts = ["u","g","r","i","z","y","J","H","K"]
+        colors=cm.rainbow(np.linspace(0,1,len(filts)))
+        magidxs = [0,1,2,3,4,5,6,7,8]
     
-    plotName = "%s/%s_Lbol.pdf"%(plotDir,name)
-    plt.figure(figsize=(12,8))
-    plt.semilogy(t,Lbol,'k--')
-    plt.xlabel('Time [days]')
-    plt.ylabel('Bolometric Luminosity [erg/s]')
-    plt.savefig(plotName)
-    plt.close()
+        plotName = "%s/%s.pdf"%(plotDir,name)
+        plt.figure(figsize=(10,12))
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            plt.plot(t,mag[magidx,:],alpha=1.0,c=color,label=filt)
+        plt.xlabel('Time [days]')
+        plt.ylabel('Absolute AB Magnitude')
+        if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+            plt.xlim([0,7])
+        if not opts.model in ["SN"]:
+            plt.ylim([-20,10])
+        if opts.model in ["Ka2017inc","Ka2017x2inc"]:
+            plt.title('Inclination: %.1f' % opts.iota) 
+        plt.legend(loc="lower center",ncol=5)
+        plt.gca().invert_yaxis()
+        plt.savefig(plotName, bbox_inches='tight')
+        plotNamePNG = "%s/%s.png"%(plotDir,name)
+        plt.savefig(plotNamePNG)
+        plt.close()   
+    
+        color1 = 'coral'
+        color2 = 'cornflowerblue'
+       
+        if opts.doComparison: 
+            mag_d_comparison = lightcurve_utils.read_files([opts.comparisonFile])
+            key = list(mag_d_comparison[0].keys())[0]
+            mag_d_comparison = mag_d_comparison[0][key]
+    
+        tini, tmax, dt = 0.0, 21.0, 0.1
+        tt = np.arange(tini,tmax,dt)
+        zp_best1, zp_best2 = 0, 0
+        errorbudget = 1.0
+    
+        plotName = "%s/%s_panels.pdf"%(plotDir,name)
+        plotNamePNG = "%s/%s_panels.png"%(plotDir,name)
+        plt.figure(figsize=(20,28))
+       
+        cnt = 0
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            cnt = cnt+1
+            vals = "%d%d%d"%(len(filts),1,cnt)
+            if cnt == 1:
+                ax1 = plt.subplot(eval(vals))
+            else:
+                ax2 = plt.subplot(eval(vals),sharex=ax1,sharey=ax1)
+        
+            magave1 = mag[magidx,:]
+     
+            if opts.doComparison:
+                magave2 = mag_d_comparison[filt]
+    
+            ii = np.where(~np.isnan(magave1))[0]
+            if len(ii) > 1:
+                f = interp.interp1d(t[ii], magave1[ii], fill_value='extrapolate')
+                maginterp1 = f(tt)
+                plt.plot(tt,maginterp1+zp_best1,'--',c=color1,linewidth=2,label='1 Component')
+                plt.plot(tt,maginterp1+zp_best1-errorbudget,'-',c=color1,linewidth=2)
+                plt.plot(tt,maginterp1+zp_best1+errorbudget,'-',c=color1,linewidth=2)
+                plt.fill_between(tt,maginterp1+zp_best1-errorbudget,maginterp1+zp_best1+errorbudget,facecolor=color1,alpha=0.2)
+       
+            if opts.doComparison: 
+                ii = np.where(~np.isnan(magave2))[0]
+                f = interp.interp1d(mag_d_comparison["t"][ii], magave2[ii], fill_value='extrapolate')
+                maginterp2 = f(tt)
+                plt.plot(tt,maginterp2+zp_best2,'--',c=color2,linewidth=2,label='2 Component')
+                plt.plot(tt,maginterp2+zp_best2-errorbudget,'-',c=color2,linewidth=2)
+                plt.plot(tt,maginterp2+zp_best2+errorbudget,'-',c=color2,linewidth=2)
+                plt.fill_between(tt,maginterp2+zp_best2-errorbudget,maginterp2+zp_best2+errorbudget,facecolor=color2,alpha=0.2)
+        
+            plt.ylabel('%s'%filt,fontsize=48,rotation=0,labelpad=40)
+            plt.xlim([0.0, 14.0])
+            plt.ylim([-18.0,-8.0])
+            plt.gca().invert_yaxis()
+            plt.grid()
+        
+            if cnt == 1:
+                ax1.set_yticks([-18,-16,-14,-12,-10,-8])
+                plt.setp(ax1.get_xticklabels(), visible=False)
+                l = plt.legend(loc="upper right",prop={'size':36},numpoints=1,shadow=True, fancybox=True)
+            elif not cnt == len(filts):
+                plt.setp(ax2.get_xticklabels(), visible=False)
+            plt.xticks(fontsize=32)
+            plt.yticks(fontsize=32)
+        
+        ax1.set_zorder(1)
+        plt.xlabel('Time [days]',fontsize=48)
+        plt.savefig(plotNamePNG, bbox_inches='tight')
+        plt.close()
+        convert_command = "convert %s %s"%(plotNamePNG,plotName)
+        os.system(convert_command)
+    
+        plotName = "%s/%s_Lbol.pdf"%(plotDir,name)
+        plt.figure(figsize=(12,8))
+        plt.semilogy(t,Lbol,'k--')
+        plt.xlabel('Time [days]')
+        plt.ylabel('Bolometric Luminosity [erg/s]')
+        plt.savefig(plotName)
+        plt.close()
 
 elif opts.doSpec:
 
