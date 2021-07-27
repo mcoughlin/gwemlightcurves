@@ -20,6 +20,11 @@ plt.rcParams['text.usetex'] = True
 
 import corner
 
+try:
+    from tensorflow.keras.models import load_model
+except:
+    print('Install tensorflow if you want to use it...')
+
 import pymultinest
 from gwemlightcurves.sampler import *
 from gwemlightcurves.KNModels import KNTable
@@ -480,6 +485,10 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
         elif opts.gptype == "gp_api":
             magmodelfile = os.path.join(ModelPath,'Bu2019lm_mag_gpapi.pkl')
             lbolmodelfile = os.path.join(ModelPath,'Bu2019lm_lbol_gpapi.pkl')
+        elif opts.gptype == "tensorflow":
+            magmodelfile = os.path.join(ModelPath,'Bu2019lm_mag_tf.pkl')
+            lbolmodelfile = os.path.join(ModelPath,'Bu2019lm_lbol_tf.pkl')
+
         with open(magmodelfile, 'rb') as handle:
             svd_mag_model = pickle.load(handle)
         with open(lbolmodelfile, 'rb') as handle:
@@ -491,6 +500,15 @@ if opts.model in ["Ka2017", "Ka2017inc", "Ka2017_A", "Ka2017x2", "Ka2017x2inc", 
                     svd_mag_model[filt]["gps"][ii] = svd_utils.load_gpapi(svd_mag_model[filt]["gps"][ii])
             for ii in range(len(svd_lbol_model["gps"])):
                 svd_lbol_model["gps"][ii] = svd_utils.load_gpapi(svd_lbol_model["gps"][ii])
+
+        elif opts.gptype == "tensorflow":
+            outdir = magmodelfile.replace(".pkl","")
+            for filt in svd_mag_model.keys():
+                outfile = os.path.join(outdir, f'{filt}.h5')
+                svd_mag_model[filt]['model'] = load_model(outfile)
+            outdir = lbolmodelfile.replace(".pkl","")
+            outfile = os.path.join(outdir, 'model.h5')
+            svd_lbol_model['model'] = load_model(outfile)
 
         Global.svd_mag_model = svd_mag_model
         Global.svd_lbol_model = svd_lbol_model
