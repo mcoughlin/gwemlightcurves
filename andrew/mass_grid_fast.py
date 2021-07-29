@@ -7,9 +7,9 @@ import glob
 import numpy as np
 import argparse
 import pickle
-import pandas as pd
+#import pandas as pd
 
-import h5py
+#import h5py
 from scipy.interpolate import interpolate as interp
  
 import matplotlib
@@ -24,7 +24,7 @@ from gwemlightcurves import lightcurve_utils
 from gwemlightcurves.KNModels import KNTable
 from gwemlightcurves import __version__
 
-from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
+#from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
 
 def parse_commandline():
     """
