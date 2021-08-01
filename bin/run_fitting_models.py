@@ -1779,8 +1779,9 @@ else:
     #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new_sorted_noNICER")
     #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_sorted_GW190814")
     #eosdir = os.path.join(opts.dataDir, "gw170817-eft-eos/eos_data/EOS_024_new")
-    eosdir = "/home/michael.coughlin/NMMA-public/EOS/chiralEFT_MTOV_NICER"
+    #eosdir = "/home/michael.coughlin/NMMA-public/EOS/chiralEFT_MTOV_NICER"
     #eosdir = "/home/michael.coughlin/NMMA-public/EOS/chiralEFT_MTOV"
+    eosdir = "/home/michael.coughlin/gw190814_wasabbh/PSR-NICER/EOS_sorted"
 
 filenames = glob.glob(os.path.join(eosdir, '*.dat'))
 eosdata = {}
@@ -1850,8 +1851,9 @@ elif opts.doGoingTheDistance or opts.doMassGap or opts.doEvent:
                 #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv1")
                 #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv2")
                 #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_NRTv2_NoNICER")
-                #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_GW190814")
-                data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_SEOBNRv4T")
+                data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_GW190814")
+	        #data_out = lightcurve_utils.event(opts.dataDir,opts.name + "_posterior_samples_SEOBNRv4T")
+
             if data_out:
                 costheta_jn = data_out["cos_theta_jn"]
                 theta_jn = np.rad2deg(np.arccos(costheta_jn)) 

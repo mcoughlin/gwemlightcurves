@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import os, sys
 import optparse
@@ -34,6 +35,8 @@ def parse_commandline():
     parser.add_option("-r","--redshift",default=np.nan,type=float)
     parser.add_option("--doAB",  action="store_true", default=False)
     parser.add_option("--doSpec",  action="store_true", default=False)    
+
+    parser.add_option("--doPlots",  action="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -754,79 +757,81 @@ if opts.doAB:
     colors=cm.rainbow(np.linspace(0,1,len(filts)))
     magidxs = [1,2,3,4,5,6,7,8,9]
 
-    plotName = "%s/%s.pdf"%(plotDir,basename)
-    plt.figure(figsize=(10,12))
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
-    plt.xlabel('Time [days]')
-    plt.ylabel('Absolute AB Magnitude')
-    plt.ylim([-20,10])
-    plt.legend(loc="lower center",ncol=5)
-    title_name = []
-    if not np.isnan(opts.theta):
-        title_name.append('Inclination: %.1f' %  opts.theta)
-    if not np.isnan(opts.redshift):
-        title_name.append('Redshift: %.2f' %  opts.redshift)
-    plt.title(", ".join(title_name))
-    plt.gca().invert_yaxis()
-    plt.savefig(plotName)
-    plotName = "%s/%s.png"%(plotDir,basename)
-    plt.savefig(plotName)
-    plt.close()
+    if opts.doPlots:
 
-    plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
-    fig, axs = plt.subplots(1,2,figsize=(20,12))
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        axs[0].plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
-    axs[0].set_xlabel('Time [days]')
-    axs[0].set_ylabel('Absolute AB Magnitude')
-    axs[0].set_ylim([-20,10])
-    axs[0].legend(loc="lower center",ncol=5)
-    axs[0].invert_yaxis()
-
-    for filt, color, magidx in zip(filts,colors,magidxs):
-        dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
-        dm_dt = dm/dt
-        axs[1].plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
-    axs[1].set_xlabel('Time [days]')
-    axs[1].set_ylabel('dm/dt [magnitude / day]')
-    axs[1].set_ylim([-3,3])
-    axs[1].legend(loc="lower center",ncol=5)
-    axs[1].invert_yaxis()
-
-    title_name = []
-    if not np.isnan(opts.theta):
-        title_name.append('Inclination: %.1f' %  opts.theta)
-    if not np.isnan(opts.redshift):
-        title_name.append('Redshift: %.2f' %  opts.redshift)
-
-    plt.suptitle(", ".join(title_name))
-    plt.savefig(plotName)
-    plotName = "%s/%s_dmdt.png"%(plotDir,basename)
-    plt.savefig(plotName)
-    plt.close()
-
-    #plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
-    #plt.figure(figsize=(10,12))
-    #for filt, color, magidx in zip(filts,colors,magidxs):
-    #    dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
-    #    dm_dt = dm/dt
-    #    plt.plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
-    #plt.xlabel('Time [days]')
-    #plt.ylabel('Absolute AB Magnitude')
-    #plt.ylim([-3,3])
-    #plt.legend(loc="lower center",ncol=5)
-    #title_name = []
-    #if not np.isnan(opts.theta):
-    #    title_name.append('Inclination: %.1f' %  opts.theta)
-    #if not np.isnan(opts.redshift):
-    #    title_name.append('Redshift: %.2f' %  opts.redshift)
-    #plt.title(", ".join(title_name))
-    #plt.gca().invert_yaxis()
-    #plt.savefig(plotName)
-    #plotName = "%s/%s_dmdt.png"%(plotDir,basename)
-    #plt.savefig(plotName)
-    #plt.close()
+        plotName = "%s/%s.pdf"%(plotDir,basename)
+        plt.figure(figsize=(10,12))
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            plt.plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
+        plt.xlabel('Time [days]')
+        plt.ylabel('Absolute AB Magnitude')
+        plt.ylim([-20,10])
+        plt.legend(loc="lower center",ncol=5)
+        title_name = []
+        if not np.isnan(opts.theta):
+            title_name.append('Inclination: %.1f' %  opts.theta)
+        if not np.isnan(opts.redshift):
+            title_name.append('Redshift: %.2f' %  opts.redshift)
+        plt.title(", ".join(title_name))
+        plt.gca().invert_yaxis()
+        plt.savefig(plotName)
+        plotName = "%s/%s.png"%(plotDir,basename)
+        plt.savefig(plotName)
+        plt.close()
+    
+        plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
+        fig, axs = plt.subplots(1,2,figsize=(20,12))
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            axs[0].plot(t,mag_ds[:,magidx],alpha=1.0,c=color,label=filt)
+        axs[0].set_xlabel('Time [days]')
+        axs[0].set_ylabel('Absolute AB Magnitude')
+        axs[0].set_ylim([-20,10])
+        axs[0].legend(loc="lower center",ncol=5)
+        axs[0].invert_yaxis()
+    
+        for filt, color, magidx in zip(filts,colors,magidxs):
+            dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
+            dm_dt = dm/dt
+            axs[1].plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
+        axs[1].set_xlabel('Time [days]')
+        axs[1].set_ylabel('dm/dt [magnitude / day]')
+        axs[1].set_ylim([-3,3])
+        axs[1].legend(loc="lower center",ncol=5)
+        axs[1].invert_yaxis()
+    
+        title_name = []
+        if not np.isnan(opts.theta):
+            title_name.append('Inclination: %.1f' %  opts.theta)
+        if not np.isnan(opts.redshift):
+            title_name.append('Redshift: %.2f' %  opts.redshift)
+    
+        plt.suptitle(", ".join(title_name))
+        plt.savefig(plotName)
+        plotName = "%s/%s_dmdt.png"%(plotDir,basename)
+        plt.savefig(plotName)
+        plt.close()
+    
+        #plotName = "%s/%s_dmdt.pdf"%(plotDir,basename)
+        #plt.figure(figsize=(10,12))
+        #for filt, color, magidx in zip(filts,colors,magidxs):
+        #    dt, dm = np.diff(t), np.diff(mag_ds[:,magidx])
+        #    dm_dt = dm/dt
+        #    plt.plot(t[:-1],dm_dt,alpha=1.0,c=color,label=filt)
+        #plt.xlabel('Time [days]')
+        #plt.ylabel('Absolute AB Magnitude')
+        #plt.ylim([-3,3])
+        #plt.legend(loc="lower center",ncol=5)
+        #title_name = []
+        #if not np.isnan(opts.theta):
+        #    title_name.append('Inclination: %.1f' %  opts.theta)
+        #if not np.isnan(opts.redshift):
+        #    title_name.append('Redshift: %.2f' %  opts.redshift)
+        #plt.title(", ".join(title_name))
+        #plt.gca().invert_yaxis()
+        #plt.savefig(plotName)
+        #plotName = "%s/%s_dmdt.png"%(plotDir,basename)
+        #plt.savefig(plotName)
+        #plt.close()
    
     filename = "%s/%s_Lbol.dat"%(outputDir,basename)
     fid = open(filename,'w')
@@ -838,16 +843,18 @@ if opts.doAB:
     Lbol_ds = np.loadtxt(filename)
     t = Lbol_ds[:,0]
     Lbol = Lbol_ds[:,1]
-  
-    plotName = "%s/%s_Lbol.pdf"%(plotDir,basename) 
-    plt.figure(figsize=(10,12))
-    plt.semilogy(t,Lbol,'k--')
-    plt.xlabel('Time [days]')
-    plt.ylabel('Bolometric Luminosity [erg/s]')
-    plt.savefig(plotName)
-    plotName = "%s/%s_Lbol.png"%(plotDir,opts.name)
-    plt.savefig(plotName)
-    plt.close()
+ 
+    if opts.doPlots:
+
+        plotName = "%s/%s_Lbol.pdf"%(plotDir,basename) 
+        plt.figure(figsize=(10,12))
+        plt.semilogy(t,Lbol,'k--')
+        plt.xlabel('Time [days]')
+        plt.ylabel('Bolometric Luminosity [erg/s]')
+        plt.savefig(plotName)
+        plotName = "%s/%s_Lbol.png"%(plotDir,opts.name)
+        plt.savefig(plotName)
+        plt.close()
 
 elif opts.doSpec:
 

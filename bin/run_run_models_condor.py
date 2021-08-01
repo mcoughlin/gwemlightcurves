@@ -26,7 +26,15 @@ thetas = np.rad2deg(np.arccos(costhetas))
 #thetas = thetas[2:4]
 #thetas = np.append(thetas,90)
 
+condorDir = '../condor'
+logDir = os.path.join(condorDir,'logs')
+if not os.path.isdir(logDir):
+    os.makedirs(logDir)
+
 data = {}
+job_number = 0
+
+fid = open(os.path.join(condorDir,'condor.dag'),'w')
 
 for model in models:
     if model == "bulla_2Comp_kappas":
@@ -51,11 +59,33 @@ for model in models:
         for theta in thetas:
             filename = "../output/%s/%s_%.1f.dat"%(model,name,theta)
             if not os.path.isfile(filename):
+
             #if True:
-                system_call = "python run_models.py --doAB --model %s --name %s --theta %.1f"%(model,name,theta)
-                print(system_call)
-                os.system(system_call)
-                #print(stop)
+                fid.write('JOB %d condor.sub\n'%(job_number))
+                fid.write('RETRY %d 3\n'%(job_number))
+                fid.write('VARS %d jobNumber="%d" model="%s" name="%s" theta="%.1f"\n'%(job_number,job_number,model,name,theta))
+                fid.write('\n\n')
+                job_number = job_number + 1
+            else:
+                print(filename)
+
+fid = open(os.path.join(condorDir,'condor.sub'),'w')
+fid.write('executable = /home/mcoughlin/gwemlightcurves/bin/run_models.py\n')
+fid.write('output = logs/out.$(jobNumber)\n');
+fid.write('error = logs/err.$(jobNumber)\n');
+#fid.write('arguments = --doEvent --model $(model) --name $(grb) --tmin $(tmin) --tmax $(tmax) --distance $(distance) --T0 $(T0) --filters $(filters) --errorbudget $(errorbudget) --doFixZPT0 --doEjecta\n')
+fid.write('arguments = --doAB --model $(model) --name $(name) --theta $(theta)\n') 
+fid.write('requirements = OpSys == "LINUX"\n');
+fid.write('request_memory = 4000\n');
+fid.write('request_cpus = 1\n');
+fid.write('accounting_group = ligo.dev.o2.burst.allsky.stamp\n');
+fid.write('notification = never\n');
+fid.write('getenv = true\n');
+fid.write('log = /usr1/mcoughlin/gwemlightcurves_fit.log\n')
+fid.write('+MaxHours = 24\n');
+fid.write('universe = vanilla\n');
+fid.write('queue 1\n');
+fid.close()
 
 print(stop)
 
