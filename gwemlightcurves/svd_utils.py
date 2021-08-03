@@ -466,7 +466,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
         # evaluate the model
         error = model.evaluate(param_array_postprocess,
                                cAmat.T, verbose=0)
-        print(f"lbol MSE:", error)
+        print("lbol MSE:", error)
 
     svd_model = {}
     svd_model["n_coeff"] = n_coeff
