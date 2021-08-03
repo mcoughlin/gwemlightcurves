@@ -946,7 +946,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             # evaluate the model
             error = model.evaluate(param_array_postprocess,
                                    cAmat.T, verbose=0)
-            print(f"{filt} MSE:", error)
+            print("{filt} MSE:", error)
 
         svd_model[filt] = {}
         svd_model[filt]["n_coeff"] = n_coeff
