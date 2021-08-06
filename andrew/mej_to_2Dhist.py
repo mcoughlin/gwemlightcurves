@@ -1,136 +1,117 @@
-from __future__ import division
-import matplotlib
-font = {'family' : 'normal',
-        'weight' : 'normal',
-        'size'   : 16}
-matplotlib.rc('xtick', labelsize=16)
-matplotlib.rc('ytick', labelsize=16)
-matplotlib.rc('font', **font)
 import numpy as np
-import astropy.units as u
 from astropy.table import (Table, Column, vstack)
-import pickle
+import sys
+import os
 import scipy.stats as ss
-from scipy.stats import rv_continuous
-from pandas import read_csv, DataFrame
 import matplotlib.pyplot as plt
-import math
-import pandas as pd 
+from joblib import Parallel, delayed
+import pickle5 as pickle
+from matplotlib import cm 
+
+#cmpas = OrderedDict()
+
+
+
 
 
 
 ### non-standard libraries
-
 from gwemlightcurves.KNModels import KNTable
-#from gwemlightcurves import __version__
+from gwemlightcurves import __version__
 #from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
-#from twixie import kde
-#from gwemlightcurves import lightcurve_utils
-#from mass_grid import run_EOS
-#
-
-fig, ax = plt.subplots(figsize=(16, 12))
-
-mej_theta_data=np.loadtxt('mej_theta_data_BNS_alsing.txt')
 
 
-mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
-#
+
+#Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
+
+Types = ['BNS_alsing','BNS_farrow']
+    
+for Type in Types:
+    fig, ax = plt.subplots(figsize=(16, 12))
+    print(f'Initializing {Type}')
+
+
+
+    folder_dir = f'./lightcurves_parallel/phi45_updated/{Type}/'
+    #folder_dir = f'./lightcurves2/{Type}/'
+    ns_dirs = os.listdir(f'{folder_dir}')
+    nsns_dict = {}
+    nsbh_dict = {}
+    bands = ['t','u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K', 'mej', 'theta', 'phi'] 
+
+  
+
+    for band in bands:
+        nsns_dict[band], nsbh_dict[band] = [],[]
+
+    count = 0
+    for ns_dir in ns_dirs:
+        count+=1
+        with open (f'./{folder_dir}/{ns_dir}','rb') as f:
+            data = pickle.load(f)
+        if count%1000 == 0:
+            print(f'{count} samples loaded')
+        for ii,band in enumerate(bands):
+            nsns_dict[band].append(data[:,ii])
+    
+    #nsns_dict= nsns_dict[:100]
+    u_band_nsns = nsns_dict['u']  
+    
+
+    mej_data = np.array(nsns_dict['mej'])  
+   
+    mej_data = mej_data[:,0] 
+
+    thetas = np.array( nsns_dict['theta']) 
+    
+    thetas = thetas[:,0] 
+
+    u_band_max = []
+    for lc in u_band_nsns: 
+        u_band_max.append(np.min(lc))   
+
+    l = len(mej_data)
+    print(f'{l} samples loaded' ) 
+
+    mej_bins = np.linspace(-2.8, -.9, 50)
+    mag_bins = np.linspace(-15.1, -12.3, 50) 
+    theta_bins = np.linspace(np.min(thetas), np.max(thetas)) 
+    #pl.hist(mej_bins, bins=np.logspace(np.log10(0.1),np.log10(1.0),50)) 
+    #pl.gca().set_xsclae("log") 
+    #pl.show() 
+
+
+
+     
+    print(np.shape(mej_data), np.shape(u_band_max))
+    
  
-l= len(mej_data)
-
-phis = 30+30*np.random.rand(l)
-samples = Table((mej_data, phis, thetas), names=('mej', 'phi', 'theta'))
-
-tini = 0.1
-tmax = 50.0
-dt = 0.1
-
-vmin = 0.02
-th = 0.2
-ph = 3.14
-kappa = 10.0
-eps = 1.58*(10**10)
-alp = 1.2
-eth = 0.5
-flgbct = 1
-
-beta = 3.0
-kappa_r = 0.1
-slope_r = -1.2
-theta_r = 0.0
-Ye = 0.3
-
-samples['tini'] = tini
-samples['tmax'] = tmax
-samples['dt'] = dt
-samples['vmin'] = vmin
-samples['th'] = th
-samples['ph'] = ph
-samples['kappa'] = kappa
-samples['eps'] = eps
-samples['alp'] = alp
-samples['eth'] = eth
-samples['flgbct'] = flgbct
-samples['beta'] = beta
-samples['kappa_r'] = kappa_r
-samples['slope_r'] = slope_r
-samples['theta_r'] = theta_r
-samples['Ye'] = Ye
-
-ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
-kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
-kwargs["doAB"] = True
-kwargs["doSpec"] = False
-
-#model = "Ka2017"
-model = "Bu2019inc"
-model_tables = {}
-model_tables[model] = KNTable.model(model, samples, **kwargs)
-
-idx = np.where(model_tables[model]['mej'] <= 1e-3)[0]
-#print("idx")
-#print(idx)
-model_tables[model]['mag'][idx] = 10.
-model_tables[model]['lbol'][idx] = 1e30
- 
-mags = model_tables[model]['mag']
-t = model_tables[model]['t'][0]
-
-#bands = ['u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K']
-
-
-t_list, u_list, g_list, r_list, i_list = [], [], [], [], []
-z_list, y_list, J_list, H_list, K_list = [], [], [], [], []
-
-data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
- 
-mej_samples = samples['mej']
-theta_samples = samples['theta']
-phi_samples = samples['phi']
-
-u_band_max = []
-Type = 'BNS_alsing'
-for n, sample in enumerate(mags):
-    sample_name = 'lc_'+str(Type)+'_mej_'+str(mej_samples[n])+'_theta_'+str(theta_samples[n])+'_phi_'+str(phi_samples[n])+'.pickle' 
-    data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
-    for i, band in enumerate(sample):
-        #data_lists[i].append(band)
-        data_lists[i] = np.concatenate((data_lists[i], band))
-    lightcurve_data = np.column_stack((t, data_lists[0], data_lists[1], data_lists[2], data_lists[3], data_lists[4], data_lists[5], data_lists[6], data_lists[7], data_lists[8]))
-    u_band_data = lightcurve_data[:,1]
-    u_band_max.append(np.max(u_band_data))
+    im  = plt.hist2d(np.log10(mej_data), u_band_max, bins =(mej_bins,mag_bins))
+    #plt.title("mej vs peak mag")
+    plt.xlabel('mej')
+    plt.ylabel('Peak u mag')
+    plt.gca().invert_yaxis()
+    
+    #theta/peakmag 
+    #im = plt.hist2d(mej_theta_data, u_band_max, bins = (50,50)) 
+    #plt.xlabel('theta')
+    #plt.ylabel('Peak u mag')
+    #plt.gca().invert_yaxis()
+    #ymin, ymax = plt.ylim() 
+     
+    plt.colorbar(im[3])
+    plt.savefig(f'mej_mag_hist2d_{Type}.pdf', bbox_inches='tight')
+    plt.close()
+   
+    #theta/peakmag 
+    im = plt.hist2d(thetas, u_band_max, bins = (theta_bins, mag_bins)) 
+    plt.xlabel('theta')
+    plt.ylabel('Peak u mag')
+    plt.gca().invert_yaxis()
+    
+    plt.colorbar(im[3])
+    plt.savefig(f'theta_mag_hist2d_{Type}.pdf', bbox_inches='tight')
+    plt.close()
 
 
 
-plt.hist2d(mej_data, u_band_max)
-
-plt.title("mej vs peak mag")
-plt.xlabel('mej')
-plt.ylabel('peak u mag')
-plt.savefig("histogram_2d_01.png", bbox_inches='tight')
-
-plt.close() 
-
-
- 
