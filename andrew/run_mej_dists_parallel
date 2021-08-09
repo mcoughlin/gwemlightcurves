@@ -231,7 +231,7 @@ def calc_mej_from_masses(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all
             all_thetas.append(np.array(samples['theta']))
 
 
-            lambdatilde = (16.0/13.0)*(samples['lambda2'] + samples['lambda1']*(samples['q']**5) + 12*samples['lambda1']*(samples['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
+            #lambdatilde = (16.0/13.0)*(samples['lambda2'] + samples['lambda1']*(samples['q']**5) + 12*samples['lambda1']*(samples['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
 
     return all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_mejs, all_wind_mejs, all_dyn_mejs, all_thetas
 
@@ -246,8 +246,6 @@ def run_theoretical(Type, lan, chi, EOS):
     chirp_q_tf = False
     twixie_tf = False
  
-    #check_vals = open('samples_'+str(Type2)+'.txt', 'w')
-    #mej_theta = open('mej_theta_data_'+str(Type2)+'.txt', 'w')
     for chi in chi_list:
         #-----------------------------------------------------------
         '''
@@ -336,6 +334,7 @@ def run_theoretical(Type, lan, chi, EOS):
 
 
         '''
+        Gargi:
         Here you can test different ranges of the distribution. Michael had suggested m1/m2 = ~4-5 might give large mej
         '''
         #---------------------------------------------------------
@@ -365,17 +364,9 @@ def run_theoretical(Type, lan, chi, EOS):
             m2 = np.ones(uniform_mass_draws)+np.random.rand(uniform_mass_draws)
             m1 = chirp_min+(chirp_max-chirp_min)*np.random.rand(uniform_mass_draws)
             chirp_q_tf = True
-        #all_mej_data, all_thetas, all_m1s, all_m2s = np.array([]), np.array([]),np.array([]), np.array([]) 
-        #all_mchirps, all_qs, all_vej, all_wind_mej, all_dyn_mej = np.array([]), np.array([]), np.array([]), np.array([]), np.array([]) 
-        #all_mej_data, all_thetas, all_m1s, all_m2s = [],[],[],[]
-        #all_mchirps, all_qs, all_vej, all_wind_mej, all_dyn_mej = [],[],[],[],[]
- 
-        #data, medians, stds = [], [], []
-        #m1_plot, m2_plot=[], []
-        lambdatildes=[]
         
-        #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
-        #samples = run_EOS(EOS, m1m, m2m, chi, type_set=Type, twixie = twixie_tf, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)        
+        #lambdatildes=[]
+        
         
         N_parallel = 16
         print(f'running in parallel on {N_parallel} cores')
