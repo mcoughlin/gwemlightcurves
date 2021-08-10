@@ -35,7 +35,7 @@ from mass_grid_fast import run_EOS
 #-------------------------------------------------
 
 '''
-The number of points to evaluate the KDE at and plot
+The number ofpoints to evaluate the KDE at and plot
 '''
 mass_points = 100
 mass_points = 10
@@ -45,6 +45,8 @@ less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 mass_draws = 2000
 mass_draws = 200
+
+#mass_draws = 20
 #uniform_mass_draws = int(mass_draws/2)
 uniform_mass_draws = mass_draws
 
@@ -153,7 +155,6 @@ def calc_mej_from_masses(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all
 
     print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
 
-    type_plot = Type
     m1m = m1[i]
     m2m = m2[i]
     if True:
@@ -219,21 +220,21 @@ def calc_mej_from_masses(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all
             mbns = samples['mbns']
             thetas = samples['theta']
 
-            #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
-            all_m1s.append(np.array(samples['m1']))
-            all_m2s.append(np.array(samples['m2']))
-            all_mchirps.append(np.array(samples['mchirp']))
-            all_qs.append(np.array(samples['q']))
-            all_vejs.append(np.array(samples['vej']))
-            all_mejs.append(np.array(samples['mej']))
-            all_wind_mejs.append(np.array(samples['wind_mej']))
-            all_dyn_mejs.append(np.array(samples['dyn_mej']))
-            all_thetas.append(np.array(samples['theta']))
+            data_len = len(mej_samples)
 
 
+            m1_vals_array, m2_vals_array, mchirp_array, q_array, vej_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
+            mej_array, wind_mej_array, dyn_mej_array, thetas_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
+
+            m1_vals_array[0:data_len], m2_vals_array[0:data_len], mchirp_array[0:data_len], q_array[0:data_len], vej_array[0:data_len] = m1_vals, m2_vals, mchirp, q, vej
+            mej_array[0:data_len], wind_mej_array[0:data_len], dyn_mej_array[0:data_len], thetas_array[0:data_len] = mej, wind_mej, dyn_mej, thetas
+
+            #m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas = np.array(m1_vals), np.array(m2_vals), np.array(mchirp), np.array(q), np.array(vej), np.array(mej), np.array(wind_mej), np.array(dyn_mej), np.array(thetas) 
             #lambdatilde = (16.0/13.0)*(samples['lambda2'] + samples['lambda1']*(samples['q']**5) + 12*samples['lambda1']*(samples['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
 
-    return all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_mejs, all_wind_mejs, all_dyn_mejs, all_thetas
+    #return all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_mejs, all_wind_mejs, all_dyn_mejs, all_thetas
+    #return m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas
+    return m1_vals_array, m2_vals_array, mchirp_array, q_array, vej_array, mej_array, wind_mej_array, dyn_mej_array, thetas_array
 
 
 
@@ -245,8 +246,9 @@ def run_theoretical(Type, lan, chi, EOS):
     Type2=Type
     chirp_q_tf = False
     twixie_tf = False
- 
-    for chi in chi_list:
+
+    type_plot = Type
+    if True: 
         #-----------------------------------------------------------
         '''
         Determines grid of masses to use for mass grid
@@ -366,19 +368,32 @@ def run_theoretical(Type, lan, chi, EOS):
             chirp_q_tf = True
         
         #lambdatildes=[]
-        
+        all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
+        all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]
+        all_lists = [all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs]
+        #all_samples = [] 
         
         N_parallel = 16
         print(f'running in parallel on {N_parallel} cores')
-        all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
+        #all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all_lists) for i in range(len(m1)))
 
-        #cut out extra empty dimension that resulted from appending arrays
-        all_samples = np.array(all_samples)[:,:,0,:]
-        
+        all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
+      
+        #length = np.array(all_samples).shape[0] 
+        #data_type_nums = [0,1,2,3,4,5,6,7,8]*length
+        #data_type_nums = np.reshape(np.array(data_type_nums), (length*9))
+ 
+        #for i, data_slice in zip(all_samples, data_type_nums):
+        #    all_lists[i].append(data_slice)        
+            
+        #all_samples = np.array(all_samples)[:,:,0,:]
+        all_samples = np.array(all_samples)
+        all_lists = np.array(all_lists)
+ 
         all_m1s, all_m2s, all_mchirps = all_samples[:,0,:], all_samples[:,1,:], all_samples[:,2,:]
         all_qs, all_vejs, all_mejs = all_samples[:,3,:], all_samples[:,4,:], all_samples[:,5,:]
         all_wind_mejs, all_dyn_mejs, all_thetas = all_samples[:,6,:], all_samples[:,7,:], all_samples[:,8,:]
-
+ 
         shape1, shape2 = all_m1s.shape
         all_m1s_1D = np.reshape(all_m1s, (shape1*shape2))
         all_m2s_1D = np.reshape(all_m2s, (shape1*shape2))
@@ -401,8 +416,9 @@ def run_theoretical(Type, lan, chi, EOS):
     #mean_data=np.array(data)
     mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D))
     corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D))
-    np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
-    np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type2)+'.txt', corner_data)
+    #np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
+    np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
+    #np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type2)+'.txt', corner_data)
     return all_mejs
 
 
@@ -512,7 +528,7 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     labels = ['NSBH (Zhu et al.)', 'NSBH (LRR)'] 
     
     #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
-    Types = ['NSBH_zhu','NSBH_LRR']
+    #Types = ['NSBH_zhu','NSBH_LRR']
     Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
     #Types = ['BNS_alsing']
     fig, ax = plt.subplots(figsize=(16, 12))
@@ -567,9 +583,9 @@ chi_list=[0]
 plot_list=[]
 for lan in lan_list:
     for chi in chi_list:
-        all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
-        all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]        
-        all_samples = []
+        #all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
+        #all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]        
+        #all_samples = []
         
         #all_mej_data, all_thetas, all_m1s, all_m2s = np.array([]), np.array([]),np.array([]), np.array([])
         #all_mchirps, all_qs, all_vej, all_wind_mej, all_dyn_mej = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
