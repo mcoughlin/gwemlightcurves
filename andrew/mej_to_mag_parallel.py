@@ -17,12 +17,16 @@ from gwemlightcurves import __version__
 fig, ax = plt.subplots(figsize=(16, 12))
 #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
 
-Types = ['BNS_alsing','BNS_farrow']
-    
+#Types = ['BNS_alsing','BNS_farrow']
+#Types = ['BNS_uniform', 'NSBH_uniform'] 
+Types = ['NSBH_zhu', 'NSBH_LRR'] 
+#Types = ['NSBH_LRR'] 
+
+ 
 for Type in Types:
     print(f'Initializing {Type}')
     #mej_theta_data=np.loadtxt('./mej_theta_data/N_50/mej_theta_data_BNS_alsing.txt')
-    mej_theta_data=np.loadtxt(f'./mej_theta_data/mej_theta_data_{Type}.txt')
+    mej_theta_data=np.loadtxt(f'./mej_theta_data/NSBH_test/mej_theta_data_{Type}.txt')
     mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
     
     #mej_data, thetas = mej_data[:20], thetas[:20]
