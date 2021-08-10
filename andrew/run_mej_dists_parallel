@@ -416,9 +416,9 @@ def run_theoretical(Type, lan, chi, EOS):
     #mean_data=np.array(data)
     mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D))
     corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D))
-    #np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
-    np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
-    #np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type2)+'.txt', corner_data)
+    np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
+    #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
+    np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type2)+'.txt', corner_data)
     return all_mejs
 
 
