@@ -34,11 +34,14 @@ from gwemlightcurves import lightcurve_utils
 from mass_grid_fast import run_EOS
 #-------------------------------------------------
 
+np.random.seed(0)
+
 '''
-The number ofpoints to evaluate the KDE at and plot
+The number of points to evaluate the KDE at and plot
 '''
 mass_points = 100
 mass_points = 10
+N_EOS = 100
 '''
 Determines the number of masses to draw from the inital mass dists, should be >1000. uniform_mass_draws can be
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
@@ -146,94 +149,89 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej_from_masses(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all_samples = all_samples):
+def calc_mej_from_masses(i, m1, m2, thetas, Type, Type2, EOS, twixie_tf, chirp_q_tf, all_samples = all_samples):
     '''
     '''
     
-    #if i%10 == 0:
-        #print(f'{i} out of {mass_draws} mej values calculated--------------------------')
+    if i%10 == 0:
+        print(f'{i} out of {mass_draws} mej values calculated--------------------------')
 
-    print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
+    #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
 
     m1m = m1[i]
     m2m = m2[i]
-    if True:
-        m1m_check = m1m
-        m2m_check = m2m
+
+    m1m_check = m1m
+    m2m_check = m2m
+    if Type == 'NSBH':
+        m1m_check = 1
+        m2m_check = .5
+    if Type2 == 'BNS_equal':
+        m1m = m2m
+        m1m_check = m2m
+        Type = 'BNS'
+    if Type2 == 'BNS_chirp_q':
+        eta1 = lightcurve_utils.q2eta(m2m)
+        m1m_check, m2m_check = lightcurve_utils.mc2ms(m1m, eta1)
+        m2m_check = m1m_check
+        Type = 'BNS'
+    if (m1m_check >= m2m_check) and (m1m_check <= 3):
+        print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
+
+
+        #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
+        samples = run_EOS(EOS, m1m, m2m, chi, thetas, N_EOS = N_EOS, type_set=Type, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)
+            
+
+        if Type == 'BNS':
+            idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
+            N_idx = len(idx)
+            print('-----------------------------------------------------')
+            print(str(N_idx)+' out of '+str(len(samples))+' were BNS')
+            print('-----------------------------------------------------')
         if Type == 'NSBH':
-            m1m_check = 1
-            m2m_check = .5
-        if Type2 == 'BNS_equal':
-            m1m = m2m
-            m1m_check = m2m
-            Type = 'BNS'
-        if Type2 == 'BNS_chirp_q':
-            eta1 = lightcurve_utils.q2eta(m2m)
-            m1m_check, m2m_check = lightcurve_utils.mc2ms(m1m, eta1)
-            m2m_check = m1m_check
-            Type = 'BNS'
-        if (m1m_check >= m2m_check) and (m1m_check <= 3):
-            print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
+            idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] <= 1e-6))[0]
+            N_idx = len(idx)
+            print('-----------------------------------------------------')
+            print(str(N_idx)+' out of '+str(len(samples))+' were NSBH')
+            print('-----------------------------------------------------')
+
+        samples = samples[idx]
+         
+        mej_samples = samples['mej']
+        m1_vals = samples['m1']
+        m2_vals = samples['m2']
+        #dist = samples['dist']
+        l1_vals = samples['lambda1']
+        l2_vals = samples['lambda2']
+        dyn_vals = samples['dyn_mej']
+        wind_vals = samples['wind_mej']
+        mej_vals = samples['mej']
+        chi_eff = samples['chi_eff']
+        Xlan = samples['Xlan']
+        c1 = samples['c1']
+        c2 = samples['c2']
+        mb1 = samples['mb1']
+        mb2 = samples['mb2']
+        mchirp = samples['mchirp']
+        eta = samples['eta']
+        q = samples['q']
+        mej = samples['mej']
+        vej = samples['vej']
+        dyn_mej = samples['dyn_mej']
+        wind_mej = samples['wind_mej']
+        mbns = samples['mbns']
+        thetas = samples['theta']
+
+        data_len = len(mej_samples)
 
 
-            #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
-            samples = run_EOS(EOS, m1m, m2m, chi, type_set=Type, twixie = twixie_tf, lan_override = True, lan_override_val = lan, chirp_q=chirp_q_tf)
-            
+        m1_vals_array, m2_vals_array, mchirp_array, q_array, vej_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
+        mej_array, wind_mej_array, dyn_mej_array, thetas_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
 
-            if Type == 'BNS':
-                idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
-                N_idx = len(idx)
-                print('-----------------------------------------------------')
-                print(str(N_idx)+' out of '+str(len(samples))+' were BNS')
-                print('-----------------------------------------------------')
-            if Type == 'NSBH':
-                idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] <= 1e-6))[0]
-                N_idx = len(idx)
-                print('-----------------------------------------------------')
-                print(str(N_idx)+' out of '+str(len(samples))+' were NSBH')
-                print('-----------------------------------------------------')
+        m1_vals_array[0:data_len], m2_vals_array[0:data_len], mchirp_array[0:data_len], q_array[0:data_len], vej_array[0:data_len] = m1_vals, m2_vals, mchirp, q, vej
+        mej_array[0:data_len], wind_mej_array[0:data_len], dyn_mej_array[0:data_len], thetas_array[0:data_len] = mej, wind_mej, dyn_mej, thetas
 
-            samples = samples[idx]
-            
-            mej_samples = samples['mej']
-            m1_vals = samples['m1']
-            m2_vals = samples['m2']
-            #dist = samples['dist']
-            l1_vals = samples['lambda1']
-            l2_vals = samples['lambda2']
-            dyn_vals = samples['dyn_mej']
-            wind_vals = samples['wind_mej']
-            mej_vals = samples['mej']
-            chi_eff = samples['chi_eff']
-            Xlan = samples['Xlan']
-            c1 = samples['c1']
-            c2 = samples['c2']
-            mb1 = samples['mb1']
-            mb2 = samples['mb2']
-            mchirp = samples['mchirp']
-            eta = samples['eta']
-            q = samples['q']
-            mej = samples['mej']
-            vej = samples['vej']
-            dyn_mej = samples['dyn_mej']
-            wind_mej = samples['wind_mej']
-            mbns = samples['mbns']
-            thetas = samples['theta']
-
-            data_len = len(mej_samples)
-
-
-            m1_vals_array, m2_vals_array, mchirp_array, q_array, vej_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
-            mej_array, wind_mej_array, dyn_mej_array, thetas_array = np.zeros(100), np.zeros(100), np.zeros(100), np.zeros(100)
-
-            m1_vals_array[0:data_len], m2_vals_array[0:data_len], mchirp_array[0:data_len], q_array[0:data_len], vej_array[0:data_len] = m1_vals, m2_vals, mchirp, q, vej
-            mej_array[0:data_len], wind_mej_array[0:data_len], dyn_mej_array[0:data_len], thetas_array[0:data_len] = mej, wind_mej, dyn_mej, thetas
-
-            #m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas = np.array(m1_vals), np.array(m2_vals), np.array(mchirp), np.array(q), np.array(vej), np.array(mej), np.array(wind_mej), np.array(dyn_mej), np.array(thetas) 
-            #lambdatilde = (16.0/13.0)*(samples['lambda2'] + samples['lambda1']*(samples['q']**5) + 12*samples['lambda1']*(samples['q']**4) + 12*samples['lambda2']*samples['q'])/((samples['q']+1)**5)
-
-    #return all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_mejs, all_wind_mejs, all_dyn_mejs, all_thetas
-    #return m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas
     return m1_vals_array, m2_vals_array, mchirp_array, q_array, vej_array, mej_array, wind_mej_array, dyn_mej_array, thetas_array
 
 
@@ -247,167 +245,155 @@ def run_theoretical(Type, lan, chi, EOS):
     chirp_q_tf = False
     twixie_tf = False
 
+    #N_EOS = 100
+    all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
+    #all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+
     type_plot = Type
-    if True: 
-        #-----------------------------------------------------------
-        '''
-        Determines grid of masses to use for mass grid
-        '''
-        #----------------------------------------------------------
-        if Type == 'NSBH_uniform':
-            m2 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
-            m1 = 3*np.ones(uniform_mass_draws)+5*np.random.rand(uniform_mass_draws)
-            Type = 'NSBH'
-        if Type == 'BNS_uniform':
-            m1 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
-            m2 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
-            Type = 'BNS'
-        if Type == 'BNS_alsing':
-            m_a = a_dist.rvs(size = mass_draws)
-            m_b = a_dist.rvs(size = mass_draws)
-            m1_list = []
-            m2_list = []
-            #sort to make sure m1 > m2
-            for i in range(len(m_a)):
-                if m_a[i] >= m_b[i]:
-                    m1_list.append(m_a[i])
-                    m2_list.append(m_b[i])
-                else:
-                    m1_list.append(m_b[i])
-                    m2_list.append(m_a[i])
-            m1 = np.array(m1_list)
-            m2 = np.array(m2_list)
-            Type = 'BNS' 
-        if Type == 'BNS_farrow':
+    #-----------------------------------------------------------
+    '''
+    Determines grid of masses to use for mass grid
+    '''
+    #----------------------------------------------------------
+    if Type == 'NSBH_uniform':
+        m2 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
+        m1 = 3*np.ones(uniform_mass_draws)+5*np.random.rand(uniform_mass_draws)
+        Type = 'NSBH'
+    if Type == 'BNS_uniform':
+        m1 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
+        m2 = 1.1*np.ones(uniform_mass_draws)+1.7*np.random.rand(uniform_mass_draws)
+        Type = 'BNS'
+    if Type == 'BNS_alsing':
+        m_a = a_dist.rvs(size = mass_draws)
+        m_b = a_dist.rvs(size = mass_draws)
+        m1_list = []
+        m2_list = []
+        #sort to make sure m1 > m2
+        for i in range(len(m_a)):
+            if m_a[i] >= m_b[i]:
+                m1_list.append(m_a[i])
+                m2_list.append(m_b[i])
+            else:
+                m1_list.append(m_b[i])
+                m2_list.append(m_a[i])
+        m1 = np.array(m1_list)
+        m2 = np.array(m2_list)
+        Type = 'BNS' 
+    if Type == 'BNS_farrow':
 
-            m_a = f_dist.rvs(size = mass_draws)
-            m_b = 1.1*np.ones(mass_draws)+1.7*np.random.rand(mass_draws)
-            m1_list = []
-            m2_list = []
-            #sort to make sure m1 > m2
-            for i in range(len(m_a)):
-                if m_a[i] >= m_b[i]:
-                    m1_list.append(m_a[i])
-                    m2_list.append(m_b[i])
-                else:
-                    m1_list.append(m_b[i])
-                    m2_list.append(m_a[i])
-            m1 = np.array(m1_list)
-            m2 = np.array(m2_list)
-            Type = 'BNS' 
-        if Type == 'NSBH_zhu':
+        m_a = f_dist.rvs(size = mass_draws)
+        m_b = 1.1*np.ones(mass_draws)+1.7*np.random.rand(mass_draws)
+        m1_list = []
+        m2_list = []
+        #sort to make sure m1 > m2
+        for i in range(len(m_a)):
+            if m_a[i] >= m_b[i]:
+                m1_list.append(m_a[i])
+                m2_list.append(m_b[i])
+            else:
+                m1_list.append(m_b[i])
+                m2_list.append(m_a[i])
+        m1 = np.array(m1_list)
+        m2 = np.array(m2_list)
+        Type = 'BNS' 
+    if Type == 'NSBH_zhu':
 
-            dist_NS_zhu = ss.norm(1.33, scale = .01)
-            m2 = dist_NS_zhu.rvs(mass_draws)
-            #m2 = 1.33*np.ones(mass_draws)
-            #m2 = a_dist.rvs(size = mass_draws)
-            m1 = z_dist.rvs(size = mass_draws)
+        dist_NS_zhu = ss.norm(1.33, scale = .01)
+        m2 = dist_NS_zhu.rvs(mass_draws)
+        #m2 = 1.33*np.ones(mass_draws)
+        #m2 = a_dist.rvs(size = mass_draws)
+        m1 = z_dist.rvs(size = mass_draws)
 
-            Type = 'NSBH'
+        Type = 'NSBH'
 
-        if Type == 'BNS_twixie':
-            #-----------------------
-            #to be added later
-            #m1 = np.arange(1, 2.4, .1)
-            #m2 = np.arange(1, 2.4, .1)
-            #m1 = np.arange(1, 3.1, .2)
-            #m2 = np.arange(1, 3.1, .2)
-            m1=[0]
-            m2=[0]
-            Type = 'BNS'
-            twixie_tf =True
+    if Type == 'BNS_twixie':
+        #-----------------------
+        #to be added later if needed
+        Type = 'BNS'
+        twixie_tf =True
 
-        if Type == 'BNS_equal_alsing':
-            m1 = a_dist.rvs(size = mass_draws)
-            m2 = m1
-            Type = 'BNS' 
-        if Type == 'BNS_equal_farrow':
-            m1 = f_dist.rvs(size = mass_draws)
-            m2 = m1
-            Type = 'BNS'
-        if Type == 'NSBH_LRR':
-            m1 = bh_astro_mass_dist.rvs(mass_draws)
-            m2 = ns_astro_mass_dist.rvs(mass_draws)
-            Type = 'NSBH'
-        if Type == 'BNS_LRR':
-            m1 = ns_astro_mass_dist.rvs(mass_draws)
-            m2 = ns_astro_mass_dist.rvs(mass_draws) 
-            Type = 'BNS'
+    if Type == 'BNS_equal_alsing':
+        m1 = a_dist.rvs(size = mass_draws)
+        m2 = m1
+        Type = 'BNS' 
+    if Type == 'BNS_equal_farrow':
+        m1 = f_dist.rvs(size = mass_draws)
+        m2 = m1
+        Type = 'BNS'
+    if Type == 'NSBH_LRR':
+        m1 = bh_astro_mass_dist.rvs(mass_draws)
+        m2 = ns_astro_mass_dist.rvs(mass_draws)
+        Type = 'NSBH'
+    if Type == 'BNS_LRR':
+        m1 = ns_astro_mass_dist.rvs(mass_draws)
+        m2 = ns_astro_mass_dist.rvs(mass_draws) 
+        Type = 'BNS'
 
 
-        '''
-        Gargi:
-        Here you can test different ranges of the distribution. Michael had suggested m1/m2 = ~4-5 might give large mej
-        '''
-        #---------------------------------------------------------
-        if Type == 'NSBH_zhu_edited':
+    if Type == 'NSBH_zhu_edited':
 
-            dist_NS_zhu = ss.norm(1.33, scale = .01)
-            m2 = dist_NS_zhu.rvs(mass_draws)
-            #m2 = 1.33*np.ones(mass_draws)
-            #m2 = a_dist.rvs(size = mass_draws)
-            m1 = z_dist.rvs(size = mass_draws)
+        #dist_NS_zhu = ss.norm(1.33, scale = .01)
+        #m2 = dist_NS_zhu.rvs(mass_draws)
+        #m2 = 1.33*np.ones(mass_draws)
+        #m2 = a_dist.rvs(size = mass_draws)
+        m1 = z_dist.rvs(size = mass_draws)
+        m2 = m1/(np.random.normal(4.5, .01, mass_draws))
 
-            Type = 'NSBH' 
+        Type = 'NSBH' 
 
-        if Type == 'NSBH_LRR_edited':
-            m1 = bh_astro_mass_dist.rvs(mass_draws)
-            m2 = ns_astro_mass_dist.rvs(mass_draws)
-            Type = 'NSBH'
+    if Type == 'NSBH_LRR_edited':
+        m1 = bh_astro_mass_dist.rvs(mass_draws)
+        #m2 = ns_astro_mass_dist.rvs(mass_draws)
+        m2 = m1/(np.random.normal(4.5, .01, mass_draws))
+        Type = 'NSBH'
 
 
-        #--------------------------------------------------------
+    #--------------------------------------------------------
 
-        if Type == 'BNS_chirp_q':
-            chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
-            chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5) 
-            #m2 becomes q
-            #m1 becomes mchirp
-            m2 = np.ones(uniform_mass_draws)+np.random.rand(uniform_mass_draws)
-            m1 = chirp_min+(chirp_max-chirp_min)*np.random.rand(uniform_mass_draws)
-            chirp_q_tf = True
+    if Type == 'BNS_chirp_q':
+        chirp_min, xx, yy = lightcurve_utils.ms2mc(1, 1)
+        chirp_max, xx, yy = lightcurve_utils.ms2mc(2.5, 2.5) 
+        #m2 becomes q
+        #m1 becomes mchirp
+        m2 = np.ones(uniform_mass_draws)+np.random.rand(uniform_mass_draws)
+        m1 = chirp_min+(chirp_max-chirp_min)*np.random.rand(uniform_mass_draws)
+        chirp_q_tf = True
         
-        #lambdatildes=[]
-        all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
-        all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]
-        all_lists = [all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs]
-        #all_samples = [] 
+    all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
+    all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]
+    all_lists = [all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs]
         
-        N_parallel = 16
-        print(f'running in parallel on {N_parallel} cores')
-        #all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf, all_lists) for i in range(len(m1)))
+    N_parallel = 16
+    print(f'running in parallel on {N_parallel} cores')
 
-        all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
-      
-        #length = np.array(all_samples).shape[0] 
-        #data_type_nums = [0,1,2,3,4,5,6,7,8]*length
-        #data_type_nums = np.reshape(np.array(data_type_nums), (length*9))
+    #100 thetas
+    all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)*N_EOS):int(i*N_EOS)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
+    #1 theta
+    #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))        
  
-        #for i, data_slice in zip(all_samples, data_type_nums):
-        #    all_lists[i].append(data_slice)        
-            
-        #all_samples = np.array(all_samples)[:,:,0,:]
-        all_samples = np.array(all_samples)
-        all_lists = np.array(all_lists)
+    all_samples = np.array(all_samples)
+    #print(all_samples.shape)
+    #print(all_samples[0][0])
+    all_lists = np.array(all_lists)
  
-        all_m1s, all_m2s, all_mchirps = all_samples[:,0,:], all_samples[:,1,:], all_samples[:,2,:]
-        all_qs, all_vejs, all_mejs = all_samples[:,3,:], all_samples[:,4,:], all_samples[:,5,:]
-        all_wind_mejs, all_dyn_mejs, all_thetas = all_samples[:,6,:], all_samples[:,7,:], all_samples[:,8,:]
+    all_m1s, all_m2s, all_mchirps = all_samples[:,0,:], all_samples[:,1,:], all_samples[:,2,:]
+    all_qs, all_vejs, all_mejs = all_samples[:,3,:], all_samples[:,4,:], all_samples[:,5,:]
+    all_wind_mejs, all_dyn_mejs, all_thetas = all_samples[:,6,:], all_samples[:,7,:], all_samples[:,8,:]
  
-        shape1, shape2 = all_m1s.shape
-        all_m1s_1D = np.reshape(all_m1s, (shape1*shape2))
-        all_m2s_1D = np.reshape(all_m2s, (shape1*shape2))
-        all_mchirps_1D = np.reshape(all_mchirps, (shape1*shape2))
-        all_qs_1D = np.reshape(all_qs, (shape1*shape2))
-        all_vejs_1D = np.reshape(all_vejs, (shape1*shape2))
-        all_mejs_1D = np.reshape(all_mejs, (shape1*shape2))
-        all_wind_mejs_1D = np.reshape(all_wind_mejs, (shape1*shape2))
-        all_dyn_mejs_1D = np.reshape(all_dyn_mejs, (shape1*shape2))
-        all_thetas_1D = np.reshape(all_thetas, (shape1*shape2))
+    shape1, shape2 = all_m1s.shape
+    all_m1s_1D = np.reshape(all_m1s, (shape1*shape2))
+    all_m2s_1D = np.reshape(all_m2s, (shape1*shape2))
+    all_mchirps_1D = np.reshape(all_mchirps, (shape1*shape2))
+    all_qs_1D = np.reshape(all_qs, (shape1*shape2))
+    all_vejs_1D = np.reshape(all_vejs, (shape1*shape2))
+    all_mejs_1D = np.reshape(all_mejs, (shape1*shape2))
+    all_wind_mejs_1D = np.reshape(all_wind_mejs, (shape1*shape2))
+    all_dyn_mejs_1D = np.reshape(all_dyn_mejs, (shape1*shape2))
+    all_thetas_1D = np.reshape(all_thetas, (shape1*shape2))
   
 
     plt.figure()
-    plt.hist(np.log10(all_mejs_1D), bins = 20)
+    plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
     plt.yscale('log')
     plt.xlabel('mej')
     plt.ylabel('Probability')
@@ -452,8 +438,6 @@ def run_prob(mass, lan, chi, coverage_factors = False, theor = False, Type = Non
                  
     all_data[all_data > 1e0] = 1e0
     all_data[all_data <= 1e-6] = 1e-12
-    #datafilename = '/home/andrew.toivonen/public_html/'+str(Type)+'_data.txt'
-    #np.savetxt(datafilename, np.array(all_data))
                 
     all_data = np.log10(all_data)
             
@@ -583,14 +567,6 @@ chi_list=[0]
 plot_list=[]
 for lan in lan_list:
     for chi in chi_list:
-        #all_mejs, all_thetas, all_m1s, all_m2s = [],[],[],[]
-        #all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs = [],[],[],[],[]        
-        #all_samples = []
-        
-        #all_mej_data, all_thetas, all_m1s, all_m2s = np.array([]), np.array([]),np.array([]), np.array([])
-        #all_mchirps, all_qs, all_vej, all_wind_mej, all_dyn_mej = np.array([]), np.array([]), np.array([]), np.array([]), np.array([])
         cov_tf = False 
         prob_events, prob_norm_events = np.ones(100), np.ones(100)
-        #plot_bns, plot_nsbh, data_bns_equal, mass_plot, EOS_type = plot(mass, prob_events, prob_norm_events, np.float(lan), chi, coverage_factors = cov_tf, theoretical=add_theory_line)
-        #plot_list.append(plot_nsbh)
         plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors = cov_tf)
