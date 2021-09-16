@@ -5,9 +5,10 @@ import pickle5 as pickle
 import corner 
 
 
-Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
-Types = ['BNS_alsing', 'BNS_farrow']
-Types = ['NSBH_zhu', 'NSBH_LRR']
+#Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
+#Types = ['BNS_alsing', 'BNS_farrow']
+#Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
+Types = ['NSBH_zhu_edited']
 #Types = ['NSBH_LRR']
 #Types = ['BNS_alsing']
 
@@ -161,9 +162,9 @@ for Type in Types:
         if band == 'K': 
             K_peak = peak_mag
 
- 
+        per_color_list = ['linen', 'peachpuff', 'lightsalmon', 'orange', 'coral'] 
         per_list = [0, 10, 50, 90, 100]
-        for percentile in per_list:
+        for percentile, per_color in zip(per_list, per_color_list):
             per = np.nanpercentile(p_list, percentile, axis=1)
             lc_diff = []
             for lc in nsns:
@@ -173,7 +174,7 @@ for Type in Types:
             lc = nsns[idx]
             mej, theta = mej_data[idx], theta_data[idx]
             #axes[i][j].plot(t_bins, lc[0:n_tsteps], linestyle = '--', label = f'{percentile}th percentile: mej={mej}, theta={theta}')
-            axes[i][j].plot(t_bins, lc[0:n_tsteps], linestyle = '--', label = f'{percentile}th percentile: mej={round(float(mej),6)}, theta={round(float(theta),0)}') 
+            axes[i][j].plot(t_bins, lc[0:n_tsteps], linestyle = '--', linewidth = 4, color = per_color, label = f'{percentile}th percentile: '+'$M_{ej}$'+f'={round(float(mej),6)}, theta={round(float(theta),0)}') 
             if Type_last == Type:
                 if idx_last != idx_last:
                     print(f'different percentiles between bands!!')
@@ -189,7 +190,7 @@ for Type in Types:
         if band == 'K':
             cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
             cb = f.colorbar(im, cax = cb_ax, ticks=[])
-            cb.set_label(label='NSNS',size=30)
+            cb.set_label(label='BNS',size=30)
 
         axes[i][j].set_ylim([0,-21])
         axes[i][j].text(1,-19,f'{band}',size=30)
@@ -212,6 +213,7 @@ for Type in Types:
     frame = legend.get_frame()
     frame.set_color('skyblue')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.pdf',bbox_inches='tight')
+    plt.savefig(f'./heatmaps_corner/heatmap_{Type}.png',bbox_inches='tight')
 
     #N_lc = len(mej_data)
     #idx_nonzero = np.argwhere(np.array(mej_data) >= 1e-9)

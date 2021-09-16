@@ -19,7 +19,8 @@ fig, ax = plt.subplots(figsize=(16, 12))
 
 #Types = ['BNS_alsing','BNS_farrow']
 #Types = ['BNS_uniform', 'NSBH_uniform'] 
-Types = ['NSBH_zhu', 'NSBH_LRR'] 
+#Types = ['NSBH_zhu', 'NSBH_LRR']
+Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited'] 
 #Types = ['NSBH_LRR'] 
 
  
@@ -104,8 +105,10 @@ for Type in Types:
     #Type = 'BNS_alsing'
     mags = []
     print('saving to pickle files')
+    N_pickle = 0
     for data in parallel_data:
         for sample in data:
+            N_pickle += 1
             mag = sample['mag']
             t = sample['t']
             sample_length = len(mag[0])
@@ -114,7 +117,7 @@ for Type in Types:
             phi = sample['phi'] * np.ones(sample_length)
             theta = sample['theta'] * np.ones(sample_length)
             
-            sample_name = f'./lightcurves_parallel/phi45_updated/{Type}/lc_{Type}_mej_{mej[0]}_theta_{theta[0]}_phi_{phi[0]}.pickle'
+            sample_name = f'./lightcurves_parallel/phi45_updated/{Type}/lc_{Type}_mej_{mej[0]}_theta_{theta[0]}_phi_{phi[0]}_{N_pickle}.pickle'
             data_lists = [u_list, g_list, r_list, i_list, z_list, y_list, J_list, H_list, K_list]
              
             #for i, band in enumerate(mag):
