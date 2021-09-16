@@ -227,7 +227,8 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
         #mbns = 2.1
         #idx1 = np.where((samples['m1'] < mbns) & (samples['m2'] < mbns))[0]
         #idx2 = np.where((samples['m1'] > mbns) | (samples['m2'] > mbns))[0]
-            
+        
+        #1 BNS, 2 NSBH, 3 BBH    
         idx1 = np.where((samples['m1'] <= samples['mbns']) & (samples['m2'] <= samples['mbns']))[0]
         idx2 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] <= samples['mbns']))[0]
         idx3 = np.where((samples['m1'] > samples['mbns']) & (samples['m2'] > samples['mbns']))[0]
@@ -239,7 +240,8 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
         mej, vej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)
         wind_mej, dyn_mej = np.zeros(samples['m1'].shape), np.zeros(samples['m1'].shape)   
  
-        from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+        #from gwemlightcurves.EjectaFits.CoDi2019 import calc_meje, calc_vej
+        from gwemlightcurves.EjectaFits.PaDi2019 import calc_meje, calc_vej
         # calc the mass of ejecta
         mej1, dyn_mej1, wind_mej1 = calc_meje(samples['m1'], samples['c1'], samples['m2'], samples['c2'], split_mej=True)
         # calc the velocity of ejecta
