@@ -47,7 +47,7 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 mass_draws = 2000
-mass_draws = 200
+#mass_draws = 50
 
 #mass_draws = 20
 #uniform_mass_draws = int(mass_draws/2)
@@ -247,6 +247,8 @@ def run_theoretical(Type, lan, chi, EOS):
 
     #N_EOS = 100
     all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
+    print('len thetas:')
+    print(len(all_thetas_list))
     #all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
 
     type_plot = Type
@@ -336,10 +338,31 @@ def run_theoretical(Type, lan, chi, EOS):
         #m2 = dist_NS_zhu.rvs(mass_draws)
         #m2 = 1.33*np.ones(mass_draws)
         #m2 = a_dist.rvs(size = mass_draws)
+        
+        #m2 = np.random.normal(1.33, .01, mass_draws)
+        #m1 = m2 * np.random.normal(3.6, .01, mass_draws)
+        
+
         m1 = z_dist.rvs(size = mass_draws)
-        m2 = m1/(np.random.normal(4.5, .01, mass_draws))
+        m2 = m1/(np.random.normal(3.6, .01, mass_draws))
 
         Type = 'NSBH' 
+
+    if Type == 'NSBH_q_range':
+
+        #dist_NS_zhu = ss.norm(1.33, scale = .01)
+        #m2 = dist_NS_zhu.rvs(mass_draws)
+        #m2 = 1.33*np.ones(mass_draws)
+        #m2 = a_dist.rvs(size = mass_draws)
+
+        m2 = np.random.normal(1.33, .01, mass_draws)
+        m1 = m2 * np.random.normal(3.6, .01, mass_draws)
+
+
+        #m1 = z_dist.rvs(size = mass_draws)
+        #m2 = m1/(np.random.normal(3.6, .01, mass_draws))
+
+        Type = 'NSBH'
 
     if Type == 'NSBH_LRR_edited':
         m1 = bh_astro_mass_dist.rvs(mass_draws)
@@ -364,10 +387,11 @@ def run_theoretical(Type, lan, chi, EOS):
     all_lists = [all_mejs, all_thetas, all_m1s, all_m2s, all_mchirps, all_qs, all_vejs, all_wind_mejs, all_dyn_mejs]
         
     N_parallel = 16
+    #N_parallel = 1
     print(f'running in parallel on {N_parallel} cores')
 
     #100 thetas
-    all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)*N_EOS):int(i*N_EOS)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
+    all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
     #1 theta
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))        
  
@@ -513,7 +537,9 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     
     #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
     #Types = ['NSBH_zhu','NSBH_LRR']
-    Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
+    #Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
+    Types = ['NSBH_zhu']
+    #Types = ['NSBH_q_range'] 
     #Types = ['BNS_alsing']
     fig, ax = plt.subplots(figsize=(16, 12))
     for n, t in enumerate(Types):

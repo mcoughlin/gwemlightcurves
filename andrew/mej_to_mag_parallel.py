@@ -20,7 +20,9 @@ fig, ax = plt.subplots(figsize=(16, 12))
 #Types = ['BNS_alsing','BNS_farrow']
 #Types = ['BNS_uniform', 'NSBH_uniform'] 
 #Types = ['NSBH_zhu', 'NSBH_LRR']
-Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited'] 
+#Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited'] 
+Types = ['NSBH_zhu']
+#Types = ['NSBH_q_range']
 #Types = ['NSBH_LRR'] 
 
  
