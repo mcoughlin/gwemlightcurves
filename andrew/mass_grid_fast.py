@@ -192,12 +192,25 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
     
     #print(len(thetas))
     #check theta implementation for reproducibility
-    thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+    #thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
+    print('len thetas------------------------')
+    print(len(thetas))
+    print(thetas)
     idx_thetas = np.where(thetas > 90.)[0]
     thetas[idx_thetas] = 180. - thetas[idx_thetas]
-    thetas = list(thetas)
+    #thetas = list(thetas)
     Xlans = np.ones(np.array(m1s).shape) * Xlan_val
-
+    print(len(thetas))
+    if len(thetas) != 100:
+        print('---------------------------------------------------')
+        print('')
+        print('')
+        print('---------------------------------------------------')
+        print('')
+        print('')
+        quit()
+    #print(mbnss)
+    #thetas = np.ones(100)
     # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions
     print(str([len(m1s), len(m2s), len(lambda1s), len(lambda2s), len(Xlans), len(chi_effs), len(thetas), len(mbnss)]))
     data = np.vstack((m1s,m2s,lambda1s,lambda2s,Xlans,chi_effs,thetas,mbnss)).T
