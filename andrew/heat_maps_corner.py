@@ -8,7 +8,8 @@ import corner
 #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
 #Types = ['BNS_alsing', 'BNS_farrow']
 #Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
-Types = ['NSBH_zhu_edited']
+Types = ['NSBH_zhu']
+#Types = ['NSBH_q_range']
 #Types = ['NSBH_LRR']
 #Types = ['BNS_alsing']
 
@@ -23,24 +24,25 @@ for Type in Types:
     initial_params = np.loadtxt(f'./corner_data/NSBH_test/corner_data_{Type}.txt')
     #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
     #m1, m2, mchirp, mej, wind_mej, dyn_mej, thetas
+    N_tot = len(initial_params[:,5])
+    initial_params = initial_params[initial_params[:,5] > 1e-8]
+    N_nonzero = len(initial_params[:,5])
     mej_initial = initial_params[:,5]
     theta_initial = initial_params[:,8]
     initial_params = initial_params[:,(0,1,2,6,7)]
-  
-    print(initial_params.shape)
     
+    frac_mej0 = N_nonzero/N_tot
+    print(f'Fraction of Kilonovae with mej > 0: {frac_mej0}')
+    frac_0s.append(frac_mej0)
+
+ 
     #folder_dir = f'./lightcurves_parallel/{Type}/'
     #folder_dir = f'./lightcurves2/{Type}/'
     folder_dir = f'./lightcurves_parallel/phi45_updated/{Type}/'
     ns_dirs = os.listdir(f'{folder_dir}')
-    print(len(ns_dirs))
+    print('Number of Files: ' + str(len(ns_dirs)))
     #ns_dirs = ns_dirs[:100]
     
-    #n_mej = len(ns_dirs)
-    #mej_data, thetas = mej_data[:n_mej], thetas[:n_mej]
-    #initial_params = initial_params[:n_mej]
-
-
     nsns_dict = {}
     nsbh_dict = {}
     bands = ['t','u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K', 'mej', 'theta', 'phi']
@@ -60,67 +62,47 @@ for Type in Types:
 
     f,axes=plt.subplots(ncols=5,nrows=2,figsize=(35,15),sharey='row')
     plt.rcParams['figure.dpi'] = 200
-
     
-    mej_data = []
-    theta_data = []
-    mejs = nsns_dict['mej']
-    thetas = nsns_dict['theta']
-    
- 
-    for mej_vals in mejs:
-        mej_data.append(mej_vals[0])
-    for theta_vals in thetas:
-        theta_data.append(theta_vals[0])
+    mejs = np.array(nsns_dict['mej'])
+    thetas = np.array(nsns_dict['theta'])
    
-    #print(mej_initial)
-    #print(theta_initial)
-    idx_sort = []
-    for (mej, theta) in zip(mej_data, theta_data):
+    s1, s2 = np.shape(mejs)
+    mej_data = np.zeros(s1)
+    theta_data = np.zeros(s1)   
+ 
+    #get rid of repeated mejs, thetas in timesteps, not dependent on time
+    s_list = np.arange(0,s1,1)
+    for s in s_list: 
+        mej_data[s] = mejs[s][0]
+        theta_data[s] = thetas[s][0]
+ 
+    print('mej_data')
+    print(mej_data.shape)
+    
+    idx_sort = np.zeros(s1, dtype = int)
+    for count, (mej, theta) in enumerate(zip(mej_data, theta_data)):
         #print(mej,theta)
         #idx_m = np.argwhere(mej_initial == mej)
         #idx_t = np.argwhere(theta_initial == theta)
-        idx_m = np.argwhere((np.abs(mej_initial-mej)) <= 1e-6)
+        idx_m = np.argwhere((np.abs(mej_initial-mej)) <= 1e-8)[0]
         #print(idx_m)
-        idx_t = np.argwhere((np.abs(theta_initial-theta)) <= 1e-6)
+        idx_t = np.argwhere((np.abs(theta_initial-theta)) <= 1e-8)[0]
         for mm in idx_m:
             for tt in idx_t:
                 if mm == tt:
-                    idx_sort.append(mm)
-    #print(idx_sort)
-    #print(initial_params.shape)         
-    initial_params_sorted = initial_params[idx_sort]
-    #print(initial_params_sorted.shape)
-    initial_params_sorted = initial_params_sorted[:,0,:]
+                    idx_sort[count] = mm
     
-    mej_data = np.array(mej_data)[idx_sort]
-    theta_data = np.array(theta_data)[idx_sort]
-    #mej_data = mej_data[:,0,:]
-    #theta_data = theta_data[:,0,:]
+    initial_params_sorted = initial_params[idx_sort]
+   
+    mej_data = mej_data[idx_sort]
+    theta_data = theta_data[idx_sort]
 
     print(f'Initializing {Type}') 
-
-    N_lc = len(mej_data)
-    idx_nonzero = np.argwhere(np.array(mej_data) >= 1e-9)
-
-    frac_mej0 = (N_lc - len(idx_nonzero))/N_lc
-    print(f'Fraction of Kilonovae with mej = 0: {frac_mej0}')
-    frac_0s.append(frac_mej0)
     
-    mej_data = mej_data[idx_nonzero]
-    theta_data = theta_data[idx_nonzero]
-    mej_data = mej_data[:,0,:]
-    theta_data = theta_data[:,0,:]
-
-    initial_params_sorted = initial_params_sorted[idx_nonzero]
-    initial_params_sorted = initial_params_sorted[:,0,:]
     t = np.array(nsns_dict['t'])
-    #first sort then cut out mej = 0
+    print('t')
+    print(t.shape)
     t = t[idx_sort]
-    t = t[:,0,:]
-    #t = t[idx_nonzero]
-    t = t[idx_nonzero][:]
-    t = t[:,0,:]
     shape1, shape2 = t.shape[0], t.shape[1]
     t = np.reshape(t, (shape1*shape2))
 
@@ -129,16 +111,11 @@ for Type in Types:
     for (i,j,band) in zip([0,0,0,0,0,1,1,1,1],[0,1,2,3,4,0,1,2,3],bands[1:10]):
         nsns = np.array(nsns_dict[band])
         nsns = nsns[idx_sort]
-        nsns = nsns[:,0,:]
-        #nsns = nsns[idx_nonzero]
-        nsns = nsns[idx_nonzero]
-        nsns = nsns[:,0,:]
         t_bins = t[0:n_tsteps]
         bins = np.linspace(-21, 0, 50)
-        
+    
         shape1, shape2 = nsns.shape[0], nsns.shape[1]
         nsns_1D = np.reshape(nsns, (shape1*shape2))        
-       
  
         hist2d_1, xedges, yedges = np.histogram2d(t, nsns_1D, bins = (t_bins,bins))
         X, Y = np.meshgrid(xedges, yedges)
@@ -190,7 +167,7 @@ for Type in Types:
         if band == 'K':
             cb_ax = f.add_axes([0.94, 0.14, 0.023, 0.7])
             cb = f.colorbar(im, cax = cb_ax, ticks=[])
-            cb.set_label(label='BNS',size=30)
+            cb.set_label(label=f'{Type}',size=30)
 
         axes[i][j].set_ylim([0,-21])
         axes[i][j].text(1,-19,f'{band}',size=30)
@@ -212,6 +189,7 @@ for Type in Types:
 
     frame = legend.get_frame()
     frame.set_color('skyblue')
+    plt.title(f'Fraction of KN with non-zero mass ejecta: {frac_mej0}')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.pdf',bbox_inches='tight')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.png',bbox_inches='tight')
 
