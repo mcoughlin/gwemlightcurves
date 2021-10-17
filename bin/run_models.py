@@ -7,6 +7,7 @@ import h5py
 import bisect
 from scipy.interpolate import interpolate as interp
 import scipy.signal
+from scipy.signal import savgol_filter
 
 import matplotlib
 #matplotlib.rc('text', usetex=True)
@@ -308,14 +309,17 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
 
-    ii = np.where(np.isfinite(np.log10(L_d)))[0]
-    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-    L_d = 10**f(t_d)
+    mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
+    L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
 
-    ii = np.where(~np.isnan(mag_d))[0]
-    if len(ii) > 1:
-        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-        mag_d = f(t_d)
+#    ii = np.where(np.isfinite(np.log10(L_d)))[0]
+#    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+#    L_d = 10**f(t_d)
+#
+#    ii = np.where(~np.isnan(mag_d))[0]
+#    if len(ii) > 1:
+#        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+#        mag_d = f(t_d)
 
     return t_d, mag_d, L_d
 
@@ -420,36 +424,33 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
 
-    if model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
-        #print(mag_d)
-        ii = np.where(~np.isnan(mag_d))[0]
-        f1 = interp.interp1d(t_d[ii], mag_d[ii])
-        f = extrap1d(f1,4)
-        mag_d = f(t_d)
-        #print(mag_d)
-        L_d = np.log10(L_d)
-        ii = np.where((L_d > 0) & (t_d < 10))[0]
-        #print(L_d,ii)
-        f1 = interp.interp1d(t_d[ii], L_d[ii], fill_value='extrapolate')
-        L_d = 10**f1(t_d)
-        #print(L_d)
-        ii = np.where((mag_d > 0.0) & (t_d > 2))[0]
-        if len(ii) > 0:
-            dm_dt = (mag_d[ii[0]] - mag_d[ii[0]-5])/(t_d[ii[0]] - t_d[ii[0]-5])
-            mag_d[ii[0]:] = mag_d[ii[0]] + (t_d[ii[0]:] - t_d[ii[0]])*dm_dt
+#    if model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D"]:
+#        #print(mag_d)
+#        ii = np.where(~np.isnan(mag_d))[0]
+#        f1 = interp.interp1d(t_d[ii], mag_d[ii])
+#        f = extrap1d(f1,4)
+#        mag_d = f(t_d)
+#        #print(mag_d)
+#        L_d = np.log10(L_d)
+#        ii = np.where((L_d > 0) & (t_d < 10))[0]
+#        #print(L_d,ii)
+#        f1 = interp.interp1d(t_d[ii], L_d[ii], fill_value='extrapolate')
+#        L_d = 10**f1(t_d)
+#        #print(L_d)
+#        ii = np.where((mag_d > 0.0) & (t_d > 2))[0]
+#        if len(ii) > 0:
+#            dm_dt = (mag_d[ii[0]] - mag_d[ii[0]-5])/(t_d[ii[0]] - t_d[ii[0]-5])
+#            mag_d[ii[0]:] = mag_d[ii[0]] + (t_d[ii[0]:] - t_d[ii[0]])*dm_dt
+#
 
-        #mag_d[ii[0]:] = np.nan
-        #mag_d_lowess = sm.nonparametric.lowess(mag_d, t_d, frac=0.5, missing='none')
-        #L_d_lowess = sm.nonparametric.lowess(np.log10(L_d), t_d, frac=0.5, missing='none')
+#        mag_d_medfilt = scipy.signal.medfilt(mag_d)
+#        L_d_medfilt = scipy.signal.medfilt(np.log10(L_d))
 
-        #mag_d = mag_d_lowess[:,1]
-        #L_d = 10**L_d_lowess[:,1]
+#        mag_d = mag_d_medfilt
+#        L_d = 10**L_d_medfilt
 
-        mag_d_medfilt = scipy.signal.medfilt(mag_d)
-        L_d_medfilt = scipy.signal.medfilt(np.log10(L_d))
-
-        mag_d = mag_d_medfilt
-        L_d = 10**L_d_medfilt
+    mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
+    L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
 
     return t_d, mag_d, L_d
 
@@ -711,7 +712,6 @@ if opts.doAB:
             fin    = h5py.File(filename,'r')
             Lnu_all   = np.array(fin['Lnu'],dtype='d')
             t_d, mag_d, L_d = getMagSpecH5(filename,band,opts.model,filtnames[ii],theta=opts.theta,redshift=opts.redshift)
-            L_d = scipy.signal.medfilt(L_d,kernel_size=5)         
         elif opts.model in Lbolmodels:
             t_d, mag_d, L_d = getMagLbol(filename,band,opts.model)
         else:
