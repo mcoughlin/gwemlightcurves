@@ -22,6 +22,8 @@ from scipy.integrate import quad
 import matplotlib.pyplot as plt
 import math
 import pandas as pd
+import h5py
+import bilby
 from joblib import Parallel, delayed
 
 
@@ -245,6 +247,35 @@ def run_theoretical(Type, lan, chi, EOS):
     chirp_q_tf = False
     twixie_tf = False
 
+    if Type == 'Event':
+
+        #filename = "./S200316bj_files/LALInference.posterior_samples.hdf5"
+        filename = "./event_files/S200311bg_files/LALInference.posterior_samples.hdf5"
+
+
+        f = h5py.File(filename, 'r')
+        #print(f.keys())
+        #print(f['lalinference']['lalinference_nest'].keys())
+        #posterior = f['lalinference']['lalinference_mcmc']['posterior_samples'][()]
+        posterior = f['lalinference']['lalinference_nest']['posterior_samples'][()]
+        #print(posterior)
+        #print(posterior.shape)
+
+
+        M = bilby.gw.conversion.chirp_mass_and_mass_ratio_to_total_mass(posterior['mc'], posterior['q'])
+        m1, m2 = bilby.gw.conversion.total_mass_and_mass_ratio_to_component_masses( posterior['q'], M)
+
+
+        mass_draws = len(m1)
+        mass_draws = 100
+
+        m1 = bh_astro_mass_dist.rvs(mass_draws)
+        #m2 = ns_astro_mass_dist.rvs(mass_draws)
+        m2 = m1/(np.random.normal(4.5, .01, mass_draws))
+
+        print(f'{mass_draws} posterior samples from event')
+        Type = 'NSBH'
+
     #N_EOS = 100
     all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
     print('len thetas:')
@@ -460,8 +491,12 @@ def run_prob(mass, lan, chi, coverage_factors = False, theor = False, Type = Non
                
     all_data = np.reshape(np.array(all_data), (int(num)))
                  
-    all_data[all_data > 1e0] = 1e0
-    all_data[all_data <= 1e-6] = 1e-12
+
+    '''
+    deleted checks for now
+    '''
+    #all_data[all_data > 1e0] = 1e0
+    #all_data[all_data <= 1e-6] = 1e-12
                 
     all_data = np.log10(all_data)
             
@@ -538,7 +573,8 @@ def plot(mass, prob_events, prob_norm_events, lan, chi, coverage_factors=False):
     #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
     #Types = ['NSBH_zhu','NSBH_LRR']
     #Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
-    Types = ['NSBH_zhu']
+    #Types = ['NSBH_zhu']
+    Types = ['Event']
     #Types = ['NSBH_q_range'] 
     #Types = ['BNS_alsing']
     fig, ax = plt.subplots(figsize=(16, 12))

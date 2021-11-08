@@ -25,7 +25,8 @@ for Type in Types:
     #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
     #m1, m2, mchirp, mej, wind_mej, dyn_mej, thetas
     N_tot = len(initial_params[:,5])
-    initial_params = initial_params[initial_params[:,5] > 1e-8]
+    #initial_params = initial_params[initial_params[:,5] > 1e-8]
+    initial_params = initial_params[initial_params[:,5] > 0]
     N_nonzero = len(initial_params[:,5])
     mej_initial = initial_params[:,5]
     theta_initial = initial_params[:,8]
@@ -116,7 +117,7 @@ for Type in Types:
     
         shape1, shape2 = nsns.shape[0], nsns.shape[1]
         nsns_1D = np.reshape(nsns, (shape1*shape2))        
- 
+         
         hist2d_1, xedges, yedges = np.histogram2d(t, nsns_1D, bins = (t_bins,bins))
         X, Y = np.meshgrid(xedges, yedges)
         hist2d_1[hist2d_1 == 0] = np.nan
@@ -189,7 +190,7 @@ for Type in Types:
 
     frame = legend.get_frame()
     frame.set_color('skyblue')
-    plt.title(f'Fraction of KN with non-zero mass ejecta: {frac_mej0}')
+    plt.title(f'Fraction of KN with non-zero mass ejecta (HasRemnant): {frac_mej0}')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.pdf',bbox_inches='tight')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.png',bbox_inches='tight')
 
