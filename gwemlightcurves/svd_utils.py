@@ -154,7 +154,7 @@ def calc_svd_lbol(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             mejwind = float(keySplit[2].replace("mejwind",""))
             phi0 = float(keySplit[3].replace("phi",""))
             kappa = float(keySplit[4].replace("scalekappa",""))
-            theta = float(keySplit[6])
+            theta = float(keySplit[5])
 
             lbols[key]["mej_dyn"] = mejdyn
             lbols[key]["mej_wind"] = mejwind
@@ -602,7 +602,7 @@ def calc_svd_mag(tini,tmax,dt, n_coeff = 100, model = "BaKa2016",
             mejwind = float(keySplit[2].replace("mejwind",""))
             phi0 = float(keySplit[3].replace("phi",""))
             kappa = float(keySplit[4].replace("scalekappa",""))
-            theta = float(keySplit[6])
+            theta = float(keySplit[5])
 
             mags[key]["mej_dyn"] = mejdyn
             mags[key]["mej_wind"] = mejwind
