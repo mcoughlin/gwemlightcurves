@@ -41,7 +41,7 @@ np.random.seed(0)
 '''
 The number of points to evaluate the KDE at and plot
 '''
-mass_points = 100
+#mass_points = 100
 mass_points = 10
 N_EOS = 100
 '''
@@ -151,7 +151,7 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej_from_masses(i, m1, m2, thetas, Type, Type2, EOS, twixie_tf, chirp_q_tf, all_samples = all_samples):
+def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, twixie_tf, chirp_q_tf, all_samples = all_samples):
     '''
     '''
     
@@ -168,17 +168,17 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type2, EOS, twixie_tf, chirp_q
     if Type == 'NSBH':
         m1m_check = 1
         m2m_check = .5
-    if Type2 == 'BNS_equal':
+    if Type_set == 'BNS_equal':
         m1m = m2m
         m1m_check = m2m
         Type = 'BNS'
-    if Type2 == 'BNS_chirp_q':
+    if Type_set == 'BNS_chirp_q':
         eta1 = lightcurve_utils.q2eta(m2m)
         m1m_check, m2m_check = lightcurve_utils.mc2ms(m1m, eta1)
         m2m_check = m1m_check
         Type = 'BNS'
     if (m1m_check >= m2m_check) and (m1m_check <= 3):
-        print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type2)
+        print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type_set)
 
 
         #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
@@ -243,40 +243,28 @@ def run_theoretical(Type, lan, chi, EOS):
     '''
     chi_list = [chi]
     #data = []
-    Type2=Type
+    Type_set=Type
     chirp_q_tf = False
     twixie_tf = False
 
     if Type == 'Event':
 
-        #filename = "./S200316bj_files/LALInference.posterior_samples.hdf5"
-        filename = "./event_files/S200311bg_files/LALInference.posterior_samples.hdf5"
+        filename = "./event_files/S190901ap_files/LALInference.v2.posterior_samples.hdf5"
 
 
         f = h5py.File(filename, 'r')
-        #print(f.keys())
-        #print(f['lalinference']['lalinference_nest'].keys())
-        #posterior = f['lalinference']['lalinference_mcmc']['posterior_samples'][()]
-        posterior = f['lalinference']['lalinference_nest']['posterior_samples'][()]
-        #print(posterior)
-        #print(posterior.shape)
-
+        #posterior = f['lalinference']['lalinference_nest']['posterior_samples'][()]
+        posterior = f['lalinference']['lalinference_mcmc']['posterior_samples'][()]
 
         M = bilby.gw.conversion.chirp_mass_and_mass_ratio_to_total_mass(posterior['mc'], posterior['q'])
         m1, m2 = bilby.gw.conversion.total_mass_and_mass_ratio_to_component_masses( posterior['q'], M)
 
 
         mass_draws = len(m1)
-        mass_draws = 100
-
-        m1 = bh_astro_mass_dist.rvs(mass_draws)
-        #m2 = ns_astro_mass_dist.rvs(mass_draws)
-        m2 = m1/(np.random.normal(4.5, .01, mass_draws))
 
         print(f'{mass_draws} posterior samples from event')
         Type = 'NSBH'
 
-    #N_EOS = 100
     all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
     print('len thetas:')
     print(len(all_thetas_list))
@@ -422,9 +410,9 @@ def run_theoretical(Type, lan, chi, EOS):
     print(f'running in parallel on {N_parallel} cores')
 
     #100 thetas
-    all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
+    all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))
     #1 theta
-    #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type2, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))        
+    #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type_set, EOS, twixie_tf, chirp_q_tf) for i in range(len(m1)))        
  
     all_samples = np.array(all_samples)
     #print(all_samples.shape)
@@ -457,9 +445,9 @@ def run_theoretical(Type, lan, chi, EOS):
     #mean_data=np.array(data)
     mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D))
     corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D))
-    np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
-    #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type2)+'.txt', mej_theta)
-    np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type2)+'.txt', corner_data)
+    np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+    #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+    np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', corner_data)
     return all_mejs
 
 
