@@ -88,11 +88,10 @@ for Type in Types:
     print('mej_data')
     print(mej_data.shape)
     
-    idx_sort = np.where(int(initial_ids) == int(pickle_ids))[0]
-    print(idx_sort)   
+    #idx_sort = np.where(int(initial_ids) == int(pickle_ids))[0]
+    #print(idx_sort)   
 
 
-    ''' 
     idx_sort = np.zeros(s1, dtype = int)
     for count, (mej, theta) in enumerate(zip(mej_data, theta_data)):
         #print(mej,theta)
@@ -106,7 +105,6 @@ for Type in Types:
             for tt in idx_t:
                 if mm == tt:
                    idx_sort[count] = mm
-    '''
     print(idx_sort)
     print(np.max(idx_sort)) 
     initial_params_sorted = initial_params[idx_sort]
