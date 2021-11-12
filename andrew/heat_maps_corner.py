@@ -12,41 +12,47 @@ Types = ['NSBH_zhu']
 #Types = ['NSBH_q_range']
 #Types = ['NSBH_LRR']
 #Types = ['BNS_alsing']
+Types = ['Event']
 
 frac_0s = []
 
 Type_last = 'none'
 for Type in Types:
-    #mej_theta_data = np.loadtxt(f'./mej_theta_data/mej_theta_data_{Type}.txt')
-    #mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
-   
-    #initial_params = np.loadtxt(f'./corner_data/corner_data_{Type}.txt')
-    initial_params = np.loadtxt(f'./corner_data/NSBH_test/corner_data_{Type}.txt')
-    #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
-    #m1, m2, mchirp, mej, wind_mej, dyn_mej, thetas
-    N_tot = len(initial_params[:,5])
-    #initial_params = initial_params[initial_params[:,5] > 1e-8]
-    initial_params = initial_params[initial_params[:,5] > 0]
-    N_nonzero = len(initial_params[:,5])
-    mej_initial = initial_params[:,5]
-    theta_initial = initial_params[:,8]
-    initial_params = initial_params[:,(0,1,2,6,7)]
-    
-    frac_mej0 = N_nonzero/N_tot
-    print(f'Fraction of Kilonovae with mej > 0: {frac_mej0}')
-    frac_0s.append(frac_mej0)
 
- 
     #folder_dir = f'./lightcurves_parallel/{Type}/'
     #folder_dir = f'./lightcurves2/{Type}/'
     folder_dir = f'./lightcurves_parallel/phi45_updated/{Type}/'
     ns_dirs = os.listdir(f'{folder_dir}')
     print('Number of Files: ' + str(len(ns_dirs)))
-    #ns_dirs = ns_dirs[:100]
+
+    #mej_theta_data = np.loadtxt(f'./mej_theta_data/mej_theta_data_{Type}.txt')
+    #mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
+   
+    #initial_params = np.loadtxt(f'./corner_data/corner_data_{Type}.txt')
+    initial_params = np.loadtxt(f'./corner_data/NSBH_test/corner_data_{Type}.txt')
+
     
+    #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
+    #m1, m2, mchirp, mej, wind_mej, dyn_mej, thetas
+    N_tot = len(initial_params[:,5])
+    initial_params = initial_params[initial_params[:,5] > 1e-3]
+    #initial_params = initial_params[initial_params[:,5] > 0]
+    initial_ids = initial_params[:,9]
+    N_nonzero = len(initial_params[:,5])
+    mej_initial = initial_params[:,5]
+    theta_initial = initial_params[:,8]
+    initial_params = initial_params[:,(0,1,2,6,7)]
+ 
+    frac_mej0 = len(ns_dirs)/N_tot
+    print(f'Fraction of Kilonovae with mej > 1e-3: {frac_mej0}')
+    frac_0s.append(frac_mej0)
+    print(f'number of corner data samples: {N_tot}')
+    print(mej_initial.shape)
+  
+
     nsns_dict = {}
     nsbh_dict = {}
-    bands = ['t','u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K', 'mej', 'theta', 'phi']
+    bands = ['t','u', 'g', 'r', 'i', 'z', 'y', 'J', 'H', 'K', 'mej', 'theta', 'phi', 'sample_id']
 
     for band in bands:
         nsns_dict[band], nsbh_dict[band] = [],[]
@@ -66,33 +72,43 @@ for Type in Types:
     
     mejs = np.array(nsns_dict['mej'])
     thetas = np.array(nsns_dict['theta'])
-   
+    pickle_ids = np.array(nsns_dict['sample_id'])  
+ 
     s1, s2 = np.shape(mejs)
     mej_data = np.zeros(s1)
     theta_data = np.zeros(s1)   
+
  
-    #get rid of repeated mejs, thetas in timesteps, not dependent on time
+    #get rid of repeated mejs due to timesteps, mej doesn't change
     s_list = np.arange(0,s1,1)
     for s in s_list: 
         mej_data[s] = mejs[s][0]
         theta_data[s] = thetas[s][0]
- 
+  
     print('mej_data')
     print(mej_data.shape)
     
+    idx_sort = np.where(int(initial_ids) == int(pickle_ids))[0]
+    print(idx_sort)   
+
+
+    ''' 
     idx_sort = np.zeros(s1, dtype = int)
     for count, (mej, theta) in enumerate(zip(mej_data, theta_data)):
         #print(mej,theta)
-        #idx_m = np.argwhere(mej_initial == mej)
-        #idx_t = np.argwhere(theta_initial == theta)
-        idx_m = np.argwhere((np.abs(mej_initial-mej)) <= 1e-8)[0]
-        #print(idx_m)
-        idx_t = np.argwhere((np.abs(theta_initial-theta)) <= 1e-8)[0]
+        print(mej_initial, mej)
+        idx_m = np.argwhere(mej_initial == mej)
+        idx_t = np.argwhere(theta_initial == theta)
+        #idx_m = np.argwhere((np.abs(mej_initial-mej)) <= 1e-8)[0]
+        print(idx_m)
+        #idx_t = np.argwhere((np.abs(theta_initial-theta)) <= 1e-8)[0]
         for mm in idx_m:
             for tt in idx_t:
                 if mm == tt:
-                    idx_sort[count] = mm
-    
+                   idx_sort[count] = mm
+    '''
+    print(idx_sort)
+    print(np.max(idx_sort)) 
     initial_params_sorted = initial_params[idx_sort]
    
     mej_data = mej_data[idx_sort]
@@ -190,7 +206,7 @@ for Type in Types:
 
     frame = legend.get_frame()
     frame.set_color('skyblue')
-    plt.title(f'Fraction of KN with non-zero mass ejecta (HasRemnant): {frac_mej0}')
+    plt.title(f'Fraction of KN with mass ejecta > 1e-3 (~HasRemnant): {frac_mej0}')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.pdf',bbox_inches='tight')
     plt.savefig(f'./heatmaps_corner/heatmap_{Type}.png',bbox_inches='tight')
 
