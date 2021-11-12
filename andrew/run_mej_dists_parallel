@@ -259,7 +259,7 @@ def run_theoretical(Type, lan, chi, EOS):
         M = bilby.gw.conversion.chirp_mass_and_mass_ratio_to_total_mass(posterior['mc'], posterior['q'])
         m1, m2 = bilby.gw.conversion.total_mass_and_mass_ratio_to_component_masses( posterior['q'], M)
 
-
+        m1, m2 = m1[:20], m2[:20]
         mass_draws = len(m1)
 
         print(f'{mass_draws} posterior samples from event')
@@ -443,8 +443,9 @@ def run_theoretical(Type, lan, chi, EOS):
     plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
     plt.close()
     #mean_data=np.array(data)
-    mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D))
-    corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D))
+    id_list = np.arange(0,len(all_mejs_1D))
+    mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D, id_list))
+    corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
     np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
     #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
     np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', corner_data)
