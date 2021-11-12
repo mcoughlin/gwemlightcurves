@@ -238,7 +238,7 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, twixie_tf, chir
 
 
 
-def run_theoretical(Type, lan, chi, EOS):
+def run_theoretical(Type, lan, chi, EOS, mass_draws=mass_draws):
     '''function to generate mass grid using EOS, should probably be left as is
     '''
     chi_list = [chi]
