@@ -326,23 +326,34 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
 def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     #u = np.genfromtxt(opts.name)
 
-    if "bulla" in filename and 'hdf5' in filename:
+    if "bulla" in filename and "hdf5" in filename:
         with h5py.File(os.path.join(filename), "r") as f:
             data = f['spectra']
             stokes = np.array(data['stokes'])
-            ph = np.array(data['time']) / (60*60*24) # get time in days
+            t_d = np.array(data['time']) / (60*60*24) # get time in days
             wave = np.array(data['wave'])  # wavelength spec w/ redshift
-
-        I = stokes[:,:,:,0] # get I stokes parameter
+        dMpc = 1e-5
+        Dcm = 10*3.0857e16*100
+        I = stokes[:,:,:,0] * (1./dMpc)**2 # get I stokes parameter
 
         Nobs = stokes.shape[0] # num observing angles
         cos = np.linspace(0,1,Nobs)
         thetas = np.rad2deg(np.arccos(cos))
         idx = np.argmin(np.abs(thetas-theta))
 
-        u = I[idx]
+        fl = I[idx]
+        source = sncosmo.TimeSeriesSource(t_d,wave,fl)
+        bp = sncosmo.Bandpass(band[:,0], band[:,1])
+        mag_d = source.bandmag(bp,"ab",t_d)
 
-    elif "bulla" in filename:
+        L_d = np.trapz(fl*(4*np.pi*D_cm**2),x=wave)
+        
+        mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
+        L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
+        
+        return t_d, mag_d, L_d
+
+    if "bulla" in filename:
         u2 = np.loadtxt(filename,skiprows=3)
         lines = [line.rstrip('\n') for line in open(filename)]
         lineSplit = lines[2].split(" ")
@@ -384,8 +395,6 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
-    elif 'hdf5' in filename:
-        u /= (4*np.pi*D_cm**2)
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
@@ -406,7 +415,7 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     L_d = []
 
     for enum,i in enumerate(u):
-        if i[0]==t and 'hdf5' not in filename:
+        if i[0]==t:
             if model == "kilonova_wind_spectra":
                 w.append(i[1])
                 L.append(i[3])
@@ -414,13 +423,8 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
                 w.append(i[1])
                 L.append(i[2])
         else:
-            if 'hdf5' in filename:
-                L = i
-                w = wave
-                t = ph[enum]
-            else:
-                w = np.array(w)
-                L = np.array(L)
+            w = np.array(w)
+            L = np.array(L)
             if not np.isnan(redshift):
                 w = w*(1+redshift)
 
@@ -435,7 +439,7 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
                 mag = np.nan
             w=[]
             L=[]
-            if 'hdf5' not in filename: t=i[0]
+            t=i[0]
 
             t_d.append(t)
             mag_d.append(mag)
