@@ -326,7 +326,23 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
 def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     #u = np.genfromtxt(opts.name)
 
-    if "bulla" in filename:
+    if "bulla" in filename and 'hdf5' in filename:
+        with h5py.File(os.path.join(filename), "r") as f:
+            data = f['spectra']
+            stokes = np.array(data['stokes'])
+            ph = np.array(data['time']) / (60*60*24) # get time in days
+            wave = np.array(data['wave'])  # wavelength spec w/ redshift
+
+        I = stokes[:,:,:,0] # get I stokes parameter
+
+        Nobs = stokes.shape[0] # num observing angles
+        cos = np.linspace(0,1,Nobs)
+        thetas = np.rad2deg(np.arccos(cos))
+        idx = np.argmin(np.abs(thetas-theta))
+
+        u = I[idx]
+
+    elif "bulla" in filename:
         u2 = np.loadtxt(filename,skiprows=3)
         lines = [line.rstrip('\n') for line in open(filename)]
         lineSplit = lines[2].split(" ")
@@ -368,8 +384,8 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     if model == "kilonova_wind_spectra":
         u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
-    elif model in ["bulla_1D","bulla_2D","bulla_2Component_lfree","bulla_2Component_lrich","bulla_2Component_lmid","macronovae-rosswog","bulla_2Component_lnsbh","bulla_blue_cone","bulla_red_ellipse","bulla_opacity","bulla_reprocess","KasenLike_2D","RosswogLike_2D","bulla_2Comp_kappas"]:
-        u[:,2] /= 1.0
+    elif 'hdf5' in filename:
+        u /= (4*np.pi*D_cm**2)
     else:
         u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
         u[:,0] /= (24*3600) # time in days
@@ -389,8 +405,8 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
     mag_d = []
     L_d = []
 
-    for i in u:
-        if i[0]==t:
+    for enum,i in enumerate(u):
+        if i[0]==t and 'hdf5' not in filename:
             if model == "kilonova_wind_spectra":
                 w.append(i[1])
                 L.append(i[3])
@@ -398,8 +414,13 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
                 w.append(i[1])
                 L.append(i[2])
         else:
-            w = np.array(w)
-            L = np.array(L)
+            if 'hdf5' in filename:
+                L = i
+                w = wave
+                t = ph[enum]
+            else:
+                w = np.array(w)
+                L = np.array(L)
             if not np.isnan(redshift):
                 w = w*(1+redshift)
 
@@ -414,7 +435,7 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
                 mag = np.nan
             w=[]
             L=[]
-            t=i[0]
+            if 'hdf5' not in filename: t=i[0]
 
             t_d.append(t)
             mag_d.append(mag)
@@ -595,53 +616,63 @@ def getSpecH5(filename,model):
 
 def getSpec(filename,model):
     #u = np.genfromtxt(opts.name)
-    u = np.loadtxt(filename,skiprows=1)
-    if model == "kilonova_wind_spectra":
-        u = u[u[:,2]==0.05]
+    if 'hdf5' in filename:
+        with h5py.File(os.path.join(filename), "r") as f:
+            data = f['spectra']
+            stokes = np.array(data['stokes'])
+            t_d = np.array(data['time']) / (60*60*24) # get time in days
+            lambda_d = np.array(data['wave'])  # wavelength spec w/ redshift
+        
+        D_cm = 10*3.0857e16*100
+        spec_d = stokes[:,:,:,0] / (4*np.pi*D_cm**2) # get I stokes parameter, F_lam (erg/s/cm2/A at 10pc)
 
-    D_cm = 10*3.0857e16*100 # 10 pc in cm
-
-    if model == "kilonova_wind_spectra":
-        u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
-        u[:,0] /= (24*3600) # time in days
-    elif model == "macronovae-rosswog":
-        u[:,2] /= 1.0
     else:
-        u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
-        u[:,0] /= (24*3600) # time in days
+        u = np.loadtxt(filename,skiprows=1)
 
-    t = u[0,0]
+        if model == "kilonova_wind_spectra":
+            u = u[u[:,2]==0.05]
 
-    w=[]
-    L=[]
+        D_cm = 10*3.0857e16*100 # 10 pc in cm
 
-    t_d = []
-    lambda_d = []
-    spec_d = []
-
-    for i in u:
-        if i[0]==t:
-            if model == "kilonova_wind_spectra":
-                w.append(i[1])
-                L.append(i[3])
-            else:
-                w.append(i[1])
-                L.append(i[2])
+        if model == "kilonova_wind_spectra":
+            u[:,3] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+            u[:,0] /= (24*3600) # time in days
         else:
-            w = np.array(w)
-            L = np.array(L)
+            u[:,2] /= (4*np.pi*D_cm**2) # F_lam (erg/s/cm2/A at 10pc)
+            u[:,0] /= (24*3600) # time in days
 
-            t=i[0]
-            t_d.append(t)
-            lambda_d = w
-            spec_d.append(L)
+        t = u[0,0]
 
-            w=[]
-            L=[]
+        w=[]
+        L=[]
 
-    t_d = np.array(t_d)
-    lambda_d = np.array(lambda_d)
-    spec_d = np.array(spec_d)
+        t_d = []
+        lambda_d = []
+        spec_d = []
+
+        for i in u:
+            if i[0]==t:
+                if model == "kilonova_wind_spectra":
+                    w.append(i[1])
+                    L.append(i[3])
+                else:
+                    w.append(i[1])
+                    L.append(i[2])
+            else:
+                w = np.array(w)
+                L = np.array(L)
+
+                t=i[0]
+                t_d.append(t)
+                lambda_d = w
+                spec_d.append(L)
+
+                w=[]
+                L=[]
+
+        t_d = np.array(t_d)
+        lambda_d = np.array(lambda_d)
+        spec_d = np.array(spec_d)
 
     return t_d, lambda_d, spec_d
 
