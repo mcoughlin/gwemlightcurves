@@ -162,7 +162,8 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, all_samples = a
 
     m1m = m1[i]
     m2m = m2[i]
-
+    
+    '''
     m1m_check = m1m
     m2m_check = m2m
     if Type == 'NSBH':
@@ -175,10 +176,10 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, all_samples = a
     if (m1m_check >= m2m_check) and (m1m_check <= 3):
         print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type_set)
 
-
         #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
         samples = run_EOS(EOS, m1m, m2m, chi, thetas, N_EOS = N_EOS, type_set=Type, lan_override = True, lan_override_val = lan)
-            
+    '''
+    if True:     
 
         if Type == 'BNS':
             idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
