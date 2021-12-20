@@ -49,7 +49,7 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
-mass_draws = 50
+mass_draws = 1
 
 #mass_draws = 20
 #uniform_mass_draws = int(mass_draws/2)
@@ -222,8 +222,8 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
         Type = 'NSBH'
 
     all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
-    print('len thetas:')
-    print(len(all_thetas_list))
+    #print('len thetas:')
+    #print(len(all_thetas_list))
     #all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
 
     type_plot = Type
@@ -343,9 +343,6 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
     #--------------------------------------------------------
 
-    N_parallel = 16
-    #N_parallel = 1
-    print(f'running in parallel on {N_parallel} cores')
     i = 0 
     samples = calc_mej_from_masses(i, m1, m2, all_thetas_list, Type, Type_set, EOS) 
 
@@ -371,11 +368,14 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     '''
     id_list = np.arange(0,len(samples['mej']))
     mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
-    #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-    np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-    #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-    np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', samples)
+   
+    if __name__ == "__main__": 
+        #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
+        np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+        #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+        np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
+    #print(samples['mej'], '-----------')
     return samples['mej']
 
 
@@ -490,9 +490,9 @@ def plot_kde(mass, coverage_factors=False):
     #Types = ['NSBH_zhu','NSBH_LRR']
     #Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited']
     #Types = ['NSBH_zhu']
-    Types = ['Event']
+    #Types = ['Event']
     #Types = ['NSBH_q_range'] 
-    #Types = ['BNS_alsing']
+    Types = ['BNS_alsing']
     fig, ax = plt.subplots(figsize=(16, 12))
     for n, t in enumerate(Types):
         prob_events, prob_norm_events, mej_test, EOS_type = run_prob(mass, Type = t)
