@@ -308,18 +308,18 @@ def getMagSpecH5(filename,band,model,filtname,theta=0.0,redshift=0.0):
     t_d = np.array(t_d)
     mag_d = np.array(mag_d)
     L_d = np.array(L_d)
+    
+    ii = np.where(~np.isnan(mag_d))[0]
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
+    ii = np.where(np.isfinite(np.log10(L_d)))[0]
+    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    L_d = 10**f(t_d)
 
     mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
     L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
-
-#    ii = np.where(np.isfinite(np.log10(L_d)))[0]
-#    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
-#    L_d = 10**f(t_d)
-#
-#    ii = np.where(~np.isnan(mag_d))[0]
-#    if len(ii) > 1:
-#        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
-#        mag_d = f(t_d)
 
     return t_d, mag_d, L_d
 
@@ -347,6 +347,15 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
         mag_d = source.bandmag(bp,"ab",t_d)
 
         L_d = np.trapz(fl*(4*np.pi*D_cm**2),x=wave)
+        
+        ii = np.where(~np.isnan(mag_d))[0]
+        if len(ii) > 1:
+            f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+            mag_d = f(t_d)
+        
+        ii = np.where(np.isfinite(np.log10(L_d)))[0]
+        f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+        L_d = 10**f(t_d)
         
         mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
         L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
@@ -474,6 +483,15 @@ def getMagSpec(filename,band,model,theta=0.0,redshift=0.0):
 #        mag_d = mag_d_medfilt
 #        L_d = 10**L_d_medfilt
 
+    ii = np.where(~np.isnan(mag_d))[0]
+    if len(ii) > 1:
+        f = interp.interp1d(t_d[ii], mag_d[ii], fill_value='extrapolate')
+        mag_d = f(t_d)
+
+    ii = np.where(np.isfinite(np.log10(L_d)))[0]
+    f = interp.interp1d(t_d[ii], np.log10(L_d[ii]), fill_value='extrapolate')
+    L_d = 10**f(t_d)
+    
     mag_d = savgol_filter(mag_d,window_length=17,polyorder=3,mode='mirror')
     L_d = savgol_filter(L_d,window_length=17,polyorder=3,mode='mirror')
 
