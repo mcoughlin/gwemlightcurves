@@ -52,8 +52,8 @@ theta_r = 0.0
 Ye = 0.3
 
 
-def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu2019inc', lan_override=False, lan_override_val=None, chirp_q = False):
-    
+def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu2019inc', chirp_q = False):
+    chi = 0 
     if type_set == 'None':
         sys.exit('Type is not defined')
     
@@ -80,8 +80,8 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
     Xlan_val = 1e-3
     Xlan =  Xlan_val
     
-    if lan_override:
-        Xlan_val = lan_override_val 
+    #if lan_override:
+    #    Xlan_val = lan_override_val 
     
     #Xlans = np.ones(1)*Xlan_val 
     c1 = np.ones(1)
@@ -90,7 +90,7 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
     mb2 = np.ones(1)
     
     data = np.vstack((m1,m2,chi_eff,mchirp,eta,q)).T
-    samples = KNTable((data), names = ('m1','m2','chi_eff','mchirp','eta','q') )
+    samples = KNTable((data), names = ('m1','m2','chi_eff','mchirp','eta','q'))
 
     #data = np.vstack((m1s,m2s,dists,lambda1s,lambda2s,chi_effs,Xlans,c1,c2,mb1,mb2,mchirps,etas,qs,mej,vej, dyn_mej, wind_mej, mbnss)).T
     #samples = KNTable((data), names = ('m1','m2','dist','lambda1','lambda2','chi_eff','Xlan','c1','c2','mb1','mb2','mchirp','eta','q','mej','vej', 'dyn_mej', 'wind_mej', 'mbns'))    
@@ -190,32 +190,15 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
             Xlans.append(Xlan)
             mbnss.append(mbns)
     
-    #print(len(thetas))
-    #check theta implementation for reproducibility
     #thetas = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
-    print('len thetas------------------------')
-    print(len(thetas))
-    print(thetas)
     idx_thetas = np.where(thetas > 90.)[0]
     thetas[idx_thetas] = 180. - thetas[idx_thetas]
-    #thetas = list(thetas)
     Xlans = np.ones(np.array(m1s).shape) * Xlan_val
-    print(len(thetas))
-    if len(thetas) != 100:
-        print('---------------------------------------------------')
-        print('')
-        print('')
-        print('---------------------------------------------------')
-        print('')
-        print('')
-        quit()
-    #print(mbnss)
-    #thetas = np.ones(100)
+    
     # make final arrays of masses, distances, lambdas, spins, and lanthanide fractions
-    print(str([len(m1s), len(m2s), len(lambda1s), len(lambda2s), len(Xlans), len(chi_effs), len(thetas), len(mbnss)]))
     data = np.vstack((m1s,m2s,lambda1s,lambda2s,Xlans,chi_effs,thetas,mbnss)).T
     samples = KNTable(data, names=('m1', 'm2', 'lambda1', 'lambda2','Xlan','chi_eff','theta', 'mbns'))       
-    
+ 
     # limit masses
     #samples = samples.mass_cut(mass1=3.0,mass2=3.0)
      
@@ -225,12 +208,11 @@ def run_EOS(EOS, m1, m2, chi, thetas, type_set = 'None', N_EOS = 100, model_set 
     
     # Downsample 
     #samples = samples.downsample(Nsamples=100)
-       
     samples = samples.calc_tidal_lambda(remove_negative_lambda=True)
     
     # Calc compactness
     samples = samples.calc_compactness(fit=True)
-        
+    
     # Calc baryonic mass 
     samples = samples.calc_baryonic_mass(EOS=None, TOV=None, fit=True)
     
