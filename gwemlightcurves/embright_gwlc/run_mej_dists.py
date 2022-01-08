@@ -33,8 +33,10 @@ from gwemlightcurves import __version__
 #from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
-from andrew.mass_grid_fast import run_EOS
+#from andrew.mass_grid_fast import run_EOS
 #from mass_grid_fast import run_EOS
+
+from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
 #-------------------------------------------------
 
 np.random.seed(0)
