@@ -12,9 +12,7 @@ matplotlib.rc('xtick', labelsize=16)
 matplotlib.rc('ytick', labelsize=16)
 matplotlib.rc('font', **font)
 import numpy as np
-#from astropy.table import (Table, Column, vstack)
 import pickle
-#import sys
 import os
 import scipy.stats as ss
 from scipy.stats import rv_continuous
@@ -33,8 +31,6 @@ from gwemlightcurves import __version__
 #from gwemlightcurves.EOS.EOS4ParameterPiecewisePolytrope import EOS4ParameterPiecewisePolytrope
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
-#from andrew.mass_grid_fast import run_EOS
-#from mass_grid_fast import run_EOS
 
 from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
 #-------------------------------------------------
@@ -56,7 +52,6 @@ mass_draws = 1
 
 
 #mass_draws = 20
-#uniform_mass_draws = int(mass_draws/2)
 uniform_mass_draws = mass_draws
 
 #mass = np.linspace(-5, .5, mass_points) 
@@ -167,38 +162,21 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, all_samples = a
 
     m1m = m1[i]
     m2m = m2[i]
-    
-    '''
-    m1m_check = m1m
-    m2m_check = m2m
-    if Type == 'NSBH':
-        m1m_check = 1
-        m2m_check = .5
-    if Type_set == 'BNS_equal':
-        m1m = m2m
-        m1m_check = m2m
-        Type = 'BNS'
-    if (m1m_check >= m2m_check) and (m1m_check <= 3):
-        print('Initializing '+str(m1m)+' '+str(m2m)+' '+Type_set)
    
-        #parallel_data = (Parallel(n_jobs=N_parallel)(delayed(KNTable.model)(model, s, **kwargs) for s in sample_split))
-    '''
     samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type)
     
-    if True:     
-
-        if Type == 'BNS':
-            idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
-            N_idx = len(idx)
-            print('-----------------------------------------------------')
-            print(str(N_idx)+' out of '+str(len(samples))+' were BNS')
-            print('-----------------------------------------------------')
-        if Type == 'NSBH':
-            idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] <= 1e-6))[0]
-            N_idx = len(idx)
-            print('-----------------------------------------------------')
-            print(str(N_idx)+' out of '+str(len(samples))+' were NSBH')
-            print('-----------------------------------------------------')
+    if Type == 'BNS':
+        idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
+        N_idx = len(idx)
+        print('-----------------------------------------------------')
+        print(str(N_idx)+' out of '+str(len(samples))+' were BNS')
+        print('-----------------------------------------------------')
+    if Type == 'NSBH':
+        idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] <= 1e-6))[0]
+        N_idx = len(idx)
+        print('-----------------------------------------------------')
+        print(str(N_idx)+' out of '+str(len(samples))+' were NSBH')
+        print('-----------------------------------------------------')
     #return m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas
     return samples
 
@@ -380,7 +358,6 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
         #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
-    #print(samples['mej'], '-----------')
     return samples['mej']
 
 
@@ -422,7 +399,7 @@ def run_prob(mass, coverage_factors = False, Type = None):
             
     KDE = greedy_kde_areas_1d(all_data)
         
-        
+    # Nsamples for KDE    
     Nsamples = 1e4
     if Nsamples < 1e3: 
         print('Nsamples may be too small')
@@ -433,11 +410,6 @@ def run_prob(mass, coverage_factors = False, Type = None):
         p_samples = []
         p_norm_samples =[]
         for c in range(int(Nsamples)):
-            #if not theor:
-            #    prob = kde_eval_single(KDE, 10**m)[0]
-            #    prob_norm = kde_eval_single(KDE, .001)[0]
-            #    prob_norm =1
-            #if theor: 
             prob = kde_eval_single(KDE, m)[0]
             prob_norm = kde_eval_single(KDE, -3)[0]
             prob_norm =1
@@ -468,22 +440,13 @@ def run_prob(mass, coverage_factors = False, Type = None):
         prob_kde = prob_kde / np.sum(prob_kde)
         mej_probs = prob_kde
 
-    #if theor:
     return mej_probs, mej_norm, mej_test, EOS_type
-    #if not theor:
-    #    return np.array(prob_events), np.array(prob_norm_events) 
-
 
 def plot_kde(mass, coverage_factors=False):
     '''function to plot PDFs and save PDF data to file
     '''
 
     prob_events, prob_norm_events = np.ones(100), np.ones(100)
-    #if coverage_factors == True:    
-        #event_prob = np.array([0.2390, 0.5157, 0.7837, 0.4939, 0.3117, 0.2892, 0.1922, 0.4342, 0.0485, 0.009, 0.4796, 0.1817, 0.7608])
-
-
-    #event_names = ['GW190425', 'S190426c','GW190814', 'S190901ap', 'S190910d', 'S190910h', 'S190923y', 'S190930t', 'S191205ah', 'S191213g', 'S200105ae', 'S200115j', 'S200213t']
     colors = ['blue', 'gold', 'black', 'dodgerblue', 'firebrick', 'c', 'peru', 'saddlebrown', 'goldenrod', 'indigo', 'r', 'orange', 'blueviolet']
  
     mej_kde = []
@@ -515,7 +478,6 @@ def plot_kde(mass, coverage_factors=False):
     ax.plot([.05,.05],[1e-6,1e6], color = 'black', linestyle='--')
     ax.set_yscale('log')
     ax.set_xscale('log')
-    #ax.set_xlim(-9.8, -20.2)
     plt.ylim(1e-3,1.1)
     plt.xlabel('mej')
     plt.ylabel('Probability')
@@ -551,6 +513,5 @@ if __name__ == "__main__":
     #chi_list=[0]
 
     #leave True
-    plot_list=[]
     #prob_events, prob_norm_events = np.ones(100), np.ones(100)
     plot_kde(mass_range)
