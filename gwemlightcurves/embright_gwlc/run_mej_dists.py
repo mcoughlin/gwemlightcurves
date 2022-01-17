@@ -32,7 +32,8 @@ from gwemlightcurves import __version__
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
 
-from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
+#from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
+from mass_grid_fast import run_EOS
 #-------------------------------------------------
 
 np.random.seed(0)
@@ -48,7 +49,8 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
-mass_draws = 1
+mass_draws = 100
+#mass_draws = 1
 
 
 #mass_draws = 20
@@ -160,9 +162,10 @@ def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, all_samples = a
 
     #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
 
-    m1m = m1[i]
-    m2m = m2[i]
-   
+    #m1m = m1[i]
+    #m2m = m2[i]
+    m1m = m1
+    m2m = m2
     samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type)
     
     if Type == 'BNS':
@@ -326,9 +329,12 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
     #--------------------------------------------------------
 
-    i = 0 
+    i = 0
+    print('---', len(m1), len(all_thetas_list)) 
     samples = calc_mej_from_masses(i, m1, m2, all_thetas_list, Type, Type_set, EOS) 
 
+    print('test_samples')
+    print(samples)
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
@@ -354,9 +360,9 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
    
     if __name__ == "__main__": 
         #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-        np.savetxt('./mej_theta_data/NSBH_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+        np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        np.savetxt('./corner_data/NSBH_test/corner_data_'+str(Type_set)+'.txt', samples)
+        np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
     return samples['mej']
 

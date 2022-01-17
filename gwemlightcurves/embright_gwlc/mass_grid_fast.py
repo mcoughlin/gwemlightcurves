@@ -53,7 +53,8 @@ Ye = 0.3
 
 
 def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu2019inc', chirp_q = False):
-    chi = 0 
+    chi = 0
+    N_masses = len(m1) 
     if type_set == 'None':
         sys.exit('Type is not defined')
     
@@ -66,8 +67,8 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
         eta = m1*m2/( (m1+m2)*(m1+m2) )
     if chirp_q:
         print('running chirp_q')
-        m1 = np.random.normal(m1, .05, 1)
-        m2 = np.random.normal(m2, .05, 1)
+        m1 = np.random.normal(m1, .05, N_masses)
+        m2 = np.random.normal(m2, .05, N_masses)
         #m1 = np.ones(100) * m1
         #m2 = np.ones(100) * m2
         q = m2 
@@ -76,7 +77,8 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
         m1, m2 = lightcurve_utils.mc2ms(mchirp, eta)
 
     #chi_eff = np.random.uniform(-1,1,100)
-    chi_eff = np.ones(1)*chi
+    
+    chi_eff = np.ones(N_masses)*chi
     Xlan_val = 1e-3
     Xlan =  Xlan_val
     
@@ -84,11 +86,11 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     #    Xlan_val = lan_override_val 
     
     #Xlans = np.ones(1)*Xlan_val 
-    c1 = np.ones(1)
-    c2 = np.ones(1)
-    mb1 = np.ones(1)
-    mb2 = np.ones(1)
-    
+    c1 = np.ones(N_masses)
+    c2 = np.ones(N_masses)
+    mb1 = np.ones(N_masses)
+    mb2 = np.ones(N_masses)
+   
     data = np.vstack((m1,m2,chi_eff,mchirp,eta,q)).T
     samples = KNTable((data), names = ('m1','m2','chi_eff','mchirp','eta','q'))
 
@@ -107,11 +109,6 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     etas=[]
     mchirps=[]
     mbnss=[]
-    
- 
-
-     
-    print('...running')
     
     nsamples = num_samples
 
