@@ -402,7 +402,7 @@ def run_prob(mass, coverage_factors = False, Type = None):
     #all_data[all_data <= 1e-6] = 1e-12
                 
     all_data = np.log10(all_data)
-            
+    all_data = all_data[np.isfinite(all_data)]     
     KDE = greedy_kde_areas_1d(all_data)
         
     # Nsamples for KDE    
