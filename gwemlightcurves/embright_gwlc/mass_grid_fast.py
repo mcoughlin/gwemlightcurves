@@ -58,7 +58,6 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     if type_set == 'None':
         sys.exit('Type is not defined')
     
-    num_samples = N_EOS
     if type_set == 'BNS_chirp_q':
         type_set = 'BNS' 
     if not chirp_q:
@@ -110,7 +109,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     mchirps=[]
     mbnss=[]
     
-    nsamples = num_samples
+    nsamples = N_EOS
 
     m1s, m2s, dists_mbta = [], [], []
     lambda1s, lambda2s, chi_effs = [], [], []

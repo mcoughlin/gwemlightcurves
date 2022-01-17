@@ -17,11 +17,11 @@ from gwemlightcurves import __version__
 fig, ax = plt.subplots(figsize=(16, 12))
 #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
 
-#Types = ['BNS_alsing','BNS_farrow']
+Types = ['BNS_alsing']
 #Types = ['BNS_uniform', 'NSBH_uniform'] 
 #Types = ['NSBH_zhu', 'NSBH_LRR']
 #Types = ['NSBH_zhu_edited', 'NSBH_LRR_edited'] 
-Types = ['NSBH_zhu']
+#Types = ['NSBH_zhu']
 #Types = ['NSBH_q_range']
 #Types = ['NSBH_LRR'] 
 #Types = ['Event']
@@ -30,7 +30,7 @@ Types = ['NSBH_zhu']
 def mej_to_lc(Type):
     print(f'Initializing {Type}')
     #mej_theta_data=np.loadtxt('./mej_theta_data/N_50/mej_theta_data_BNS_alsing.txt')
-    mej_theta_data=np.loadtxt(f'./mej_theta_data/NSBH_test/mej_theta_data_{Type}.txt')
+    mej_theta_data=np.loadtxt(f'./mej_theta_data/EOS_test/mej_theta_data_{Type}.txt')
     mej_data, thetas, ids = mej_theta_data[:,0], mej_theta_data[:,1], mej_theta_data[:,2]
     idx_nonzero = np.where(mej_data > 1e-3)[0]
     mej_data, thetas, ids = mej_data[idx_nonzero], thetas[idx_nonzero], ids[idx_nonzero]
@@ -83,7 +83,7 @@ def mej_to_lc(Type):
     samples['theta_r'] = theta_r
     samples['Ye'] = Ye
 
-    #samples = samples[:2000]
+    #samples = samples[:30]
  
     ModelPath = "/home/cosmin.stachie/gwemlightcurves/output/svdmodels"
     kwargs = {'SaveModel':False,'LoadModel':True,'ModelPath':ModelPath}
@@ -143,4 +143,5 @@ def mej_to_lc(Type):
     #return has_remnant
 
 if __name__ == "__main__":
-    mej_to_lc('NSBH_zhu')
+    for Type in Types:
+        mej_to_lc(Type)

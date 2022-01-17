@@ -49,7 +49,7 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
-mass_draws = 100
+mass_draws = 200
 #mass_draws = 1
 
 
@@ -330,16 +330,11 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     #--------------------------------------------------------
 
     i = 0
-    print('---', len(m1), len(all_thetas_list)) 
     samples = calc_mej_from_masses(i, m1, m2, all_thetas_list, Type, Type_set, EOS) 
-
-    print('test_samples')
-    print(samples)
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type_set, EOS) for i in range(len(m1)))        
-    '''
     plt.figure()
     #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
     plt.hist(np.log10(samples['mej']), bins = 20, range = (-20, 20))
@@ -349,7 +344,6 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
     plt.close()
     #mean_data=np.array(data)
-    '''
     '''
     id_list = np.arange(0,len(all_mejs_1D))
     mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D, id_list))
@@ -458,7 +452,7 @@ def plot_kde(mass, coverage_factors=False):
     mej_kde = []
     plot_mass = 10**mass
     labels = ['BNS (Alsing et al.)', 'BNS (Farrow et al.)', 'BNS, m1=m2 (Alsing et al.)', 'BNS, m1=m2 (Farrow et al.)',  'BNS, Uniform in m1, m2', 'NSBH, Uniform in m1, m2', 'NSBH (Alsing et al., Zhu et al.)', 'BNS, Uniform in chirp, q']
-    labels = ['NSBH (Zhu et al.)', 'NSBH (LRR)'] 
+    #labels = ['NSBH (Zhu et al.)', 'NSBH (LRR)'] 
     
     #Types = ['BNS_alsing','BNS_farrow','BNS_equal_alsing','BNS_equal_farrow','BNS_uniform','NSBH_uniform','NSBH_zhu','BNS_chirp_q']
     #Types = ['NSBH_zhu','NSBH_LRR']
