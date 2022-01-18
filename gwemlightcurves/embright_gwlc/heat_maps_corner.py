@@ -21,30 +21,36 @@ for Type in Types:
 
     #folder_dir = f'./lightcurves_parallel/{Type}/'
     #folder_dir = f'./lightcurves2/{Type}/'
-    folder_dir = f'./lightcurves_parallel/phi45_updated/{Type}/'
+    folder_dir = f'./lightcurves_parallel/phi45_updated/N50/{Type}/'
     ns_dirs = os.listdir(f'{folder_dir}')
     print('Number of Files: ' + str(len(ns_dirs)))
 
-    mej_theta_data = np.loadtxt(f'./mej_theta_data/EOS_test/mej_theta_data_{Type}.txt')
-    _, _, initial_ids = mej_theta_data
+    mej_theta_data = np.loadtxt(f'./mej_theta_data/EOS_test_modified/N50/mej_theta_data_{Type}.txt')
+    initial_ids = mej_theta_data[:,2]
     #mej_data, thetas = mej_theta_data[:,0], mej_theta_data[:,1]
    
     #initial_params = np.loadtxt(f'./corner_data/corner_data_{Type}.txt')
-    initial_params = np.loadtxt(f'./corner_data/EOS_test/corner_data_{Type}.txt')
-    print(initial_params)
-    print(initial_params[:,9])
-    print('--')   
- 
-    #all_m1s, all_m2s, all_mchirps, all_qs, all_vej, all_mej_data, all_wind_mej, all_dyn_mej, all_thetas
-    #m1, m2, mchirp, mej, wind_mej, dyn_mej, thetas
-    N_tot = len(initial_params[:,5])
-    initial_params = initial_params[initial_params[:,5] > 1e-3]
+    initial_params_all = np.loadtxt(f'./corner_data/EOS_test_modified/N50/corner_data_{Type}.txt')
+    #initial_params = np.array(initial_params)
+    print('initial_params')
+    print(np.shape(initial_params_all))
+    print('initial_ids')
+    print(np.shape(initial_ids))
+
+    #initial_params:
+    # m1, m2, lambda1, lambda2, Xlan, chi_eff, theta, mbns, c1, c2, mb1, mb2,  mchirp, eta, q, mej, vej, dyn_mej, wind_mej
+    N_tot = len(initial_params_all[:,0])
+    #remove those with mej < 1e-3
+    initial_ids = initial_ids[initial_params_all[:,15] > 1e-3]
+    initial_params = initial_params_all[initial_params_all[:,15] > 1e-3]
     #initial_params = initial_params[initial_params[:,5] > 0]
     #initial_ids = initial_params[:,9]
-    N_nonzero = len(initial_params[:,5])
-    mej_initial = initial_params[:,5]
-    theta_initial = initial_params[:,8]
-    initial_params = initial_params[:,(0,1,2,6,7)]
+    N_nonzero = len(initial_params[:,15])
+    mej_initial = initial_params[:,15]
+    theta_initial = initial_params[:,6]
+
+    #needs to be updated to with new indices
+    #initial_params = initial_params[:,(0,1,2,6,7)]
  
     frac_mej0 = len(ns_dirs)/N_tot
     print(f'Fraction of Kilonovae with mej > 1e-3: {frac_mej0}')
@@ -96,8 +102,8 @@ for Type in Types:
 
     idx_sort = np.zeros(len(mej_data), dtype=int)
     for i, id_num in enumerate(pickle_ids):
-        print(np.argwhere(initial_ids == id_num))
-        idx_sort[i] = np.argwhere(initial_ids == id_num)
+        #print(np.argwhere(initial_ids == id_num))
+        idx_sort[i] = np.argwhere(initial_ids == id_num)[0]
     '''
     idx_sort = np.zeros(s1, dtype = int)
     for count, (mej, theta) in enumerate(zip(mej_data, theta_data)):
@@ -113,7 +119,8 @@ for Type in Types:
                 if mm == tt:
                    idx_sort[count] = mm
     '''
-    print(idx_sort)
+    print(idx_sort, len(idx_sort))
+    print(len(initial_params))
     initial_params_sorted = initial_params[idx_sort]
    
     mej_data = mej_data[idx_sort]
@@ -213,8 +220,8 @@ for Type in Types:
     frame = legend.get_frame()
     frame.set_color('skyblue')
     plt.title(f'Fraction of KN with mass ejecta > 1e-3 (~HasRemnant): {frac_mej0}')
-    plt.savefig(f'./heatmaps_corner/heatmap_{Type}.pdf',bbox_inches='tight')
-    plt.savefig(f'./heatmaps_corner/heatmap_{Type}.png',bbox_inches='tight')
+    plt.savefig(f'./heatmaps_corner/heatmap_{Type}_N50.pdf',bbox_inches='tight')
+    plt.savefig(f'./heatmaps_corner/heatmap_{Type}_N50.png',bbox_inches='tight')
 
     #N_lc = len(mej_data)
     #idx_nonzero = np.argwhere(np.array(mej_data) >= 1e-9)
@@ -223,6 +230,9 @@ for Type in Types:
     #print(f'Fraction of Kilonovae with mej = 0: {frac_mej0}')
     #frac_0s.append(frac_mej0)
 
+    #------indices need to be updated for corner plots    
+
+    '''
     #corner_plot = np.column_stack((initial_params[:,(0,1,2)], np.log10(initial_params[:,(3,4)]), np.log10(mej_data), theta_data, r_peak, K_peak))
     corner_plot = np.column_stack((initial_params_sorted[:,(0,1,2)], np.log10(initial_params_sorted[:,(3,4)]), theta_data))
     #print(corner_plot.shape)
@@ -236,6 +246,7 @@ for Type in Types:
 
     plt.savefig(f'./heatmaps_corner/corner_updated_{Type}.pdf')
     plt.close()
+    '''
 
     print(f'{Type} complete')
 
