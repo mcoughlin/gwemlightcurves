@@ -32,8 +32,8 @@ from gwemlightcurves import __version__
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
 
-#from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
-from mass_grid_fast import run_EOS
+from gwemlightcurves.embright_gwlc.mass_grid_fast import run_EOS
+#from mass_grid_fast import run_EOS
 #-------------------------------------------------
 
 np.random.seed(0)
@@ -152,13 +152,12 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-#fix i implementation if removing parallel
-def calc_mej_from_masses(i, m1, m2, thetas, Type, Type_set, EOS, all_samples = all_samples):
+def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS, all_samples = all_samples):
     '''
     '''
     
-    if i%10 == 0:
-        print(f'{i} out of {mass_draws} mej values calculated--------------------------')
+    #if i%10 == 0:
+    #    print(f'{i} out of {mass_draws} mej values calculated--------------------------')
 
     #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
 
@@ -329,8 +328,7 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
     #--------------------------------------------------------
 
-    i = 0
-    samples = calc_mej_from_masses(i, m1, m2, all_thetas_list, Type, Type_set, EOS) 
+    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
