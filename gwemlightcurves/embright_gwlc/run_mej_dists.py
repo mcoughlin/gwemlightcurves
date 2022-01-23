@@ -333,14 +333,17 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type_set, EOS) for i in range(len(m1)))        
-    plt.figure()
-    #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
-    plt.hist(np.log10(samples['mej']), bins = 20, range = (-20, 20))
-    plt.yscale('log')
-    plt.xlabel('mej')
-    plt.ylabel('Probability')
-    plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
-    plt.close()
+    
+
+    if __name__ == "__main__":
+        plt.figure()
+        #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
+        plt.hist(np.log10(samples['mej']), bins = 20, range = (-4, -1))
+        plt.yscale('log')
+        plt.xlabel('mej')
+        plt.ylabel('Probability')
+        plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
+        plt.close()
     #mean_data=np.array(data)
     '''
     id_list = np.arange(0,len(all_mejs_1D))
