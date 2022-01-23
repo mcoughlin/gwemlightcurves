@@ -152,7 +152,7 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS, all_samples = all_samples):
+def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS):
     '''
     '''
     
