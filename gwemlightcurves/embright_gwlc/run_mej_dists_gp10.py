@@ -32,8 +32,9 @@ from gwemlightcurves import __version__
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
 
-from gwemlightcurves.embright_gwlc.mass_grid_gp10 import run_EOS
+#from gwemlightcurves.embright_gwlc.mass_grid_gp10 import run_EOS
 #from mass_grid_fast import run_EOS
+from mass_grid_gp10 import run_EOS
 #-------------------------------------------------
 
 np.random.seed(0)
@@ -49,7 +50,7 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
-mass_draws = 200
+mass_draws = 10
 #mass_draws = 1
 
 
@@ -160,7 +161,7 @@ def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS):
     #    print(f'{i} out of {mass_draws} mej values calculated--------------------------')
 
     #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
-
+    print(f'Running for {mass_draws} mej values with nsamples = {N_EOS}')
     #m1m = m1[i]
     #m2m = m2[i]
     m1m = m1
@@ -342,7 +343,7 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
         plt.yscale('log')
         plt.xlabel('mej')
         plt.ylabel('Probability')
-        plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
+        #plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
         plt.close()
     #mean_data=np.array(data)
     '''
@@ -353,11 +354,10 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     id_list = np.arange(0,len(samples['mej']))
     mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
    
-    if __name__ == "__main__": 
-        #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-        np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+    #if __name__ == "__main__": 
+        #np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
+        #np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
     return samples['mej']
 
@@ -487,7 +487,7 @@ def plot_kde(mass, coverage_factors=False):
 
     
     plotname = './output/KDE_comp_edit_test.pdf'
-    plt.savefig(plotname)
+    #plt.savefig(plotname)
     plt.close()
 
     #return 
