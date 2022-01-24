@@ -32,9 +32,9 @@ from gwemlightcurves import __version__
 #from twixie import kde
 from gwemlightcurves import lightcurve_utils
 
-#from gwemlightcurves.embright_gwlc.mass_grid_gp10 import run_EOS
+from gwemlightcurves.embright_gwlc.mass_grid_gp10 import run_EOS
 #from mass_grid_fast import run_EOS
-from mass_grid_gp10 import run_EOS
+#from mass_grid_gp10 import run_EOS
 #-------------------------------------------------
 
 np.random.seed(0)
