@@ -118,11 +118,13 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     # some EOS indices for unit test
     gp10_idx = [137, 138, 421, 422, 423, 424, 425, 426, 427, 428]
     home_dir = os.getenv('HOME')
+    print(home_dir)
     if EOS == "gp":
         # read Phil + Reed's EOS files
         # eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
         path_post = "/em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv"
         path_post = os.path.join(home_dir, path_post)
+        print(path_post, '-----')
         eospostdat = np.genfromtxt(path_post, names=True, dtype=None, delimiter=",")
         #eospostdat = np.genfromtxt(f"{home_dir}/em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
         idxs = np.array(eospostdat["eos"])
