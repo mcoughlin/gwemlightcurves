@@ -120,7 +120,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     if EOS == "gp":
         # read Phil + Reed's EOS files
         # eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-        eospostdat = np.genfromtxt("./EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
+        eospostdat = np.genfromtxt("../EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
         idxs = np.array(eospostdat["eos"])
         weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
     elif EOS == "Sly":
@@ -162,7 +162,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
             elif EOS == "gp":
                 while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                     phasetr = 0
-                    eospath = "./EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
+                    eospath = "../EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
                     # eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     while os.path.isfile(eospath):
                         data_out = np.genfromtxt(eospath, names=True, delimiter=",")
