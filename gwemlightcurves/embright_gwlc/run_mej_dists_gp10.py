@@ -43,7 +43,7 @@ The number of points to evaluate the KDE at and plot
 '''
 #mass_points = 100
 mass_points = 10
-N_EOS = 100
+N_EOS = 10
 '''
 Determines the number of masses to draw from the inital mass dists, should be >1000. uniform_mass_draws can be
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
