@@ -50,6 +50,7 @@ less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
 mass_draws = 200
+mass_draws = 10
 #mass_draws = 1
 
 
