@@ -117,15 +117,16 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     # EOS_gp10 = os.listdir('~/em-bright/ligo/em_bright/EOS_samples_unit_test/')
     # some EOS indices for unit test
     gp10_idx = [137, 138, 421, 422, 423, 424, 425, 426, 427, 428]
-    home_dir = os.getenv('HOME')
-    print(home_dir)
-    print(os.path.isdir(home_dir))
+    #home_dir = os.getenv('HOME')
+    #print(home_dir)
+    #print(os.path.isdir(home_dir))
     if EOS == "gp":
         # read Phil + Reed's EOS files
         # eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-        path_post = "em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv"
-        path_post = os.path.join(home_dir, path_post)
-        print(path_post, '-----')
+        #path_post = "em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv"
+        #path_post = os.path.join(home_dir, path_post)
+        #print(path_post, '-----')
+        path_post = "eos_post_PSRs+GW170817+J0030.csv"
         eospostdat = np.genfromtxt(path_post, names=True, dtype=None, delimiter=",")
         #eospostdat = np.genfromtxt(f"{home_dir}/em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
         idxs = np.array(eospostdat["eos"])
@@ -169,8 +170,9 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
             elif EOS == "gp":
                 while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                     phasetr = 0
-                    eospath = "em-bright/ligo/em_bright/EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
-                    eospath = os.path.join(home_dir, eospath)
+                    eospath = "MACROdraw-1151%d-%d.csv" % (index, phasetr)
+                    #eospath = "em-bright/ligo/em_bright/EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
+                    #eospath = os.path.join(home_dir, eospath)
                     # eospath = f"{home_dir}/em-bright/ligo/em_bright/EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
                     # eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     while os.path.isfile(eospath):
