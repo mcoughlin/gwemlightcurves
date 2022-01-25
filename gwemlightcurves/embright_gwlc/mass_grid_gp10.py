@@ -119,6 +119,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, model_set = 'Bu
     gp10_idx = [137, 138, 421, 422, 423, 424, 425, 426, 427, 428]
     home_dir = os.getenv('HOME')
     print(home_dir)
+    print(os.path.isdir(home_dir))
     if EOS == "gp":
         # read Phil + Reed's EOS files
         # eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
