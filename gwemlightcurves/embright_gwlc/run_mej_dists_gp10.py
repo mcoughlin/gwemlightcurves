@@ -153,7 +153,7 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS):
+def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS, eospostdat = None, EOS_draws = None, EOS_idx = None):
     '''
     '''
     
@@ -166,7 +166,7 @@ def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS):
     #m2m = m2[i]
     m1m = m1
     m2m = m2
-    samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type)
+    samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type, eospostdat = eospostdat, EOS_draws = EOS_draws, EOS_idx = EOS_idx)
     
     if Type == 'BNS':
         idx = np.where((samples['lambda2'] > 0) | (samples['lambda1'] > 0))[0]
