@@ -153,7 +153,7 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS, eospostdat = None, EOS_draws = None, EOS_idx = None):
+def calc_mej(m1, m2, thetas, Type, Type_set, EOS, eospostdat = None, EOS_draws = None, EOS_idx = None):
     '''
     '''
     
@@ -278,6 +278,7 @@ def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
         m1 = f_dist.rvs(size = mass_draws)
         m2 = m1
         Type = 'BNS'
+    # double check LRR output for BH masses
     if Type == 'NSBH_LRR':
         m1 = bh_astro_mass_dist.rvs(mass_draws)
         m2 = ns_astro_mass_dist.rvs(mass_draws)
@@ -519,7 +520,7 @@ if __name__ == "__main__":
     
 
 
-    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS)
+    samples = calc_mej(m1, m2, all_thetas_list, Type, Type_set, EOS)
     plot_kde(mass_range)
     plt.figure()
     #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
@@ -529,4 +530,4 @@ if __name__ == "__main__":
     plt.ylabel('Probability')
     #plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
     plt.close()
-    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS)
+    samples = calc_mej(m1, m2, all_thetas_list, Type, Type_set, EOS)
