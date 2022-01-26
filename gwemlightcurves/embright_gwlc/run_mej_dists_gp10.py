@@ -153,7 +153,7 @@ z_dist = zhu_dist(a=2.8,b=25)
 ns_astro_mass_dist = ss.norm(1.33, 0.09)
 bh_astro_mass_dist = ss.pareto(b=1.3)
 
-def calc_mej(m1, m2, thetas, Type, Type_set, EOS, eospostdat = None, EOS_draws = None, EOS_idx = None):
+def calc_mej(m1, m2, thetas, Type, Type_set, EOS, eospostdat, EOS_draws, EOS_idx):
     '''
     '''
     
@@ -519,7 +519,7 @@ if __name__ == "__main__":
     #prob_events, prob_norm_events = np.ones(100), np.ones(100)
     
 
-
+    #add in new arguments
     samples = calc_mej(m1, m2, all_thetas_list, Type, Type_set, EOS)
     plot_kde(mass_range)
     plt.figure()
