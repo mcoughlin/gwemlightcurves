@@ -328,7 +328,7 @@ def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
 
 
     #--------------------------------------------------------
-    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
+    #samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
     
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
