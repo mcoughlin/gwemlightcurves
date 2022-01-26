@@ -356,9 +356,9 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
    
     if __name__ == "__main__": 
         #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-        np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+        np.savetxt('./mej_theta_data/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
+        np.savetxt('./corner_data/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
     return samples['mej']
 
