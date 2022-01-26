@@ -184,7 +184,7 @@ def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS, eospostdat = None,
     return samples
 
 
-def run_theoretical(Type, EOS, mass_draws=mass_draws):
+def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
     '''function to generate mass grid using EOS, should probably be left as is
     '''
     Type_set=Type
@@ -328,14 +328,14 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
 
     #--------------------------------------------------------
-
     samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
+    
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type_set, EOS) for i in range(len(m1)))        
     
-
+    '''
     if __name__ == "__main__":
         plt.figure()
         #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
@@ -347,20 +347,21 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
         plt.close()
     #mean_data=np.array(data)
     '''
+    '''
     id_list = np.arange(0,len(all_mejs_1D))
     mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D, id_list))
     corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
     '''
-    id_list = np.arange(0,len(samples['mej']))
-    mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
+    #id_list = np.arange(0,len(samples['mej']))
+    #mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
    
     #if __name__ == "__main__": 
         #np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         #np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
     #return all_mejs
-    return samples['mej']
-
+    #return samples['mej']
+    return m1, m2, all_thetas_list
 
 def run_prob(mass, coverage_factors = False, Type = None):
     ''' function that uses EOS and generates KDE, the only thing that could be changed here is the EOS type,
@@ -380,7 +381,7 @@ def run_prob(mass, coverage_factors = False, Type = None):
     #---------------------------------------------------------------------
     EOS_type = 'gp'
     #EOS_type = 'Sly'
-    all_data = run_theoretical(Type, EOS_type)
+    all_data = initial_mass_draws(Type, EOS_type)
     shape = np.shape(all_data)
     num = 1
  
@@ -515,4 +516,17 @@ if __name__ == "__main__":
 
     #leave True
     #prob_events, prob_norm_events = np.ones(100), np.ones(100)
+    
+
+
+    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS)
     plot_kde(mass_range)
+    plt.figure()
+    #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
+    plt.hist(np.log10(samples['mej']), bins = 20, range = (-4, -1))
+    plt.yscale('log')
+    plt.xlabel('mej')
+    plt.ylabel('Probability')
+    #plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
+    plt.close()
+    samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS)
