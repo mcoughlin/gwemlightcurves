@@ -144,6 +144,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, eospostdat = No
             indices = np.random.randint(0, 2396, size=nsamples)
         elif EOS == "gp":
             # Note: fix weights
+            print(EOS_idx)
             indices = np.random.choice(np.array(EOS_idx), size=nsamples, replace=True)
             # indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
         for jj in range(nsamples):
