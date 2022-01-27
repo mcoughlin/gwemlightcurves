@@ -114,21 +114,8 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, eospostdat = No
     m1s, m2s, dists_mbta = [], [], []
     lambda1s, lambda2s, chi_effs = [], [], []
     mbnss = []
-    # EOS_gp10 = os.listdir('~/em-bright/ligo/em_bright/EOS_samples_unit_test/')
-    # some EOS indices for unit test
-    #gp10_idx = [137, 138, 421, 422, 423, 424, 425, 426, 427, 428]
-    #home_dir = os.getenv('HOME')
-    #print(home_dir)
-    #print(os.path.isdir(home_dir))
     if EOS == "gp":
         # read Phil + Reed's EOS files
-        # eospostdat = np.genfromtxt("/home/philippe.landry/nseos/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
-        #path_post = "em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv"
-        #path_post = os.path.join(home_dir, path_post)
-        #print(path_post, '-----')
-        #path_post = "eos_post_PSRs+GW170817+J0030.csv"
-        #eospostdat = np.genfromtxt(path_post, names=True, dtype=None, delimiter=",")
-        #eospostdat = np.genfromtxt(f"{home_dir}/em-bright/ligo/em_bright/EOS_samples_unit_test/eos_post_PSRs+GW170817+J0030.csv",names=True,dtype=None,delimiter=",")
         idxs = np.array(eospostdat["eos"])
         weights = np.array([np.exp(weight) for weight in eospostdat["logweight_total"]])
     elif EOS == "Sly":
@@ -145,7 +132,6 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, eospostdat = No
         elif EOS == "gp":
             # Note: fix weights
             indices = np.random.choice(np.array(EOS_idx), size=nsamples, replace=True)
-            # indices = np.random.choice(np.arange(0,len(idxs)), size=nsamples,replace=True,p=weights/np.sum(weights))
         for jj in range(nsamples):
             if (EOS == "spec") or (EOS == "gp"):
                 #index = gp10_idx[jj]
@@ -171,13 +157,7 @@ def run_EOS(EOS, m1, m2, thetas, type_set = 'None', N_EOS = 100, eospostdat = No
             elif EOS == "gp":
                 while (lambda1 < 0.) or (lambda2 < 0.) or (mbns < 0.):
                     phasetr = 0
-                    #eospath = "MACROdraw-1151%d-%d.csv" % (index, phasetr)
-                    #eospath = "em-bright/ligo/em_bright/EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
-                    #eospath = os.path.join(home_dir, eospath)
-                    # eospath = f"{home_dir}/em-bright/ligo/em_bright/EOS_samples_unit_test/MACROdraw-1151%d-%d.csv" % (index, phasetr)
-                    # eospath = "/home/philippe.landry/nseos/eos/gp/mrgagn/DRAWmod1000-%06d/MACROdraw-%06d/MACROdraw-%06d-%d.csv" % (idxs[index]/1000, idxs[index], idxs[index], phasetr)
                     data_out = EOS_draws[index] 
-                    #data_out = np.genfromtxt(eospath, names=True, delimiter=",")
                     marray, larray = data_out["M"], data_out["Lambda"]
                     f = interp.interp1d(marray, larray, fill_value=0, bounds_error=False)
                     if float(f(m1)) > lambda1: lambda1 = f(m1) # pick lambda from least compact stable branch

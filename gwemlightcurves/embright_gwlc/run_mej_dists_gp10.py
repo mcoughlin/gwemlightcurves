@@ -160,10 +160,7 @@ def calc_mej(m1, m2, thetas, Type, Type_set, EOS, eospostdat, EOS_draws, EOS_idx
     #if i%10 == 0:
     #    print(f'{i} out of {mass_draws} mej values calculated--------------------------')
 
-    #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
     print(f'Running for {mass_draws} mej values with nsamples = {N_EOS}')
-    #m1m = m1[i]
-    #m2m = m2[i]
     m1m = m1
     m2m = m2
     samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type, eospostdat = eospostdat, EOS_draws = EOS_draws, EOS_idx = EOS_idx)
@@ -180,7 +177,7 @@ def calc_mej(m1, m2, thetas, Type, Type_set, EOS, eospostdat, EOS_draws, EOS_idx
         print('-----------------------------------------------------')
         print(str(N_idx)+' out of '+str(len(samples))+' were NSBH')
         print('-----------------------------------------------------')
-    #return m1_vals, m2_vals, mchirp, q, vej, mej, wind_mej, dyn_mej, thetas
+    
     return samples
 
 
@@ -208,9 +205,6 @@ def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
         Type = 'NSBH'
 
     all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., mass_draws * N_EOS)) / np.pi
-    #print('len thetas:')
-    #print(len(all_thetas_list))
-    #all_thetas_list = 180. * np.arccos(np.random.uniform(-1., 1., len(samples) * nsamples)) / np.pi
 
     type_plot = Type
     #-----------------------------------------------------------
@@ -330,38 +324,16 @@ def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
 
     #--------------------------------------------------------
     #samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
-    
+    #parallel implementation 
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i-1)):int(i)], Type, Type_set, EOS) for i in range(len(m1)))        
     
-    '''
-    if __name__ == "__main__":
-        plt.figure()
-        #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
-        plt.hist(np.log10(samples['mej']), bins = 20, range = (-4, -1))
-        plt.yscale('log')
-        plt.xlabel('mej')
-        plt.ylabel('Probability')
-        #plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
-        plt.close()
-    #mean_data=np.array(data)
-    '''
-    '''
-    id_list = np.arange(0,len(all_mejs_1D))
-    mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D, id_list))
-    corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-    '''
-    #id_list = np.arange(0,len(samples['mej']))
-    #mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
-   
-    #if __name__ == "__main__": 
-        #np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        #np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
-    #return all_mejs
-    #return samples['mej']
+    if __name__ == "__main__": 
+        np.savetxt('./mej_theta_data/EOS_test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
+        np.savetxt('./corner_data/EOS_test/corner_data_'+str(Type_set)+'.txt', samples)
+    
     return m1, m2, all_thetas_list
 
 def run_prob(mass, coverage_factors = False, Type = None):
@@ -375,11 +347,7 @@ def run_prob(mass, coverage_factors = False, Type = None):
     
     prob_list = []
     prob_norm_list = []
-    #----------------------------------------------------------------------
-    '''
-    EOS determined here, usually we use gp, unlikely this needs to be changed
-    '''
-    #---------------------------------------------------------------------
+    
     EOS_type = 'gp'
     #EOS_type = 'Sly'
     all_data = initial_mass_draws(Type, EOS_type)
