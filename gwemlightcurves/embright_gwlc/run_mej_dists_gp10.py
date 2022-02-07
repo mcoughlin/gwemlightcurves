@@ -473,24 +473,12 @@ The plot code for CDFs is below, PDF's are generated above
 mass_range = np.linspace(-5, .5, mass_points)
 if __name__ == "__main__":
 
-    #use this to loops over all lan frac (which only affects lightcurves) so you shouldn't have to change this
-    #lan_list = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
-    #use this if concerned with CDF/PDFs
-    #lan_list = [-9.00]
-
-    #use this to loop over range of spin values for NSBH
-    #chi_list = [-.75, -.5, -.25, 0, .25, .5, .75]
-    #only run spin 0 (which is what your original PDF was of)
-    #chi_list=[0]
-
-    #leave True
-    #prob_events, prob_norm_events = np.ones(100), np.ones(100)
-    
 
     #add in new arguments
     samples = calc_mej(m1, m2, all_thetas_list, Type, Type_set, EOS)
     plot_kde(mass_range)
     plt.figure()
+
     #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
     plt.hist(np.log10(samples['mej']), bins = 20, range = (-4, -1))
     plt.yscale('log')

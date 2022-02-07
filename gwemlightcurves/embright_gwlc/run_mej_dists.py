@@ -49,7 +49,7 @@ Determines the number of masses to draw from the inital mass dists, should be >1
 less than mass_draws, as the uniform dists are easier to sample/converge quicker
 '''
 #mass_draws = 2000
-mass_draws = 200
+#mass_draws = 200
 mass_draws = 10
 #mass_draws = 1
 
@@ -330,6 +330,8 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
     #--------------------------------------------------------
 
     samples = calc_mej_from_masses(m1, m2, all_thetas_list, Type, Type_set, EOS) 
+    
+    #parallel implementation
     #100 thetas -- correct
     #all_samples = Parallel(n_jobs = N_parallel)(delayed(calc_mej_from_masses)(i, m1, m2, all_thetas_list[int((i)*N_EOS):int((i+1)*N_EOS)], Type, Type_set, EOS) for i in range(len(m1)))
     #1 theta
