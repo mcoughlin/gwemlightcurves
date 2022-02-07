@@ -474,6 +474,12 @@ mass_range = np.linspace(-5, .5, mass_points)
 if __name__ == "__main__":
 
 
+    #4 function calls
+    #initial_mass_draws()
+    #calc_mej()
+    #run_prob()
+    #plot_kde()
+
     #add in new arguments
     samples = calc_mej(m1, m2, all_thetas_list, Type, Type_set, EOS)
     plot_kde(mass_range)
