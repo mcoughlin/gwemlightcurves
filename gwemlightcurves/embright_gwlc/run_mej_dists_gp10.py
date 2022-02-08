@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 import math
 import pandas as pd
 import h5py
-import bilby
 #from joblib import Parallel, delayed
 
 
@@ -187,7 +186,8 @@ def initial_mass_draws(Type, EOS, mass_draws=mass_draws):
     Type_set=Type
 
     if Type == 'Event':
-
+        
+        import bilby
         filename = "./event_files/S190901ap_files/LALInference.v2.posterior_samples.hdf5"
 
 
