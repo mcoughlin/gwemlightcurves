@@ -157,13 +157,6 @@ def calc_mej_from_masses(m1, m2, thetas, Type, Type_set, EOS):
     '''
     '''
     
-    #if i%10 == 0:
-    #    print(f'{i} out of {mass_draws} mej values calculated--------------------------')
-
-    #print(f'{i} out of {mass_draws} mej values calculated--------------------------')    
-
-    #m1m = m1[i]
-    #m2m = m2[i]
     m1m = m1
     m2m = m2
     samples = run_EOS(EOS, m1m, m2m, thetas, N_EOS = N_EOS, type_set=Type)
@@ -263,8 +256,6 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
         dist_NS_zhu = ss.norm(1.33, scale = .01)
         m2 = dist_NS_zhu.rvs(mass_draws)
-        #m2 = 1.33*np.ones(mass_draws)
-        #m2 = a_dist.rvs(size = mass_draws)
         m1 = z_dist.rvs(size = mass_draws)
 
         Type = 'NSBH'
@@ -287,42 +278,18 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
         m2 = ns_astro_mass_dist.rvs(mass_draws) 
         Type = 'BNS'
 
-
     if Type == 'NSBH_zhu_edited':
-
-        #dist_NS_zhu = ss.norm(1.33, scale = .01)
-        #m2 = dist_NS_zhu.rvs(mass_draws)
-        #m2 = 1.33*np.ones(mass_draws)
-        #m2 = a_dist.rvs(size = mass_draws)
-        
-        #m2 = np.random.normal(1.33, .01, mass_draws)
-        #m1 = m2 * np.random.normal(3.6, .01, mass_draws)
-        
-
         m1 = z_dist.rvs(size = mass_draws)
         m2 = m1/(np.random.normal(3.6, .01, mass_draws))
-
         Type = 'NSBH' 
 
     if Type == 'NSBH_q_range':
-
-        #dist_NS_zhu = ss.norm(1.33, scale = .01)
-        #m2 = dist_NS_zhu.rvs(mass_draws)
-        #m2 = 1.33*np.ones(mass_draws)
-        #m2 = a_dist.rvs(size = mass_draws)
-
         m2 = np.random.normal(1.33, .01, mass_draws)
         m1 = m2 * np.random.normal(3.6, .01, mass_draws)
-
-
-        #m1 = z_dist.rvs(size = mass_draws)
-        #m2 = m1/(np.random.normal(3.6, .01, mass_draws))
-
         Type = 'NSBH'
 
     if Type == 'NSBH_LRR_edited':
         m1 = bh_astro_mass_dist.rvs(mass_draws)
-        #m2 = ns_astro_mass_dist.rvs(mass_draws)
         m2 = m1/(np.random.normal(4.5, .01, mass_draws))
         Type = 'NSBH'
 
@@ -340,28 +307,19 @@ def run_theoretical(Type, EOS, mass_draws=mass_draws):
 
     if __name__ == "__main__":
         plt.figure()
-        #plt.hist(np.log10(all_mejs_1D), bins = 20, range = (-20, 20))
         plt.hist(np.log10(samples['mej']), bins = 20, range = (-4, -1))
         plt.yscale('log')
         plt.xlabel('mej')
         plt.ylabel('Probability')
         plt.savefig(f'./output/mej_hist_{type_plot}.pdf')
         plt.close()
-    #mean_data=np.array(data)
-    '''
-    id_list = np.arange(0,len(all_mejs_1D))
-    mej_theta = np.column_stack((all_mejs_1D, all_thetas_1D, id_list))
-    corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
-    '''
+    
     id_list = np.arange(0,len(samples['mej']))
     mej_theta = np.column_stack((samples['mej'], all_thetas_list, id_list))
    
     if __name__ == "__main__": 
-        #corner_data = np.column_stack((all_m1s_1D, all_m2s_1D, all_mchirps_1D, all_qs_1D, all_vejs_1D, all_mejs_1D, all_wind_mejs_1D, all_dyn_mejs_1D, all_thetas_1D, id_list))
         np.savetxt('./mej_theta_data/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
-        #np.savetxt('./mej_theta_data/test/mej_theta_data_'+str(Type_set)+'.txt', mej_theta)
         np.savetxt('./corner_data/corner_data_'+str(Type_set)+'.txt', samples)
-    #return all_mejs
     return samples['mej']
 
 
@@ -506,16 +464,4 @@ The plot code for CDFs is below, PDF's are generated above
 mass_range = np.linspace(-5, .5, mass_points)
 if __name__ == "__main__":
 
-    #use this to loops over all lan frac (which only affects lightcurves) so you shouldn't have to change this
-    #lan_list = ['-1.00', '-2.00', '-3.00', '-4.00', '-5.00', '-9.00']
-    #use this if concerned with CDF/PDFs
-    #lan_list = [-9.00]
-
-    #use this to loop over range of spin values for NSBH
-    #chi_list = [-.75, -.5, -.25, 0, .25, .5, .75]
-    #only run spin 0 (which is what your original PDF was of)
-    #chi_list=[0]
-
-    #leave True
-    #prob_events, prob_norm_events = np.ones(100), np.ones(100)
     plot_kde(mass_range)
