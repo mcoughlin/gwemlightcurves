@@ -191,7 +191,7 @@ def get_Bu2019lm_model(table, **kwargs):
     for isample in range(len(table)):
         print(np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample])
 
-        print('Generating sample %d/%d' % (isample, len(table)))
+        print('Generating sample %d/%d' % (isample+1, len(table)))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej_dyn'][isample]),np.log10(table['mej_wind'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019lm", gptype=table['gptype'][0])
         elif doSpec:
