@@ -48,8 +48,6 @@ def calc_meje(m1,c1,m2,c2, split_mej = False):
 
     lambdatilde = (16.0/13.0)*(lambda2 + lambda1*(q**5) + 12*lambda1*(q**4) + 12*lambda2*q)/((q+1)**5)
     mc = ((m1*m2)**(3./5.)) * ((m1 + m2)**(-1./5.))
-    if lambdatilde < 0:
-        print('Negative lambdatilde, setting disk mej to 10^-3')
 
     mTOV = 2.17
     R16 = mc * (lambdatilde/0.0042)**(1.0/6.0)
@@ -75,6 +73,8 @@ def calc_meje(m1,c1,m2,c2, split_mej = False):
     mdisk = a*(1+b*np.tanh((c-mtot/mth)/d))
     
     mdisk[lambdatilde<0] = -3.0
+    if len(mdisk[lambdatilde<0]) > 0: 
+        print('Negative lambdatilde, setting mej to 10^-3')
     mdisk[mdisk<-3] = -3.0
     mdisk[rat>0.32] = -3.0
     mdisk = 10**mdisk
