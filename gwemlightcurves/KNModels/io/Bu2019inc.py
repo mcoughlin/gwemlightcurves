@@ -60,8 +60,10 @@ def get_Bu2019inc_model(table, **kwargs):
             if LoadModel:
                 # PreLoadModel only for sklearn
                 if PreLoadModel:
+                    print('using pre-loaded model')
                     svd_mag_model = kwargs['ModelFileMag']
                 else: 
+                    print('loading model file')
                     if np.all(table['gptype'] == "sklearn"):
                         modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
                     elif np.all(table['gptype'] == "gpytorch"):
@@ -87,8 +89,10 @@ def get_Bu2019inc_model(table, **kwargs):
             if LoadModel:
                 # PreLoadModel only for sklearn
                 if PreLoadModel:
+                    print('using pre-loaded model')
                     svd_lbol_model = kwargs['ModelFileLbol']
                 else:
+                    print('loading model file')
                     if np.all(table['gptype'] == "sklearn"):
                         modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
                     elif np.all(table['gptype'] == "gpytorch"):
@@ -152,7 +156,7 @@ def get_Bu2019inc_model(table, **kwargs):
 
     # calc lightcurve for each sample
     for isample in range(len(table)):
-        print('Generating sample %d/%d' % (isample, len(table)))
+        print('Generating sample %d/%d' % (isample+1, len(table)))
         if doAB:
             table['t'][isample], table['lbol'][isample], table['mag'][isample] = svd_utils.calc_lc(table['tini'][isample], table['tmax'][isample],table['dt'][isample], [np.log10(table['mej'][isample]),table['phi'][isample],table['theta'][isample]],svd_mag_model = svd_mag_model, svd_lbol_model = svd_lbol_model, model = "Bu2019inc", gptype=table['gptype'][0], n_coeff_lim=table['n_coeff'][0])
         elif doSpec:
