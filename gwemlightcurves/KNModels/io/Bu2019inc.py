@@ -19,6 +19,12 @@ def get_Bu2019inc_model(table, **kwargs):
     else:
         LoadModel = False
 
+    # PreLoadModel only for sklearn
+    if 'PreLoadModel' in kwargs:
+        PreLoadModel = kwargs['PreLoadModel']
+    else:
+        PreLoadModel = False
+
     if 'SaveModel' in kwargs:
         SaveModel = kwargs['SaveModel']
     else:
@@ -52,13 +58,16 @@ def get_Bu2019inc_model(table, **kwargs):
             svd_mag_model = Global.svd_mag_model
         else:
             if LoadModel:
-            #if True:
-                if np.all(table['gptype'] == "sklearn"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
-                elif np.all(table['gptype'] == "gpytorch"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_mag_gpy.pkl')
-                with open(modelfile, 'rb') as handle:
-                    svd_mag_model = pickle.load(handle)
+                # PreLoadModel only for sklearn
+                if PreLoadModel:
+                    svd_mag_model = kwargs['ModelFile']
+                else: 
+                    if np.all(table['gptype'] == "sklearn"):
+                        modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
+                    elif np.all(table['gptype'] == "gpytorch"):
+                        modelfile = os.path.join(ModelPath,'Bu2019inc_mag_gpy.pkl')
+                    with open(modelfile, 'rb') as handle:
+                        svd_mag_model = pickle.load(handle)
             else:
                 svd_mag_model = svd_utils.calc_svd_mag(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019inc", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
                 if table['gptype'] == "sklearn":
