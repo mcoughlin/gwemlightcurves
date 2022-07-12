@@ -60,7 +60,7 @@ def get_Bu2019inc_model(table, **kwargs):
             if LoadModel:
                 # PreLoadModel only for sklearn
                 if PreLoadModel:
-                    svd_mag_model = kwargs['ModelFile']
+                    svd_mag_model = kwargs['ModelFileMag']
                 else: 
                     if np.all(table['gptype'] == "sklearn"):
                         modelfile = os.path.join(ModelPath,'Bu2019inc_mag.pkl')
@@ -85,14 +85,17 @@ def get_Bu2019inc_model(table, **kwargs):
             svd_lbol_model = Global.svd_lbol_model
         else:
             if LoadModel:
-            #if True:
-                if np.all(table['gptype'] == "sklearn"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
-                elif np.all(table['gptype'] == "gpytorch"):
-                    modelfile = os.path.join(ModelPath,'Bu2019inc_lbol_gpy.pkl')
+                # PreLoadModel only for sklearn
+                if PreLoadModel:
+                    svd_lbol_model = kwargs['ModelFileLbol']
+                else:
+                    if np.all(table['gptype'] == "sklearn"):
+                        modelfile = os.path.join(ModelPath,'Bu2019inc_lbol.pkl')
+                    elif np.all(table['gptype'] == "gpytorch"):
+                        modelfile = os.path.join(ModelPath,'Bu2019inc_lbol_gpy.pkl')
 
-                with open(modelfile, 'rb') as handle:
-                    svd_lbol_model = pickle.load(handle)            
+                    with open(modelfile, 'rb') as handle:
+                        svd_lbol_model = pickle.load(handle)            
             else:
                 svd_lbol_model = svd_utils.calc_svd_lbol(table['tini'][0], table['tmax'][0], table['dt'][0], model = "Bu2019inc", n_coeff = table['n_coeff'][0], gptype=table['gptype'])
 
